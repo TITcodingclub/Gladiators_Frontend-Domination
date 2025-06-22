@@ -28,3 +28,54 @@ body::-webkit-scrollbar{
 .prepScroll:hover::-webkit-scrollbar-thumb {
   background-color: #9ca3af;
 }
+@layer utilities {
+  .animate-fadeSlideIn {
+    animation: fadeSlideIn 0.6s forwards;
+  }
+
+  @keyframes fadeSlideIn {
+    0% {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Custom animation delays */
+  .animation-delay-0 { animation-delay: 0ms; }
+  .animation-delay-150 { animation-delay: 150ms; }
+  .animation-delay-300 { animation-delay: 300ms; }
+  .animation-delay-450 { animation-delay: 450ms; }
+}
+@keyframes slideDown {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slideDown {
+  animation: slideDown 0.45s ease-out forwards;
+}
+
+.animate-fadeInUp {
+  animation: fadeInUp 0.45s ease-out forwards;
+}
