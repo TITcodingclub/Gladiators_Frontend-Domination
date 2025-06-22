@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
 export default function EmojiReactions({ stepId }) {
-  const [counts, setCounts] = useState({ 👍:0, 😄:0, 😋:0 })
+  const [counts, setCounts] = useState({ '👍':0, '😄':0, '😋':0 })
   const react = emoji => setCounts(c => ({ ...c, [emoji]: c[emoji]+1 }))
   return (
     <div className="flex space-x-4 mt-2">
