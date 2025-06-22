@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 import CookModeView from './CookModeView'
 import { Snackbar, Alert } from '@mui/material'
+import TagAnimator from './TagAnimator'
+import ThreadBackground from './ThreadBackground'
 
 
 export default function RecipeGuide({ scrollRef }) {
@@ -56,8 +58,13 @@ export default function RecipeGuide({ scrollRef }) {
   }
 
   return (
-    <div ref={scrollRef} className="w-full px-20 py-10 space-y-6">
+    <>
+      <ThreadBackground />
+      <div ref={scrollRef} className="w-full lg:px-20 lg:py-10 px-5 py-5 space-y-6">
+
       <h1 className="text-3xl font-bold text-center text-green-400 mt-24">🍳 Recipe Guide</h1>
+
+       <TagAnimator tags={['🥦 vegan', '⏱️ quick', '🌶️ spicy']} />
 
       {/* Search */}
       <div className="flex flex-col sm:flex-row gap-3">
@@ -162,5 +169,6 @@ export default function RecipeGuide({ scrollRef }) {
         </Snackbar>
 
     </div>
+    </>
   )
 }

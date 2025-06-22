@@ -15,6 +15,7 @@ export default function RecipePage() {
 
   return (
    <>
+   <ThreadBackground />
     <div className="px-10 py-5 w-full mx-auto flex flex-col gap-6">
       <GreetingHeader user={user} />
 
@@ -22,7 +23,6 @@ export default function RecipePage() {
         <VoiceWithVideoSection />
       </DragDropBoard>
 
-      <TagAnimator tags={['🥦 vegan', '⏱️ quick', '🌶️ spicy']} />
 
       {/* 👇 Pass callback to RecipeGuide to get selected steps */}
       {/* <RecipeGuide onRecipeSelect={setSelectedSteps} /> */}
@@ -54,7 +54,7 @@ function GreetingHeader({ user }) {
       <h1 className="lg:text-3xl text-lg lg:font-bold text-green-500 mt-25">
         Hello Chef{typedText} 👨‍🍳
       </h1>
-      <p className="text-sm text-gray-400">Ready to cook something delicious today?</p>
+      <p className="text-sm text-gray-400 mt-2">Ready to cook something delicious today?</p>
     </div>
   )
 }

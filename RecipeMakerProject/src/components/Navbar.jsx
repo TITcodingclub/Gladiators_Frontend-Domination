@@ -130,13 +130,7 @@ const navItems = [
               className="absolute top-10 right-0 mt-2 w-44 cursor-pointer rounded shadow-md z-50
               bg-white dark:bg-[#1d1f31] border dark:border-gray-700"
             >
-              <button
-                onClick={toggleTheme}
-                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-800 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
-              >
-                {darkMode ? <FaMoon className="text-[#FF742C]" /> : <FaSun className="text-[#FF742C]" />}
-                {darkMode ? 'Dark Mode' : 'Light Mode'}
-              </button>
+              
 
               <button
                 onClick={logout}
@@ -192,14 +186,7 @@ const navItems = [
           ))}
 
           <div className="flex flex-col gap-3 pt-5">
-            <button
-              onClick={toggleTheme}
-              className="block text-left text-lg text-gray-800 dark:text-white transition-all duration-300 hover:text-[#FF742C] dark:hover:text-[#FF742C] animate-fadeInUp"
-              style={{ animationDelay: '0.4s', animationFillMode: 'both' }}
-            >
-              {darkMode ? <FaMoon className="inline mr-2 text-[#FF742C]" /> : <FaSun className="inline mr-2 text-[#FF742C]" />}
-              {darkMode ? 'Dark Mode' : 'Light Mode'}
-            </button>
+            
 
             <button
               onClick={user ? logout : login}
