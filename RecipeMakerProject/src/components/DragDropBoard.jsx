@@ -1,81 +1,128 @@
-import { DndContext, closestCenter } from '@dnd-kit/core'
-
-import { useState } from 'react'
-
+import {
+  DndContext,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable'
+import { useState, useEffect } from 'react'
+import { v4 as uuid } from 'uuid'
 import Column from './PrepColumn'
 
-
+const COLUMN_KEYS = ['todo', 'cooking', 'done']
 
 const initialData = {
-
-  todo: ['Chop onions', 'Wash tomatoes', 'Peel garlic'],
-
-  prepped: [],
-
+  todo: [
+    { id: uuid(), text: 'Chop onions' },
+    { id: uuid(), text: 'Peel garlic' },
+  ],
   cooking: [],
-
+  done: [],
 }
 
-
-
 export default function DragDropBoard() {
+  const [tasks, setTasks] = useState(() => {
+    return JSON.parse(localStorage.getItem('recipe-board')) || initialData
+  })
 
-  const [tasks, setTasks] = useState(initialData)
+  const sensors = useSensors(useSensor(PointerSensor))
 
+  useEffect(() => {
+    localStorage.setItem('recipe-board', JSON.stringify(tasks))
+  }, [tasks])
 
+  const findColumn = (taskId) =>
+    COLUMN_KEYS.find((col) => tasks[col].some((t) => t.id === taskId))
 
-  const handleDragEnd = (event) => {
-
-    const { active, over } = event
-
+  const handleDragEnd = ({ active, over }) => {
     if (!over || active.id === over.id) return
 
+    const fromCol = findColumn(active.id)
+    const toCol = COLUMN_KEYS.includes(over.id) ? over.id : findColumn(over.id)
+    if (!fromCol || !toCol) return
 
+    const activeItem = tasks[fromCol].find((t) => t.id === active.id)
 
-    const sourceColumn = Object.keys(tasks).find((col) =>
+    if (fromCol === toCol) {
+      const oldIndex = tasks[toCol].findIndex((t) => t.id === active.id)
+      const newIndex = tasks[toCol].findIndex((t) => t.id === over.id)
+      if (oldIndex !== newIndex) {
+        const newList = arrayMove(tasks[toCol], oldIndex, newIndex)
+        setTasks((prev) => ({ ...prev, [toCol]: newList }))
+      }
+    } else {
+      const insertIndex = tasks[toCol].findIndex((t) => t.id === over.id)
+      const newTo = [...tasks[toCol]]
+      insertIndex === -1
+        ? newTo.push(activeItem)
+        : newTo.splice(insertIndex, 0, activeItem)
+      const newFrom = tasks[fromCol].filter((t) => t.id !== active.id)
 
-      tasks[col].includes(active.id)
-
-    )
-
-    const destinationColumn = over.id
-
-
-
-    if (sourceColumn && destinationColumn && sourceColumn !== destinationColumn) {
-
-      setTasks(prev => {
-
-        const sourceList = [...prev[sourceColumn]].filter(item => item !== active.id)
-
-        const destinationList = [...prev[destinationColumn], active.id]
-
-        return { ...prev, [sourceColumn]: sourceList, [destinationColumn]: destinationList }
-
-      })
-
+      setTasks((prev) => ({
+        ...prev,
+        [fromCol]: newFrom,
+        [toCol]: newTo,
+      }))
     }
-
   }
 
+  const updateCard = (col, id, newText) => {
+    setTasks((prev) => ({
+      ...prev,
+      [col]: prev[col].map((t) =>
+        t.id === id ? { ...t, text: newText } : t
+      ),
+    }))
+  }
 
+  const deleteCard = (col, id) => {
+    setTasks((prev) => ({
+      ...prev,
+      [col]: prev[col].filter((t) => t.id !== id),
+    }))
+  }
+
+  const addCard = (col, text) => {
+    const newCard = { id: uuid(), text }
+    setTasks((prev) => ({
+      ...prev,
+      [col]: [newCard, ...prev[col]],
+    }))
+  }
 
   return (
-
-    <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-
-        <Column id="todo" title="To Prep" items={tasks.todo} />
-
-        <Column id="prepped" title="Prepped" items={tasks.prepped} />
-
-        <Column id="cooking" title="Cooking" items={tasks.cooking} />
-
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragEnd={handleDragEnd}
+    >
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 p-4">
+        {COLUMN_KEYS.map((col) => (
+          <SortableContext
+            key={col}
+            items={tasks[col].map((t) => t.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <Column
+              id={col}
+              title={formatTitle(col)}
+              tasks={tasks[col]}
+              onEdit={updateCard}
+              onDelete={(id) => deleteCard(col, id)}
+              onAdd={addCard}
+            />
+          </SortableContext>
+        ))}
       </div>
-
     </DndContext>
-
   )
+}
 
+function formatTitle(key) {
+  return key === 'todo' ? 'To Prep' : key.charAt(0).toUpperCase() + key.slice(1)
 }
