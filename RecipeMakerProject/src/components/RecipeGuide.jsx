@@ -1,173 +1,135 @@
-import { useEffect, useState } from 'react'
-import CookStep from './CookStep'
-import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition'
-import toast from 'react-hot-toast'
-
-const DEFAULT_RECIPES = {
-  Cake: [
-    { text: 'Preheat oven to 180°C (350°F).', tags: ['prep', 'oven'] },
-    { text: 'Mix flour, sugar, and eggs in a bowl.', tags: ['mixing', 'base'] },
-    { text: 'Pour mixture into baking pan.', tags: ['pour', 'prep'] },
-    { text: 'Bake for 30 minutes.', tags: ['bake', 'timer'] },
-  ],
-}
+import React, { useState } from 'react'
+import axios from 'axios'
+import CookModeView from './CookModeView'
+import { Snackbar } from '@mui/material'
 
 export default function RecipeGuide() {
-  const [recipes, setRecipes] = useState(() =>
-    JSON.parse(localStorage.getItem('custom-recipes')) || DEFAULT_RECIPES
-  )
-  const [selected, setSelected] = useState(null)
-  const [checkedSteps, setCheckedSteps] = useState({})
-  const [customRecipeName, setCustomRecipeName] = useState('')
+  const [query, setQuery] = useState('')
+  const [steps, setSteps] = useState(null)
+  const [customName, setCustomName] = useState('')
   const [customSteps, setCustomSteps] = useState([''])
+  const [alert, setAlert] = useState('')
 
-  const { transcript, listening, resetTranscript } = useSpeechRecognition()
+  const handleSearch = async () => {
+    if (!query.trim()) return
+    setSteps(null)
+    setAlert('')
 
-  // Load saved progress on recipe change
-  useEffect(() => {
-    if (!selected) return
-    const saved = localStorage.getItem(`progress-${selected}`)
-    setCheckedSteps(saved ? JSON.parse(saved) : {})
-  }, [selected])
-
-  // Save progress
-  useEffect(() => {
-    if (selected) {
-      localStorage.setItem(`progress-${selected}`, JSON.stringify(checkedSteps))
-    }
-  }, [checkedSteps, selected])
-
-  // Voice Command Handler
-  useEffect(() => {
-    const command = transcript.toLowerCase().trim()
-    if (!command || !selected) return
-
-    if (command.includes('next step')) {
-      const nextIndex = Object.values(checkedSteps).filter(Boolean).length
-      if (nextIndex < recipes[selected].length) {
-        setCheckedSteps((prev) => ({ ...prev, [nextIndex]: true }))
-        toast.success(`Step ${nextIndex + 1} marked as done ✅`)
+    try {
+      const { data } = await axios.get(
+        `https://www.themealdb.com/api/json/v1/1/search.php?s=${query}`
+      )
+      const meal = data.meals?.[0]
+      if (meal) {
+        const instr = meal.strInstructions
+          ?.split(/\r?\n/)
+          .filter(line => line.trim())
+        setSteps(instr.map(text => ({ text, tags: [] })))
+      } else {
+        setAlert('No recipe found.')
       }
+    } catch {
+      setAlert('Error fetching recipe.')
+    }
+  }
+
+  const saveCustom = () => {
+    const valid = customSteps.filter(s => s.trim())
+    if (!customName.trim() || valid.length === 0) {
+      setAlert('Please enter a name and at least one step.')
+      return
     }
 
-    if (command.includes('reset') || command.includes('start over')) {
-      setCheckedSteps({})
-      toast('Recipe reset 🔁')
-    }
-
-    resetTranscript()
-  }, [transcript])
-
-  const handleAddCustomRecipe = () => {
-    const steps = customSteps.filter((s) => s.trim())
-    if (!customRecipeName || steps.length === 0) return
-
-    const newRecipes = {
-      ...recipes,
-      [customRecipeName]: steps.map((text) => ({ text, tags: [] })),
-    }
-
-    setRecipes(newRecipes)
-    localStorage.setItem('custom-recipes', JSON.stringify(newRecipes))
-    setCustomRecipeName('')
-    setCustomSteps([''])
-    toast.success('Custom recipe added! 🧁')
+    const saved = JSON.parse(localStorage.getItem('custom-recipes') || '{}')
+    saved[customName] = valid.map(text => ({ text, tags: [] }))
+    localStorage.setItem('custom-recipes', JSON.stringify(saved))
+    setAlert('Custom recipe saved!')
+    setSteps(saved[customName])
   }
 
   return (
-    <div className="space-y-6">
-      {!selected ? (
-        <>
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-white mb-4">Select a Recipe to Cook</h2>
-            <div className="flex justify-center gap-4 flex-wrap">
-              {Object.keys(recipes).map((name) => (
-                <button
-                  key={name}
-                  onClick={() => setSelected(name)}
-                  className="bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-2 rounded transition"
-                >
-                  🍽️ {name}
-                </button>
-              ))}
-            </div>
-          </div>
+    <div className="max-w-2xl mx-auto p-4 space-y-6">
+      <h1 className="text-3xl font-bold text-center text-green-400">🍳 Recipe Guide</h1>
 
-          <div className="bg-[#1f2133] p-4 rounded-lg mt-6 space-y-4">
-            <h3 className="text-white text-lg font-semibold">Add Your Own Recipe</h3>
+      {/* Search */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <input
+          type="text"
+          placeholder="Search recipe..."
+          className="flex-1 p-3 rounded border border-gray-600 bg-gray-800 text-white"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        <button
+          onClick={handleSearch}
+          className="px-5 py-3 bg-green-600 hover:bg-green-700 text-white rounded font-semibold"
+        >
+          Search
+        </button>
+      </div>
+
+      {/* Custom Recipe Form */}
+      {!steps && (
+        <div className="bg-gray-900 border border-gray-700 p-4 rounded-lg space-y-4">
+          <h2 className="text-xl font-semibold text-white">Add Your Own Recipe</h2>
+          <input
+            type="text"
+            placeholder="Recipe Name"
+            className="w-full p-2 rounded bg-gray-800 text-white border border-gray-600"
+            value={customName}
+            onChange={e => setCustomName(e.target.value)}
+          />
+          {customSteps.map((step, i) => (
             <input
-              value={customRecipeName}
-              onChange={(e) => setCustomRecipeName(e.target.value)}
-              placeholder="Recipe name"
-              className="w-full p-2 rounded bg-gray-700 text-white"
+              key={i}
+              type="text"
+              placeholder={`Step ${i + 1}`}
+              className="w-full p-2 mt-2 rounded bg-gray-800 text-white border border-gray-600"
+              value={step}
+              onChange={(e) => {
+                const newSteps = [...customSteps]
+                newSteps[i] = e.target.value
+                setCustomSteps(newSteps)
+              }}
             />
-            {customSteps.map((step, i) => (
-              <input
-                key={i}
-                value={step}
-                onChange={(e) =>
-                  setCustomSteps((prev) =>
-                    prev.map((s, idx) => (idx === i ? e.target.value : s))
-                  )
-                }
-                placeholder={`Step ${i + 1}`}
-                className="w-full p-2 rounded bg-gray-700 text-white mb-2"
-              />
-            ))}
-            <div className="flex gap-2">
-              <button
-                onClick={() => setCustomSteps([...customSteps, ''])}
-                className="bg-blue-500 px-3 py-1 rounded text-white"
-              >
-                + Add Step
-              </button>
-              <button
-                onClick={handleAddCustomRecipe}
-                className="bg-green-600 px-3 py-1 rounded text-white"
-              >
-                ✅ Save Recipe
-              </button>
-            </div>
+          ))}
+          <div className="flex gap-2 mt-4">
+            <button
+              onClick={() => setCustomSteps([...customSteps, ''])}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded"
+            >
+              + Step
+            </button>
+            <button
+              onClick={saveCustom}
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
+            >
+              Save Recipe
+            </button>
           </div>
-        </>
-      ) : (
-        <>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-bold text-white">👨‍🍳 {selected} Cooking Guide</h2>
-            <div className="flex gap-2">
-              <button
-                onClick={() => SpeechRecognition.startListening({ continuous: false })}
-                className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded"
-              >
-                🎤 Voice Command
-              </button>
-              <button
-                onClick={() => {
-                  setSelected(null)
-                  setCheckedSteps({})
-                }}
-                className="text-sm text-gray-300 hover:text-red-400 underline"
-              >
-                ← Choose Another Recipe
-              </button>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            {recipes[selected].map((step, i) => (
-              <CookStep
-                key={i}
-                index={i + 1}
-                step={step}
-                checked={checkedSteps[i]}
-                onToggle={() =>
-                  setCheckedSteps((prev) => ({ ...prev, [i]: !prev[i] }))
-                }
-              />
-            ))}
-          </div>
-        </>
+        </div>
       )}
+
+      {/* Cook Mode View */}
+      {steps && (
+        <div className="space-y-4">
+          <CookModeView steps={steps} />
+          <button
+            onClick={() => setSteps(null)}
+            className="text-green-400 hover:text-red-400 text-sm mt-2 underline"
+          >
+            ← Back to search
+          </button>
+        </div>
+      )}
+
+      {/* Alert */}
+      <Snackbar
+        open={!!alert}
+        autoHideDuration={3000}
+        message={alert}
+        onClose={() => setAlert('')}
+      />
     </div>
   )
 }
