@@ -1,3 +1,6 @@
 @import "tailwindcss";
 /* #FF742C */
 /* #F4F4F8  - white */
+body::-webkit-scrollbar{
+    display: none;
+}
