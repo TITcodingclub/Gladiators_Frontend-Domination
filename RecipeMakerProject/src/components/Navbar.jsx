@@ -14,7 +14,6 @@ export default function Navbar() {
         <li><a href="#" className="hover:text-green-500">Community</a></li>
       </ul>
 
-      {/* User */}
       {user ? (
         <div className="relative flex items-center gap-2">
           <img src={user.photoURL} className="w-8 h-8 rounded-full" alt="avatar" />

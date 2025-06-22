@@ -3,7 +3,7 @@ import Navbar from './components/Navbar'
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100">
+    <div className="min-h-screen  bg-gradient-to-br from-[#0f101a] via-[#151623] to-[#0f101a] text-gray-800 dark:text-gray-100">
       <Navbar />
       <RecipePage />
     </div>
