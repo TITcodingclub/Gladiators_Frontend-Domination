@@ -25,7 +25,7 @@ export default function PrepColumn({
   }
 
   return (
-    <div id={id} className="flex flex-col">
+    <div id={id} className="flex flex-col text-white">
       <h2 className="text-lg font-semibold mb-3 dark:text-white">{title}</h2>
       <div className="flex mb-4 space-x-2">
         <input

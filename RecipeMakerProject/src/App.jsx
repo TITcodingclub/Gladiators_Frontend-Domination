@@ -11,15 +11,16 @@ function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-white bg-black">
-        Loading...
+     <div className="w-screen h-screen flex justify-center items-center bg-black">
+        <div className="flex justify-center items-center py-4">
+            <div className="animate-spin rounded-full h-20 w-20 border-t-2 border-b-2 border-[#FF742C]"></div>
+          </div>
       </div>
     )
   }
 
   return (
     <Router>
-      <ThreadBackground />
       <div className="min-h-screen w-full">
         {user && <Navbar />}
         <Routes>
