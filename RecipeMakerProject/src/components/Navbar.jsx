@@ -30,7 +30,7 @@ export default function Navbar() {
   }, [])
 
   return (
-    <nav className="bg-gradient-to-br fixed w-full from-[#0f101a] via-[#151623] to-[#0f101a] shadow-xl px-10 py-5 flex justify-between items-center">
+    <nav className="bg-gradient-to-br fixed w-full from-[#0f101a] via-[#151623] to-[#0f101a] shadow-xl px-10 py-5 flex justify-between items-center z-999">
       <div className="text-2xl font-bold text-green-500">Nutrithy 🍳</div>
 
       <ul className="hidden md:flex gap-6 text-white">

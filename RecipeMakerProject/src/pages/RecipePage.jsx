@@ -48,7 +48,7 @@ function GreetingHeader({ user }) {
 
   return (
     <div className="text-center">
-      <h1 className="text-3xl font-bold text-green-500 mt-6">
+      <h1 className="text-3xl font-bold text-green-500 mt-20">
         Hello Chef{typedText} 👨‍🍳
       </h1>
       <p className="text-sm text-gray-400">Ready to cook something delicious today?</p>
