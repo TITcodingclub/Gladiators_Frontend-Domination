@@ -104,6 +104,7 @@ export default function DragDropBoard({ children }) {
         collisionDetection={closestCenter}
         onDragEnd={handleDragEnd}
       >
+        
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-5">
           {COLUMN_KEYS.map((col) => (
             <SortableContext
@@ -111,6 +112,7 @@ export default function DragDropBoard({ children }) {
               items={tasks[col].map((t) => t.id)}
               strategy={verticalListSortingStrategy}
             >
+              
               <Column
                 id={col}
                 title={formatTitle(col)}

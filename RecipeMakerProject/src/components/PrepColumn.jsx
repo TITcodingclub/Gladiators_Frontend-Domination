@@ -66,15 +66,18 @@ export default function PrepColumn({ id, title, tasks, onAdd, onEdit, onDelete }
           {editing ? 'Update' : 'Add'}
         </button>
       </div>
-      <div className="overflow-y-auto prepScroll cursor-pointer" role="list">
+      <div
+        className="overflow-y-auto prepScroll cursor-pointer max-h-[60vh] pr-1"
+        role="list"
+      >
         <AnimatePresence>
           {tasks.map(task => (
             <SortableCard
               key={task.id}
               task={task}
               onEdit={(t) => {
-                setEditing(t)
-                setInput(t.text)
+                setEditing(t);
+                setInput(t.text);
               }}
               onDelete={onDelete}
             />

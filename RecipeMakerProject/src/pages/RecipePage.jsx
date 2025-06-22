@@ -1,4 +1,4 @@
-import { useContext } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import DragDropBoard, { BoardContext } from '../components/DragDropBoard'
 import VoiceInput from '../components/VoiceInput'
@@ -19,13 +19,7 @@ export default function RecipePage() {
 
   return (
     <div className="p-4 max-w-screen-lg mx-auto flex flex-col gap-6">
-      {/* 🔥 Greeting at the top */}
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-green-500 mt-25">
-          Hello Chef{user?.displayName ? `, ${user.displayName}` : ''} 👨‍🍳
-        </h1>
-        <p className="text-sm text-gray-400">Ready to cook something delicious today?</p>
-      </div>
+      <GreetingHeader user={user} />
 
       <DragDropBoard>
         <VoiceWithVideoSection />
@@ -38,7 +32,32 @@ export default function RecipePage() {
   )
 }
 
-// ✅ Context-safe component rendered within DragDropBoard
+// ✨ Greeting with typing animation
+function GreetingHeader({ user }) {
+  const fullText = user?.displayName ? `, ${user.displayName}` : ''
+  const [typedText, setTypedText] = useState('')
+
+  useEffect(() => {
+    let i = 0
+    const interval = setInterval(() => {
+      setTypedText(fullText.slice(0, i + 1))
+      i++
+      if (i >= fullText.length) clearInterval(interval)
+    }, 150)
+    return () => clearInterval(interval)
+  }, [fullText])
+
+  return (
+    <div className="text-center">
+      <h1 className="text-2xl font-bold text-green-500 mt-25">
+        Hello Chef{typedText} 👨‍🍳
+      </h1>
+      <p className="text-sm text-gray-400">Ready to cook something delicious today?</p>
+    </div>
+  )
+}
+
+// ✅ Safe child component for DragDropBoard
 function VoiceWithVideoSection() {
   const { addCard, activeColumn } = useContext(BoardContext)
   return (

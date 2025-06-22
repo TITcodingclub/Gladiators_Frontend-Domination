@@ -4,6 +4,27 @@
 body::-webkit-scrollbar{
     display: none;
 }
-.prepScroll::-webkit-scrollbar{
-    display: none;
+.prepScroll {
+  scrollbar-width: thin;
+  scrollbar-color: #6b7280 transparent; /* thumb, track */
+
+  /* For WebKit */
+}
+
+.prepScroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.prepScroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.prepScroll::-webkit-scrollbar-thumb {
+  background-color: #6b7280;
+  border-radius: 10px;
+  transition: background-color 0.3s ease;
+}
+
+.prepScroll:hover::-webkit-scrollbar-thumb {
+  background-color: #9ca3af;
 }

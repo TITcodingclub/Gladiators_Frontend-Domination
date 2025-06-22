@@ -1,6 +1,36 @@
-import { useEffect } from 'react'
-import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition'
-import toast from 'react-hot-toast'
+import { useEffect } from 'react';
+import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
+import toast from 'react-hot-toast';
+import { Button, Box, Typography } from '@mui/material';
+import MicIcon from '@mui/icons-material/Mic';
+import StopIcon from '@mui/icons-material/Stop';
+import { styled, keyframes } from '@mui/material/styles';
+
+
+const pulse = keyframes`
+  0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.6); }
+  70% { box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+`;
+
+const SpeakButton = styled(Button)(({ theme }) => ({
+  backgroundColor: '#4caf50',
+  color: '#fff',
+  padding: '10px 20px',
+  animation: `${pulse} 1.5s infinite`,
+  '&:hover': {
+    backgroundColor: '#43a047'
+  }
+}));
+
+const StopButton = styled(Button)(({ theme }) => ({
+  backgroundColor: '#f44336',
+  color: '#fff',
+  padding: '10px 20px',
+  '&:hover': {
+    backgroundColor: '#e53935'
+  }
+}));
 
 export default function VoiceInput({ onVoiceAdd }) {
   const {
@@ -8,50 +38,66 @@ export default function VoiceInput({ onVoiceAdd }) {
     listening,
     resetTranscript,
     browserSupportsSpeechRecognition
-  } = useSpeechRecognition()
+  } = useSpeechRecognition();
 
   useEffect(() => {
     if (!listening && transcript.trim()) {
-      onVoiceAdd(transcript.trim())
-      toast.success('Task added from voice 🎤')
-      resetTranscript()
+      onVoiceAdd(transcript.trim());
+      toast.success('Task added from voice 🎤');
+      resetTranscript();
     }
-  }, [listening])
+  }, [listening]);
 
   if (!browserSupportsSpeechRecognition) {
     return (
-      <div className="border border-red-700 rounded-lg p-4 bg-gradient-to-br from-red-900 via-red-800 to-red-900 text-red-300">
-        <p>Your browser does not support speech recognition.</p>
-      </div>
-    )
+      <Box sx={{ border: '1px solid red', borderRadius: 2, p: 2, backgroundColor: '#2a0000', color: '#ffcccc' }}>
+        <Typography variant="body1">Your browser does not support speech recognition.</Typography>
+      </Box>
+    );
   }
 
   return (
-    <div className="border border-gray-700 rounded-lg p-4 bg-gradient-to-br from-[#161825] via-[#1d1f31] to-[#161825] text-white">
-      <h2 className="font-semibold text-xl mb-4">Use voice for task input</h2>
+    <Box sx={{ border: '1px solid #444', borderRadius: 2, p: 3, background: 'linear-gradient(to bottom right, #161825, #1d1f31)', color: 'white' }}>
+      <Typography variant="h6" sx={{ mb: 2 }}>🎤 Voice-Controlled Task Input</Typography>
 
-      <div className="space-x-2 mb-3">
-        <button
-          onClick={() => SpeechRecognition.startListening({ continuous: false })}
-          className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition"
-        >
-          🎤 Speak
-        </button>
-        <button
-          onClick={() => SpeechRecognition.stopListening()}
-          className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition"
-        >
-          ⏹ Stop
-        </button>
-      </div>
+      <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 3 }}>
+        {!listening ? (
+          <SpeakButton
+            variant="contained"
+            startIcon={<MicIcon />}
+            onClick={() => SpeechRecognition.startListening({ continuous: false })}
+          >
+            Speak
+          </SpeakButton>
+        ) : (
+          <StopButton
+            variant="contained"
+            startIcon={<StopIcon />}
+            onClick={() => SpeechRecognition.stopListening()}
+          >
+            Stop
+          </StopButton>
+        )}
+      </Box>
 
-      <div className="p-3 bg-gray-900 text-sm rounded border border-gray-600 min-h-[4rem]">
-        {transcript || <span className="text-gray-500">Say something…</span>}
-      </div>
+      <Box
+        sx={{
+          p: 2,
+          backgroundColor: '#1a1c2e',
+          border: '1px solid #555',
+          borderRadius: 1,
+          fontFamily: 'monospace',
+          minHeight: '4rem'
+        }}
+      >
+        {transcript || <span style={{ color: '#aaa' }}>Say something…</span>}
+      </Box>
 
       {listening && (
-        <p className="text-green-400 mt-2 text-sm">Listening…</p>
+        <Typography variant="body2" sx={{ color: 'lightgreen', mt: 2, fontStyle: 'italic' }}>
+          🎧 Listening...
+        </Typography>
       )}
-    </div>
-  )
+    </Box>
+  );
 }
