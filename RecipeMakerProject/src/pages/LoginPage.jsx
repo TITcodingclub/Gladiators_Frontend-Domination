@@ -1,31 +1,57 @@
 // src/pages/LoginPage.jsx
 import { useAuth } from '../hooks/useAuth'
 import { FcGoogle } from 'react-icons/fc'
+import { Box } from '@mui/material'
 
 export default function LoginPage() {
   const { login } = useAuth()
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-green-50 dark:bg-gray-900 px-4">
-      <div className="w-full max-w-md p-8 bg-white dark:bg-gray-800 rounded-xl shadow-md text-center space-y-6">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0f101a] via-[#151623] to-[#0f101a]">
+      <div className="w-full max-w-md p-8 bg-gradient-to-br from-[#161825] via-[#1d1f31] to-[#161825] rounded-xl text-center space-y-6 shadow-2xl">
         
-        <h1 className="text-4xl font-bold text-green-600 dark:text-green-300">Nutrithy 🍳</h1>
-        
-        <p className="text-gray-600 dark:text-gray-300 text-sm">
-          Your intelligent cooking assistant.
-        </p>
+        {/* ✅ Centered Animated SVG Logo */}
+        <div className="flex justify-center">
+          <Box sx={{ width: 220, height: 55 }}>
+            <svg viewBox="0 0 180 60" width="100%" height="100%">
+              <text
+                id="nutrithy-logo"
+                x="0"
+                y="45"
+                fontSize="40"
+                fill="none"
+                stroke="#22c55e"
+                strokeWidth="2"
+                strokeDasharray="1000"
+                strokeDashoffset="1000"
+              >
+                Nutrithy 🍳
+              </text>
+              <animate
+                xlinkHref="#nutrithy-logo"
+                attributeName="stroke-dashoffset"
+                from="1000"
+                to="0"
+                dur="10s"
+                fill="freeze"
+                begin="0.3s"
+              />
+            </svg>
+          </Box>
+        </div>
+
+        <p className="text-gray-400 text-sm whitespace-nowrap overflow-hidden border-r-2 border-gray-400 animate-typing">Your intelligent cooking assistant.</p>
+
 
         <button
           onClick={login}
-          className="flex items-center justify-center w-full gap-3 px-5 py-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-700 hover:shadow-md transition cursor-pointer"
+          className="flex items-center justify-center w-full gap-3 px-5 py-3 border border-gray-600 rounded-lg bg-white dark:bg-gray-700 hover:shadow-lg transition cursor-pointer"
         >
           <FcGoogle className="text-2xl" />
           <span className="text-sm font-medium text-gray-800 dark:text-gray-100">Sign in with Google</span>
         </button>
 
-        <p className="text-xs text-gray-400 dark:text-gray-500">
-          Start your smart cooking journey.
-        </p>
+        <p className="text-xs text-gray-500">Start your smart cooking journey.</p>
       </div>
     </div>
   )
