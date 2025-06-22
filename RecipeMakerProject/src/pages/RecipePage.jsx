@@ -7,12 +7,15 @@ import CookModeView from '../components/CookModeView'
 import TagAnimator from '../components/TagAnimator'
 import EmojiReactions from '../components/EmojiReactions'
 import RecipeGuide from '../components/RecipeGuide'
+import ThreadBackground from '../components/ThreadBackground'
 
 export default function RecipePage() {
   const { user } = useAuth()
   const [selectedSteps, setSelectedSteps] = useState(null)
 
   return (
+   <>
+    <ThreadBackground />
     <div className="px-10 py-5 w-full mx-auto flex flex-col gap-6">
       <GreetingHeader user={user} />
 
@@ -28,6 +31,7 @@ export default function RecipePage() {
       {/* 👇 Only show cook mode when steps are selected */}
       {selectedSteps && <CookModeView steps={selectedSteps} />}
     </div>
+   </>
   )
 }
 
@@ -48,7 +52,7 @@ function GreetingHeader({ user }) {
 
   return (
     <div className="text-center">
-      <h1 className="lg:text-3xl text-lg lg:font-bold text-green-500 mt-20">
+      <h1 className="lg:text-3xl text-lg lg:font-bold text-green-500 mt-25">
         Hello Chef{typedText} 👨‍🍳
       </h1>
       <p className="text-sm text-gray-400">Ready to cook something delicious today?</p>

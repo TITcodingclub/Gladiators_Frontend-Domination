@@ -3,12 +3,16 @@ import { useAuth } from '../hooks/useAuth'
 import { FcGoogle } from 'react-icons/fc'
 import { Box } from '@mui/material'
 
+import ThreadBackground from '../components/ThreadBackground'
+
 export default function LoginPage() {
   const { login } = useAuth()
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0f101a] via-[#151623] to-[#0f101a]">
-      <div className="w-full max-w-md p-8 bg-gradient-to-br from-[#161825] via-[#1d1f31] to-[#161825] rounded-xl text-center space-y-6 shadow-2xl">
+    <>
+      <ThreadBackground />
+      <div className="min-h-screen flex items-center justify-center bg-transparent ">
+      <div className="w-1/2 max-w-md p-8 bg-gradient-to-br from-[#0c0d14] via-[#1d1f31] to-[#0c0d14] rounded-2xl text-center space-y-6 shadow-2xl">
         
         {/* ✅ Centered Animated SVG Logo */}
         <div className="flex justify-center">
@@ -54,5 +58,6 @@ export default function LoginPage() {
         <p className="text-xs text-gray-500">Start your smart cooking journey.</p>
       </div>
     </div>
+    </>
   )
 }
