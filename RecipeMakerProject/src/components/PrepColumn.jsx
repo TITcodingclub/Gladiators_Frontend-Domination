@@ -49,7 +49,7 @@ export default function PrepColumn({ id, title, tasks, onAdd, onEdit, onDelete }
   }
 
   return (
-    <div id={id} className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg shadow flex flex-col" role="region" aria-label={title}>
+    <div id={id} className="bg-gradient-to-br from-[#161825] via-[#1d1f31] to-[#161825] p-4 rounded-lg shadow-2xl flex flex-col" role="region" aria-label={title}>
       <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">{title}</h2>
       <div className="flex mb-4 space-x-2">
         <input
@@ -66,7 +66,7 @@ export default function PrepColumn({ id, title, tasks, onAdd, onEdit, onDelete }
           {editing ? 'Update' : 'Add'}
         </button>
       </div>
-      <div className="overflow-y-auto" role="list">
+      <div className="overflow-y-auto cursor-pointer" role="list">
         <AnimatePresence>
           {tasks.map(task => (
             <SortableCard
