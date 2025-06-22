@@ -30,7 +30,7 @@ export default function RecipePage() {
 function VoiceWithVideoSection() {
   const { addCard, activeColumn } = useContext(BoardContext)
   return (
-    <div className="flex flex-col md:flex-row gap-4">
+    <div className="flex flex-col gap-4">
       <VoiceInput onVoiceAdd={(text) => addCard(activeColumn, text)} />
       <VideoCallMock />
     </div>

@@ -28,7 +28,7 @@ export default function VoiceInput({ onVoiceAdd }) {
 
   return (
     <div className="border border-gray-700 rounded-lg p-4 bg-gradient-to-br from-[#161825] via-[#1d1f31] to-[#161825] text-white">
-      <h2 className="font-semibold mb-2">Voice Input</h2>
+      <h2 className="font-semibold text-xl mb-4">Use voice for task input</h2>
 
       <div className="space-x-2 mb-3">
         <button
