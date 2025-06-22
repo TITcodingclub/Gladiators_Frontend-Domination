@@ -2,7 +2,7 @@ export default function VoiceInput() {
 
   return (
 
-    <div className="border rounded-lg p-4 bg-white dark:bg-gray-800">
+    <div className="border border-gray-700 rounded-lg p-4 bg-gradient-to-br from-[#161825] via-[#1d1f31] to-[#161825]">
 
       <h2 className="font-semibold mb-2">Voice Input</h2>
 
