@@ -1,9 +1,9 @@
-import React from 'react'
+import RecipePage from './pages/RecipePage'
 
-const App = () => {
+export default function App() {
   return (
-    <div className='text-4xl bg-red-200'>App</div>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100">
+      <RecipePage />
+    </div>
   )
 }
-
-export default App
