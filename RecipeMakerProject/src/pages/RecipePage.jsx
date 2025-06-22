@@ -13,7 +13,7 @@ export default function RecipePage() {
   const [selectedSteps, setSelectedSteps] = useState(null)
 
   return (
-    <div className="p-4 max-w-screen-lg mx-auto flex flex-col gap-6">
+    <div className="px-10 py-5 w-full mx-auto flex flex-col gap-6">
       <GreetingHeader user={user} />
 
       <DragDropBoard>

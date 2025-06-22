@@ -57,7 +57,7 @@ export default function VoiceInput({ onVoiceAdd }) {
   }
 
   return (
-    <Box sx={{ border: '1px solid #444', borderRadius: 2, p: 3, background: 'linear-gradient(to bottom right, #161825, #1d1f31)', color: 'white' }}>
+    <Box sx={{ boxShadow:10, borderRadius: 2, p: 3, background: 'linear-gradient(to bottom right, #161825, #1d1f31)', color: 'white' }}>
       <Typography variant="h6" sx={{ mb: 2 }}>🎤 Voice-Controlled Task Input</Typography>
 
       <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 3 }}>
