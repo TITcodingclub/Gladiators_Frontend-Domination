@@ -6,7 +6,7 @@ export default function EmojiReactions({ stepId }) {
   return (
     <div className="flex space-x-4 mt-2">
       {Object.keys(counts).map(e => (
-        <button key={e} onClick={() => react(e)} className="flex items-center space-x-1">
+        <button key={e} onClick={() => react(e)} className="flex items-center cursor-pointer space-x-1">
           <span>{e}</span><span>{counts[e]}</span>
         </button>
       ))}

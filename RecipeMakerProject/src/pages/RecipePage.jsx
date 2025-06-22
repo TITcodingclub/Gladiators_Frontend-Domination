@@ -11,8 +11,8 @@ export default function RecipePage() {
       <DragDropBoard />
       <VoiceInput />
       <VideoCallMock />
-      <TagAnimator tags={['#vegan','#quick','#spicy']} />
-      <CookModeView steps={['Chop onions','Saute','Serve']} />
+      <TagAnimator tags={['🥦vegan', '⏱️quick', '🌶️spicy']} />
+      <CookModeView steps={['Chop onions', 'Saute', 'Serve']} />
       <EmojiReactions stepId="step-1" />
     </div>
   )
