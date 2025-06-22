@@ -95,3 +95,8 @@ body::-webkit-scrollbar{
   overflow: hidden;
 }
 
+/*. Add to your global or component-level CSS */
+.column-hover {
+  background-color: rgba(34, 197, 94, 0.1); /* light green tint */
+  transition: background-color 0.2s ease;
+}

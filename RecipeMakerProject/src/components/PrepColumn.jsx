@@ -1,39 +1,15 @@
-import { useState } from 'react'
-import { useSortable } from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
-import { motion, AnimatePresence } from 'framer-motion'
-import { MdDragHandle, MdDelete, MdEdit } from 'react-icons/md'
+import React, { useState } from 'react'
+import { MdEdit, MdDelete } from 'react-icons/md'
 
-function SortableCard({ task, onEdit, onDelete }) {
-  const { setNodeRef, attributes, listeners, transform, transition } = useSortable({ id: task.id })
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  }
-
-  return (
-    <motion.div
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      layout
-      className="bg-white dark:bg-gray-800 p-3 mb-2 rounded shadow flex justify-between items-start"
-      initial={{ opacity: 0.5, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.9 }}
-      role="listitem"
-    >
-      <div className="flex-1 text-sm text-gray-800 dark:text-gray-100">{task.text}</div>
-      <div className="flex space-x-2 items-center text-gray-500">
-        <button onClick={() => onEdit(task)} aria-label="Edit"><MdEdit /></button>
-        <button onClick={() => onDelete(task.id)} aria-label="Delete"><MdDelete /></button>
-        <div {...listeners} className="cursor-grab" aria-label="Drag Handle"><MdDragHandle /></div>
-      </div>
-    </motion.div>
-  )
-}
-
-export default function PrepColumn({ id, title, tasks, onAdd, onEdit, onDelete }) {
+export default function PrepColumn({
+  id,
+  title,
+  tasks,
+  onAdd,
+  onEdit,
+  onDelete,
+  moveTask,
+}) {
   const [input, setInput] = useState('')
   const [editing, setEditing] = useState(null)
 
@@ -49,40 +25,57 @@ export default function PrepColumn({ id, title, tasks, onAdd, onEdit, onDelete }
   }
 
   return (
-    <div id={id} className=" bg-gradient-to-br from-[#161825] via-[#1d1f31] to-[#161825] p-4 rounded-lg shadow-2xl flex h-55 flex-col" role="region" aria-label={title}>
-      <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">{title}</h2>
+    <div id={id} className="flex flex-col">
+      <h2 className="text-lg font-semibold mb-3 dark:text-white">{title}</h2>
       <div className="flex mb-4 space-x-2">
         <input
-          className="flex-1 px-2 py-1 text-sm rounded border dark:bg-gray-800 dark:border-gray-600"
           value={input}
           onChange={e => setInput(e.target.value)}
-          placeholder="New task..."
           onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+          placeholder="New task..."
+          className="flex-1 px-2 py-1 rounded border dark:bg-gray-800 dark:border-gray-600"
         />
-        <button
-          onClick={handleSubmit}
-          className="px-3 py-1 text-sm bg-green-600 text-white rounded"
-        >
+        <button onClick={handleSubmit} className="px-3 py-1 bg-green-600 text-white rounded">
           {editing ? 'Update' : 'Add'}
         </button>
       </div>
-      <div
-        className="overflow-y-auto prepScroll cursor-pointer max-h-[60vh] pr-1"
-        role="list"
-      >
-        <AnimatePresence>
-          {tasks.map(task => (
-            <SortableCard
-              key={task.id}
-              task={task}
-              onEdit={(t) => {
-                setEditing(t);
-                setInput(t.text);
-              }}
-              onDelete={onDelete}
-            />
-          ))}
-        </AnimatePresence>
+
+      <div className="space-y-2 prepScroll overflow-y-auto h-45">
+        {tasks.map(task => (
+          <div
+            key={task.id}
+            className="bg-white dark:bg-gray-800  p-3 rounded shadow flex justify-between items-center"
+          >
+            <span className="text-sm dark:text-white">{task.text}</span>
+            <div className="flex space-x-2 items-center text-gray-500">
+              <button onClick={() => {
+                setEditing(task)
+                setInput(task.text)
+              }} aria-label="Edit">
+                <MdEdit />
+              </button>
+              <button onClick={() => onDelete(id, task.id)} aria-label="Delete">
+                <MdDelete />
+              </button>
+              {id === 'toPrep' && (
+                <button
+                  onClick={() => moveTask('toPrep', 'cooking', task.id)}
+                  className="text-xs bg-yellow-500 text-white px-2 py-0.5 rounded"
+                >
+                  ➤ Cook
+                </button>
+              )}
+              {id === 'cooking' && (
+                <button
+                  onClick={() => moveTask('cooking', 'completed', task.id)}
+                  className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded"
+                >
+                  ➤ Done
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   )

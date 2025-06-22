@@ -15,7 +15,6 @@ export default function RecipePage() {
 
   return (
    <>
-    <ThreadBackground />
     <div className="px-10 py-5 w-full mx-auto flex flex-col gap-6">
       <GreetingHeader user={user} />
 
@@ -26,10 +25,10 @@ export default function RecipePage() {
       <TagAnimator tags={['🥦 vegan', '⏱️ quick', '🌶️ spicy']} />
 
       {/* 👇 Pass callback to RecipeGuide to get selected steps */}
-      <RecipeGuide onRecipeSelect={setSelectedSteps} />
+      {/* <RecipeGuide onRecipeSelect={setSelectedSteps} /> */}
 
       {/* 👇 Only show cook mode when steps are selected */}
-      {selectedSteps && <CookModeView steps={selectedSteps} />}
+      {/* {selectedSteps && <CookModeView steps={selectedSteps} />} */}
     </div>
    </>
   )

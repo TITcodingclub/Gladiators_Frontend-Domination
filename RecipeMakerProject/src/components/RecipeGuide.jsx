@@ -56,7 +56,7 @@ export default function RecipeGuide({ scrollRef }) {
   }
 
   return (
-    <div ref={scrollRef} className="max-w-2xl mx-auto p-4 space-y-6">
+    <div ref={scrollRef} className="w-full px-20 py-10 space-y-6">
       <h1 className="text-3xl font-bold text-center text-green-400 mt-24">🍳 Recipe Guide</h1>
 
       {/* Search */}
@@ -78,7 +78,7 @@ export default function RecipeGuide({ scrollRef }) {
 
       {/* Custom Recipe Form */}
       {!steps && (
-        <div className="bg-gray-900 border border-gray-700 p-4 rounded-lg space-y-4">
+        <div className="bg-gradient-to-br from-[#161825] via-[#1d1f31] to-[#161825] border border-gray-700 p-4 rounded-lg space-y-4">
           <h2 className="text-xl font-semibold text-white">Add Your Own Recipe</h2>
           <input
             type="text"

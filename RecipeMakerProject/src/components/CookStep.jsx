@@ -9,7 +9,7 @@ export default function CookStep({ index, step }) {
       <div className="flex justify-between items-start">
         <div>
           <h3 className="text-white font-semibold">Step {index}</h3>
-          <p className="text-gray-300 mt-1">{step.text}</p>
+          <p className="text-gray-300 w-[70%] mt-1">{step.text}</p>
         </div>
         <button
           onClick={() => setChecked(!checked)}
@@ -17,7 +17,7 @@ export default function CookStep({ index, step }) {
             checked ? 'bg-green-500 text-white' : 'bg-gray-700 text-gray-300'
           }`}
         >
-          {checked ? '✓ Done' : '✓'}
+          {checked ? 'Done' : '✓'}
         </button>
       </div>
 
