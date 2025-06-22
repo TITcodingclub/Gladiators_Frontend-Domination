@@ -10,9 +10,11 @@ import {
   verticalListSortingStrategy,
   arrayMove,
 } from '@dnd-kit/sortable'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, createContext } from 'react'
 import { v4 as uuid } from 'uuid'
 import Column from './PrepColumn'
+
+export const BoardContext = createContext(null)
 
 const COLUMN_KEYS = ['todo', 'cooking', 'done']
 
@@ -25,11 +27,11 @@ const initialData = {
   done: [],
 }
 
-export default function DragDropBoard() {
-  const [tasks, setTasks] = useState(() => {
-    return JSON.parse(localStorage.getItem('recipe-board')) || initialData
-  })
-
+export default function DragDropBoard({ children }) {
+  const [tasks, setTasks] = useState(() =>
+    JSON.parse(localStorage.getItem('recipe-board')) || initialData
+  )
+  const [activeColumn, setActiveColumn] = useState('todo')
   const sensors = useSensors(useSensor(PointerSensor))
 
   useEffect(() => {
@@ -96,30 +98,35 @@ export default function DragDropBoard() {
   }
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragEnd={handleDragEnd}
-    >
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-20">
-        {COLUMN_KEYS.map((col) => (
-          <SortableContext
-            key={col}
-            items={tasks[col].map((t) => t.id)}
-            strategy={verticalListSortingStrategy}
-          >
-            <Column
-              id={col}
-              title={formatTitle(col)}
-              tasks={tasks[col]}
-              onEdit={updateCard}
-              onDelete={(id) => deleteCard(col, id)}
-              onAdd={addCard}
-            />
-          </SortableContext>
-        ))}
-      </div>
-    </DndContext>
+    <BoardContext.Provider value={{ addCard, activeColumn, setActiveColumn }}>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+          {COLUMN_KEYS.map((col) => (
+            <SortableContext
+              key={col}
+              items={tasks[col].map((t) => t.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <Column
+                id={col}
+                title={formatTitle(col)}
+                tasks={tasks[col]}
+                isActive={col === activeColumn}
+                onFocus={() => setActiveColumn(col)}
+                onEdit={updateCard}
+                onDelete={(id) => deleteCard(col, id)}
+                onAdd={addCard}
+              />
+            </SortableContext>
+          ))}
+        </div>
+        {children}
+      </DndContext>
+    </BoardContext.Provider>
   )
 }
 
