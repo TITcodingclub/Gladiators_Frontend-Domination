@@ -1,14 +1,22 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 import CookModeView from './CookModeView'
-import { Snackbar } from '@mui/material'
+import { Snackbar, Alert } from '@mui/material'
 
-export default function RecipeGuide() {
+
+export default function RecipeGuide({ scrollRef }) {
   const [query, setQuery] = useState('')
   const [steps, setSteps] = useState(null)
   const [customName, setCustomName] = useState('')
   const [customSteps, setCustomSteps] = useState([''])
   const [alert, setAlert] = useState('')
+
+  useEffect(() => {
+    // Scroll to section on mount if ref is passed
+    if (scrollRef?.current) {
+      scrollRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [scrollRef])
 
   const handleSearch = async () => {
     if (!query.trim()) return
@@ -48,8 +56,8 @@ export default function RecipeGuide() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-4 space-y-6">
-      <h1 className="text-3xl font-bold text-center text-green-400">🍳 Recipe Guide</h1>
+    <div ref={scrollRef} className="max-w-2xl mx-auto p-4 space-y-6">
+      <h1 className="text-3xl font-bold text-center text-green-400 mt-24">🍳 Recipe Guide</h1>
 
       {/* Search */}
       <div className="flex flex-col sm:flex-row gap-3">
@@ -116,7 +124,7 @@ export default function RecipeGuide() {
           <CookModeView steps={steps} />
           <button
             onClick={() => setSteps(null)}
-            className="text-green-400 hover:text-red-400 text-sm mt-2 underline"
+            className="text-green-400 hover:text-red-400 text-sm mt-2"
           >
             ← Back to search
           </button>
@@ -125,11 +133,34 @@ export default function RecipeGuide() {
 
       {/* Alert */}
       <Snackbar
-        open={!!alert}
-        autoHideDuration={3000}
-        message={alert}
-        onClose={() => setAlert('')}
-      />
+          open={!!alert}
+          autoHideDuration={3000}
+          onClose={() => setAlert('')}
+          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+          TransitionProps={{ onEnter: (node) => node.classList.add('fade-in') }}
+        >
+          <Alert
+            onClose={() => setAlert('')}
+            severity="info"
+            icon={false}
+            sx={{
+              width: '100%',
+              fontWeight: '600',
+              backdropFilter: 'blur(8px)',
+              backgroundColor: 'rgba(30, 41, 59, 0.8)',
+              color: '#f1f5f9',
+              border: '1px solid rgba(51, 65, 85, 0.6)',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+              borderRadius: '12px',
+              textAlign: 'center',
+              px: 3,
+              py: 1.5,
+            }}
+          >
+            {alert}
+          </Alert>
+        </Snackbar>
+
     </div>
   )
 }

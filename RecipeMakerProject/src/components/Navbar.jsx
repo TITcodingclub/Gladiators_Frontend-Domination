@@ -38,11 +38,11 @@ export default function Navbar() {
     }
   }, [])
 
-  const navItems = [
-    { name: 'Home', icon: <FaHome className="inline mr-2" /> },
-    { name: 'Recipes', icon: <FaUtensils className="inline mr-2" /> },
-    { name: 'Community', icon: <FaUsers className="inline mr-2" /> },
-  ]
+const navItems = [
+  { name: 'Home', icon: <FaHome className="inline mr-2" />, path: '/' },
+  { name: 'Recipes', icon: <FaUtensils className="inline mr-2" />, path: '/recipes' },
+  { name: 'Community', icon: <FaUsers className="inline mr-2" />, path: '/community' },
+]
 
   return (
     <nav
@@ -80,13 +80,13 @@ export default function Navbar() {
 
       {/* Desktop Nav */}
       <ul className="hidden md:flex gap-10">
-        {navItems.map(({ name, icon }, index) => (
+        {navItems.map(({ name, icon, path}, index) => (
           <li
             key={name}
             className={`opacity-0 translate-y-2 animate-fadeSlideIn animation-delay-${index * 150}`}
           >
             <a
-              href="#"
+              href={path}
               className="text-xl flex items-center transition-transform duration-300 ease-in-out hover:scale-110 hover:text-[#FF742C] dark:hover:text-[#FF742C] "
             >
               {icon}
@@ -179,10 +179,10 @@ export default function Navbar() {
             </button>
           </div>
 
-          {navItems.map(({ name, icon }, i) => (
+          {navItems.map(({ name, icon, path }, i) => (
             <a
               key={name}
-              href="#"
+              href={path}
               className="block text-lg  text-gray-800 dark:text-white transition-all duration-300 hover:text-[#FF742C] mt-3 dark:hover:text-[#FF742C] transform hover:scale-105 animate-fadeInUp"
               style={{ animationDelay: `${i * 0.1}s`, animationFillMode: 'both' }}
             >
