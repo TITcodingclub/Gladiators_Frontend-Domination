@@ -92,7 +92,7 @@ export default function VideoCallMock() {
   };
 
   return (
-    <div className="p-4 w-full mx-auto bg-gradient-to-br from-[#161825] via-[#1d1f31] to-[#161825] border border-gray-700 text-white rounded space-y-4">
+    <div className="p-4 w-full mx-auto bg-gradient-to-br from-[#161825] via-[#1d1f31] to-[#161825] shadow-2xl text-white rounded-xl space-y-4">
       <h2 className="text-xl font-semibold">🎥 Secure Video Call</h2>
 
       <div className="grid grid-cols-2 gap-4">
