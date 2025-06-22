@@ -7,10 +7,12 @@ import EmojiReactions from '../components/EmojiReactions'
 
 export default function RecipePage() {
   return (
-    <div className="p-4 max-w-screen-lg mx-auto grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+    <div className="p-4 max-w-screen-lg mx-auto flex flex-col gap-6 ">
       <DragDropBoard />
-      <VoiceInput />
-      <VideoCallMock />
+     <div className='flex flex-col gap-4'>
+       <VoiceInput />
+       <VideoCallMock />
+     </div>
       <TagAnimator tags={['🥦vegan', '⏱️quick', '🌶️spicy']} />
       <CookModeView steps={['Chop onions', 'Saute', 'Serve']} />
       <EmojiReactions stepId="step-1" />
