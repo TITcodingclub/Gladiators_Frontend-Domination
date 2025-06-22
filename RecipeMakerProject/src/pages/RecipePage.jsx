@@ -7,6 +7,12 @@ import TagAnimator from '../components/TagAnimator'
 import EmojiReactions from '../components/EmojiReactions'
 
 export default function RecipePage() {
+  const steps = [
+  { text: 'Preheat oven to 180°C (350°F).', tags: ['prep', 'oven'] },
+  { text: 'Mix flour, sugar, and eggs in a bowl.', tags: ['mixing', 'base'] },
+  { text: 'Pour mixture into baking pan.', tags: ['pour', 'prep'] },
+  { text: 'Bake for 30 minutes.', tags: ['bake', 'timer'] }
+];
   return (
     <div className="p-4 max-w-screen-lg mx-auto flex flex-col gap-6">
       <DragDropBoard>
@@ -14,7 +20,7 @@ export default function RecipePage() {
       </DragDropBoard>
 
       <TagAnimator tags={['🥦 vegan', '⏱️ quick', '🌶️ spicy']} />
-      <CookModeView steps={['Chop onions', 'Saute for 5 min', 'Serve hot']} />
+      <CookModeView steps={steps} />
       <EmojiReactions stepId="step-1" />
     </div>
   )
