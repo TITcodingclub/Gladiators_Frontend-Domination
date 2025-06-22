@@ -9,9 +9,9 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="bg-white dark:bg-gray-900 shadow px-4 py-3 flex justify-between items-center">
+    <nav className="shadow px-4 py-3 flex justify-between items-center">
       {/* Logo */}
-      <div className="text-2xl font-bold text-green-600">CookSync 🍳</div>
+      <div className="text-2xl font-bold text-green-600">Nutrithy 🍳</div>
 
       {/* Links */}
       <ul className="hidden md:flex gap-6 text-gray-700 dark:text-gray-100">
