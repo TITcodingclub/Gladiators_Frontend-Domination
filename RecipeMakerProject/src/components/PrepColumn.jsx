@@ -44,9 +44,9 @@ export default function PrepColumn({
         {tasks.map(task => (
           <div
             key={task.id}
-            className="bg-white dark:bg-gray-800  p-3 rounded shadow flex justify-between items-center"
+            className="bg-white dark:bg-gray-800 p-3 rounded shadow flex justify-between items-center"
           >
-            <span className="text-sm dark:text-white">{task.text}</span>
+            <span className="text-sm dark:text-white">{(task.text).slice(0,15)}...</span>
             <div className="flex space-x-2 items-center text-gray-500">
               <button onClick={() => {
                 setEditing(task)
@@ -54,7 +54,7 @@ export default function PrepColumn({
               }} aria-label="Edit">
                 <MdEdit />
               </button>
-              <button onClick={() => onDelete(id, task.id)} aria-label="Delete">
+              <button onClick={() => onDelete(task.id)} aria-label="Delete">
                 <MdDelete />
               </button>
               {id === 'toPrep' && (

@@ -12,7 +12,7 @@ export default function PrepItem({ id }) {
       style={style}
       {...listeners}
       {...attributes}
-      className="cursor-grab bg-gray-100 dark:bg-gray-700 px-4 py-2 rounded text-sm text-gray-800 dark:text-white shadow hover:shadow-md transition"
+      className="cursor-pointer bg-gray-100 dark:bg-gray-700 px-4 py-2 rounded text-sm text-gray-800 dark:text-white shadow hover:shadow-md transition"
     >
       {id}
     </div>

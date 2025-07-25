@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
-import SimplePeer from 'simple-peer';
-import { FiMic, FiMicOff, FiVideo, FiVideoOff, FiPhoneOff } from 'react-icons/fi';
+import SimplePeer from 'simple-peer/simplepeer.min.js';
+import { FiMic, FiMicOff, FiVideo, FiPhoneOff } from 'react-icons/fi';
 
 export default function VideoCallMock() {
   const [stream, setStream] = useState(null);
@@ -8,130 +8,245 @@ export default function VideoCallMock() {
   const [mySignal, setMySignal] = useState('');
   const [otherSignal, setOtherSignal] = useState('');
   const [connected, setConnected] = useState(false);
-  const [permissionsGranted, setPermissionsGranted] = useState(false);
+  const [initiator, setInitiator] = useState(false);
+  const [micOn, setMicOn] = useState(true);
+  const [videoOn, setVideoOn] = useState(true);
+  const [remoteVideoOn, setRemoteVideoOn] = useState(true);
 
   const localVideoRef = useRef();
   const remoteVideoRef = useRef();
 
+  const base64Encode = obj => btoa(JSON.stringify(obj));
+  const base64Decode = str => JSON.parse(atob(str));
+
   const requestPermissions = async () => {
     try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true,
+      });
       setStream(mediaStream);
-      localVideoRef.current.srcObject = mediaStream;
-      setPermissionsGranted(true);
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = mediaStream;
+      }
     } catch (err) {
-      console.error('Media error', err);
-      alert('Camera/Mic permission is required to proceed.');
+      console.error('Media error:', err);
+      alert('Camera and microphone access are required.');
     }
+  };
+
+  const createPeer = (isInitiator, remoteSignal = null) => {
+    const p = new SimplePeer({
+      initiator: isInitiator,
+      trickle: false,
+      stream,
+    });
+
+    p.on('signal', data => {
+      setMySignal(base64Encode(data));
+    });
+
+    p.on('stream', remoteStream => {
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = remoteStream;
+
+        const videoTrack = remoteStream.getVideoTracks()[0];
+        if (videoTrack) {
+          setRemoteVideoOn(videoTrack.enabled);
+
+          videoTrack.onmute = () => setRemoteVideoOn(false);
+          videoTrack.onunmute = () => setRemoteVideoOn(true);
+        }
+      }
+      setConnected(true);
+    });
+
+    p.on('close', endCall);
+    p.on('error', err => console.error('Peer error:', err));
+
+    if (remoteSignal) {
+      try {
+        p.signal(base64Decode(remoteSignal));
+      } catch (err) {
+        alert('Invalid signal');
+        console.error(err);
+      }
+    }
+
+    setPeer(p);
   };
 
   const createOffer = () => {
-    if (!stream) return alert('Camera/mic not ready yet');
-
-    const p = new SimplePeer({ initiator: true, trickle: false, stream });
-    setPeer(p);
-
-    p.on('signal', data => setMySignal(JSON.stringify(data)));
-    p.on('stream', remoteStream => {
-      remoteVideoRef.current.srcObject = remoteStream;
-      setConnected(true);
-    });
+    if (!stream) return alert('Please allow camera/mic first');
+    createPeer(true);
+    setInitiator(true);
   };
 
   const acceptOffer = () => {
-    if (!stream) return alert('Camera/mic not ready yet');
-
-    const p = new SimplePeer({ initiator: false, trickle: false, stream });
-    setPeer(p);
-
-    p.on('signal', data => setMySignal(JSON.stringify(data)));
-    p.on('stream', remoteStream => {
-      remoteVideoRef.current.srcObject = remoteStream;
-      setConnected(true);
-    });
-
-    try {
-      p.signal(JSON.parse(otherSignal));
-    } catch (e) {
-      alert('Invalid offer signal');
-    }
+    if (!stream) return alert('Please allow camera/mic first');
+    if (!otherSignal.trim()) return alert('Paste offer signal first');
+    createPeer(false, otherSignal);
+    setInitiator(false);
   };
 
   const finalizeConnection = () => {
+    if (!peer) return alert('No peer connection to finalize.');
+    if (!otherSignal.trim()) return alert('Paste answer signal first.');
     try {
-      peer.signal(JSON.parse(otherSignal));
-    } catch (e) {
+      peer.signal(base64Decode(otherSignal));
+    } catch (err) {
       alert('Invalid signal');
+      console.error(err);
     }
   };
 
-  const toggleAudio = () => {
-    stream?.getAudioTracks().forEach(track => {
-      track.enabled = !track.enabled;
-    });
-  };
-
-  const toggleVideo = () => {
-    stream?.getVideoTracks().forEach(track => {
-      track.enabled = !track.enabled;
-    });
-  };
-
   const endCall = () => {
-    if (peer) peer.destroy();
-    if (stream) stream.getTracks().forEach(track => track.stop());
+    peer?.destroy();
+    stream?.getTracks().forEach(track => track.stop());
+    if (localVideoRef.current) localVideoRef.current.srcObject = null;
+    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
 
-    setPeer(null);
     setStream(null);
+    setPeer(null);
     setConnected(false);
     setMySignal('');
     setOtherSignal('');
-    localVideoRef.current.srcObject = null;
-    remoteVideoRef.current.srcObject = null;
-    setPermissionsGranted(false);
+    setInitiator(false);
+    setMicOn(true);
+    setVideoOn(true);
+    setRemoteVideoOn(true);
+  };
+
+  const toggleAudio = () => {
+    const audioTracks = stream?.getAudioTracks();
+    if (audioTracks?.length > 0) {
+      const enabled = !audioTracks[0].enabled;
+      audioTracks.forEach(track => (track.enabled = enabled));
+      setMicOn(enabled);
+    }
+  };
+
+  const toggleVideo = () => {
+    const videoTracks = stream?.getVideoTracks();
+    if (videoTracks?.length > 0) {
+      const enabled = !videoTracks[0].enabled;
+      videoTracks.forEach(track => (track.enabled = enabled));
+      setVideoOn(enabled);
+    }
   };
 
   return (
-    <div className="p-4 w-full mx-auto bg-gradient-to-br from-[#161825] via-[#1d1f31] to-[#161825] shadow-2xl text-white rounded-xl space-y-4">
-      <h2 className="text-xl font-semibold">🎥 Secure Video Call</h2>
+    <div>
+      <h1 className="text-2xl font-bold text-center text-white p-5">
+        🍳 Two Kitchens, One Recipe — Let’s Cook!
+      </h1>
+      <div className="p-6 max-w-4xl mx-auto bg-gradient-to-br from-[#161825] via-[#1d1f31] to-[#161825] text-white rounded-lg shadow-2xl space-y-4">
+        <h2 className="text-xl font-bold text-center">🎥 Live Kitchen Video Call</h2>
 
-      <div className="grid grid-cols-2 gap-4">
-        <video ref={localVideoRef} autoPlay muted playsInline className="w-full h-48 bg-black rounded" />
-        <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-48 bg-black rounded" />
-      </div>
-
-      {!permissionsGranted ? (
-        <button onClick={requestPermissions} className="bg-blue-600 px-4 py-2 rounded">Allow Camera & Mic</button>
-      ) : (
-        <>
-          <div className="flex gap-4 mt-4">
-            <button onClick={createOffer} className="bg-blue-600 px-4 py-2 rounded">📤 Create Offer</button>
-            <button onClick={acceptOffer} className="bg-green-600 px-4 py-2 rounded">📥 Accept Offer</button>
+        <div className="grid grid-cols-2 gap-4 relative">
+          {/* Local Video */}
+          <div className="relative">
+            <video
+              ref={localVideoRef}
+              autoPlay
+              muted
+              playsInline
+              className="w-full h-full bg-black rounded m-2"
+            />
+            {!videoOn && (
+              <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded">
+                <span className="text-white font-semibold">📷 Turn On Camera</span>
+              </div>
+            )}
           </div>
 
+          {/* Remote Video */}
+          <div className="relative">
+            <video
+              ref={remoteVideoRef}
+              autoPlay
+              playsInline
+              className="w-full h-full bg-black rounded m-2"
+            />
+            {!remoteVideoOn && (
+              <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded">
+                <span className="text-white font-semibold">🎞 Video Paused</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {!stream && (
+          <button onClick={requestPermissions} className="bg-blue-600 px-4 py-2 rounded w-full">
+            🎤 Allow Camera & Mic
+          </button>
+        )}
+
+        {stream && !peer && (
+          <div className="flex gap-4 justify-center">
+            <button onClick={createOffer} className="bg-blue-600 px-4 py-2 rounded">
+              📤 Create Offer
+            </button>
+            <button onClick={acceptOffer} className="bg-green-600 px-4 py-2 rounded">
+              📥 Accept Offer
+            </button>
+          </div>
+        )}
+
+        {/* Connection Signal Strings — Always Visible */}
+        <div className="space-y-2">
           <textarea
             value={mySignal}
             readOnly
-            placeholder="Your signal (send this)"
-            className="w-full bg-gray-800 p-2 rounded h-24 mt-2"
+            placeholder="Your signal (copy & share)"
+            className="w-full bg-gray-800 p-2 rounded h-24 text-xs"
           />
           <textarea
             value={otherSignal}
             onChange={e => setOtherSignal(e.target.value)}
             placeholder="Paste their signal"
-            className="w-full bg-gray-800 p-2 rounded h-24"
+            className="w-full bg-gray-800 p-2 rounded h-24 text-xs"
           />
-          <button onClick={finalizeConnection} className="bg-yellow-600 px-4 py-2 rounded">🔁 Finalize Connection</button>
+        </div>
 
-          {connected && (
-            <div className="flex gap-4 justify-center mt-4">
-              <button onClick={toggleAudio} className="bg-gray-700 p-3 rounded-full"><FiMic size={20} /></button>
-              <button onClick={toggleVideo} className="bg-gray-700 p-3 rounded-full"><FiVideo size={20} /></button>
-              <button onClick={endCall} className="bg-red-600 p-3 rounded-full"><FiPhoneOff size={20} /></button>
-            </div>
-          )}
-        </>
-      )}
+        {peer && initiator && !connected && (
+          <button onClick={finalizeConnection} className="bg-yellow-600 px-4 py-2 rounded w-full">
+            🔁 Finalize Connection
+          </button>
+        )}
+
+        {connected && (
+          <div className="flex justify-center gap-4 mt-4">
+            <button
+              onClick={toggleAudio}
+              className={`p-3 rounded-full transition-all duration-300 ${
+                micOn ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'
+              }`}
+              title={micOn ? 'Mute Mic' : 'Unmute Mic'}
+            >
+              {micOn ? <FiMic size={20} /> : <FiMicOff size={20} />}
+            </button>
+
+            <button
+              onClick={toggleVideo}
+              className={`p-3 rounded-full transition-all duration-300 ${
+                videoOn ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'
+              }`}
+              title={videoOn ? 'Turn Off Video' : 'Turn On Video'}
+            >
+              <FiVideo size={20} />
+            </button>
+
+            <button
+              onClick={endCall}
+              className="bg-red-700 hover:bg-red-800 p-3 rounded-full"
+              title="End Call"
+            >
+              <FiPhoneOff size={20} />
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
