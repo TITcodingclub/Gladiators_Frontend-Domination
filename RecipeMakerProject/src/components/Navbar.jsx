@@ -3,8 +3,6 @@ import { useAuth } from '../hooks/useAuth'
 import {
   FaChevronDown,
   FaUserCircle,
-  FaMoon,
-  FaSun,
   FaBars,
   FaTimes,
   FaHome,
@@ -17,13 +15,7 @@ export default function Navbar() {
   const { user, login, logout } = useAuth()
   const [open, setOpen] = useState(false)
   const [mobileMenu, setMobileMenu] = useState(false)
-  const [darkMode, setDarkMode] = useState(false)
   const dropdownRef = useRef(null)
-
-  const toggleTheme = () => {
-    setDarkMode(!darkMode)
-    document.documentElement.classList.toggle('dark')
-  }
 
   useEffect(() => {
     const handleClickOutside = (event) => {

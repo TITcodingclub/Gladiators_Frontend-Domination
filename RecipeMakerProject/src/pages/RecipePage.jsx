@@ -11,7 +11,6 @@ import ThreadBackground from '../components/ThreadBackground'
 
 export default function RecipePage() {
   const { user } = useAuth()
-  const [selectedSteps, setSelectedSteps] = useState(null)
 
   return (
    <>

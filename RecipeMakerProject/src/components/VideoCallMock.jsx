@@ -1,252 +1,370 @@
-import React, { useState, useRef } from 'react';
-import SimplePeer from 'simple-peer/simplepeer.min.js';
-import { FiMic, FiMicOff, FiVideo, FiPhoneOff } from 'react-icons/fi';
+import React, { useState, useRef, useEffect } from "react";
+import SimplePeer from "simple-peer";
+import io from "socket.io-client";
+import { useAuth } from "../hooks/useAuth"; // Assuming you have a useAuth hook
+import {
+    FiMic, FiMicOff, FiVideo, FiVideoOff, FiRepeat, FiMaximize,
+    FiExternalLink, FiPhoneOff, FiUsers, FiCopy
+} from "react-icons/fi";
+import {
+    Container, Grid, Card, Typography, TextField, Button,
+    IconButton, Tooltip, Box, Snackbar, Alert, Accordion, AccordionSummary,
+    AccordionDetails, List, ListItem, ListItemText, Paper, Dialog, DialogTitle,
+    DialogContent, DialogActions, CircularProgress
+} from "@mui/material";
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import KitchenIcon from '@mui/icons-material/Kitchen';
 
-export default function VideoCallMock() {
-  const [stream, setStream] = useState(null);
-  const [peer, setPeer] = useState(null);
-  const [mySignal, setMySignal] = useState('');
-  const [otherSignal, setOtherSignal] = useState('');
-  const [connected, setConnected] = useState(false);
-  const [initiator, setInitiator] = useState(false);
-  const [micOn, setMicOn] = useState(true);
-  const [videoOn, setVideoOn] = useState(true);
-  const [remoteVideoOn, setRemoteVideoOn] = useState(true);
+// --- Socket.IO Connection ---
+const socket = io("http://localhost:5000"); // Ensure this matches your backend server address
 
-  const localVideoRef = useRef();
-  const remoteVideoRef = useRef();
+// --- Helper Component for Each Participant's Video ---
+const ParticipantVideo = ({ peer, micOn, videoOn, displayName }) => {
+    const ref = useRef();
+    useEffect(() => {
+        peer.on("stream", stream => {
+            if (ref.current) ref.current.srcObject = stream;
+        });
+    }, [peer]);
+    return (
+        <Card sx={{ position: 'relative', height: '100%', bgcolor: 'black', borderRadius: 2 }}>
+            <video ref={ref} autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} />
+            <Box sx={{ position: 'absolute', bottom: 8, left: 8, color: 'white', bgcolor: 'rgba(0,0,0,0.5)', p: '2px 8px', borderRadius: 1 }}>
+                <Typography variant="caption">{displayName || "Guest"}</Typography>
+            </Box>
+            <Box sx={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 1, color: 'white', bgcolor: 'rgba(0,0,0,0.5)', p: 0.5, borderRadius: 1 }}>
+                {!micOn && <FiMicOff />}
+                {!videoOn && <FiVideoOff />}
+            </Box>
+        </Card>
+    );
+};
 
-  const base64Encode = obj => btoa(JSON.stringify(obj));
-  const base64Decode = str => JSON.parse(atob(str));
+// --- Main VideoRoom Component ---
+export default function VideoRoom() {
+    const { user } = useAuth(); // Get authenticated user
+    const [roomID, setRoomID] = useState("");
+    const [isHost, setIsHost] = useState(false);
+    const [waitingForApproval, setWaitingForApproval] = useState(false);
+    const [joinRequests, setJoinRequests] = useState([]); // Will now store { id, user }
+    const [joined, setJoined] = useState(false);
+    const [stream, setStream] = useState(null);
+    const [peers, setPeers] = useState([]); // Will now store { peerID, peer, user, micOn, videoOn }
+    const [micOn, setMicOn] = useState(true);
+    const [videoOn, setVideoOn] = useState(true);
+    const [currentCamera, setCurrentCamera] = useState("user");
+    const [callStartTime, setCallStartTime] = useState(null);
+    const [timer, setTimer] = useState("00:00");
+    const [alertInfo, setAlertInfo] = useState({ open: false, message: "", severity: "info" });
 
-  const requestPermissions = async () => {
-    try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true,
-      });
-      setStream(mediaStream);
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = mediaStream;
-      }
-    } catch (err) {
-      console.error('Media error:', err);
-      alert('Camera and microphone access are required.');
-    }
-  };
+    const localVideoRef = useRef();
+    const videoContainerRef = useRef();
+    const peersRef = useRef([]);
 
-  const createPeer = (isInitiator, remoteSignal = null) => {
-    const p = new SimplePeer({
-      initiator: isInitiator,
-      trickle: false,
-      stream,
-    });
-
-    p.on('signal', data => {
-      setMySignal(base64Encode(data));
-    });
-
-    p.on('stream', remoteStream => {
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = remoteStream;
-
-        const videoTrack = remoteStream.getVideoTracks()[0];
-        if (videoTrack) {
-          setRemoteVideoOn(videoTrack.enabled);
-
-          videoTrack.onmute = () => setRemoteVideoOn(false);
-          videoTrack.onunmute = () => setRemoteVideoOn(true);
+    // Timer Effect
+    useEffect(() => {
+        let interval;
+        if (callStartTime) {
+            interval = setInterval(() => {
+                const elapsed = Date.now() - callStartTime;
+                const mins = String(Math.floor(elapsed / 60000)).padStart(2, "0");
+                const secs = String(Math.floor((elapsed % 60000) / 1000)).padStart(2, "0");
+                setTimer(`${mins}:${secs}`);
+            }, 1000);
         }
-      }
-      setConnected(true);
-    });
+        return () => clearInterval(interval);
+    }, [callStartTime]);
 
-    p.on('close', endCall);
-    p.on('error', err => console.error('Peer error:', err));
+    // Socket.IO and PeerJS Effect
+    useEffect(() => {
+        socket.on("new-join-request", ({ from, user: requesterUser }) => {
+            setAlertInfo({ open: true, message: `${requesterUser.displayName} wants to join!`, severity: "info" });
+            setJoinRequests(prev => [...prev, { id: from, user: requesterUser }]);
+        });
 
-    if (remoteSignal) {
-      try {
-        p.signal(base64Decode(remoteSignal));
-      } catch (err) {
-        alert('Invalid signal');
-        console.error(err);
-      }
+        socket.on("request-accepted", () => {
+            setWaitingForApproval(false);
+            setJoined(true);
+            setCallStartTime(Date.now());
+            socket.emit("join-room", { roomID, user });
+        });
+
+        socket.on("request-declined", () => {
+            setWaitingForApproval(false);
+            setAlertInfo({ open: true, message: "Your request to join was declined.", severity: "error" });
+            stream?.getTracks().forEach(track => track.stop());
+            setStream(null);
+        });
+
+        if (joined && stream) {
+            socket.on("all-users", users => { // users is now an object: { id: user }
+                const newPeers = [];
+                for (const userID in users) {
+                    if (userID === socket.id) continue;
+                    const peer = createPeer(userID, socket.id, stream);
+                    peersRef.current.push({ peerID: userID, peer });
+                    newPeers.push({ peerID: userID, peer, user: users[userID], micOn: true, videoOn: true });
+                }
+                setPeers(newPeers);
+            });
+
+            socket.on("user-joined", ({ signal, callerID, user: joiningUser }) => {
+                setAlertInfo({ open: true, message: `${joiningUser.displayName} has joined the call.`, severity: "info" });
+                const peer = addPeer(signal, callerID, stream);
+                peersRef.current.push({ peerID: callerID, peer });
+                setPeers(prevPeers => [...prevPeers, { peerID: callerID, peer, user: joiningUser, micOn: true, videoOn: true }]);
+            });
+
+            socket.on("receiving-returned-signal", payload => {
+                const item = peersRef.current.find(p => p.peerID === payload.id);
+                item?.peer.signal(payload.signal);
+            });
+
+            socket.on("user-disconnected", id => {
+                const disconnectingPeer = peers.find(p => p.peerID === id);
+                const displayName = disconnectingPeer?.user?.displayName || 'A user';
+                setAlertInfo({ open: true, message: `${displayName} has left the call.`, severity: "warning" });
+                
+                const peerObj = peersRef.current.find(p => p.peerID === id);
+                if (peerObj) peerObj.peer.destroy();
+                peersRef.current = peersRef.current.filter(p => p.peerID !== id);
+                setPeers(prevPeers => prevPeers.filter(p => p.peerID !== id));
+            });
+
+            socket.on("user-toggled-mic", ({ userID, micOn }) => setPeers(prev => prev.map(p => p.peerID === userID ? { ...p, micOn } : p)));
+            socket.on("user-toggled-video", ({ userID, videoOn }) => setPeers(prev => prev.map(p => p.peerID === userID ? { ...p, videoOn } : p)));
+        }
+
+        return () => {
+            socket.off("new-join-request");
+            socket.off("request-accepted");
+            socket.off("request-declined");
+            socket.off("all-users");
+            socket.off("user-joined");
+            socket.off("receiving-returned-signal");
+            socket.off("user-disconnected");
+            socket.off("user-toggled-mic");
+            socket.off("user-toggled-video");
+        };
+    }, [joined, stream, roomID, user]);
+
+    // Peer Creation Functions
+    function createPeer(userToSignal, callerID, stream) {
+        const peer = new SimplePeer({ initiator: true, trickle: false, stream });
+        peer.on("signal", signal => socket.emit("sending-signal", { userToSignal, callerID, signal }));
+        return peer;
     }
 
-    setPeer(p);
-  };
-
-  const createOffer = () => {
-    if (!stream) return alert('Please allow camera/mic first');
-    createPeer(true);
-    setInitiator(true);
-  };
-
-  const acceptOffer = () => {
-    if (!stream) return alert('Please allow camera/mic first');
-    if (!otherSignal.trim()) return alert('Paste offer signal first');
-    createPeer(false, otherSignal);
-    setInitiator(false);
-  };
-
-  const finalizeConnection = () => {
-    if (!peer) return alert('No peer connection to finalize.');
-    if (!otherSignal.trim()) return alert('Paste answer signal first.');
-    try {
-      peer.signal(base64Decode(otherSignal));
-    } catch (err) {
-      alert('Invalid signal');
-      console.error(err);
+    function addPeer(incomingSignal, callerID, stream) {
+        const peer = new SimplePeer({ initiator: false, trickle: false, stream });
+        peer.on("signal", signal => socket.emit("returning-signal", { signal, callerID }));
+        peer.signal(incomingSignal);
+        return peer;
     }
-  };
 
-  const endCall = () => {
-    peer?.destroy();
-    stream?.getTracks().forEach(track => track.stop());
-    if (localVideoRef.current) localVideoRef.current.srcObject = null;
-    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+    // Core Functions
+    const startCall = async () => {
+        if (!roomID) {
+            setAlertInfo({ open: true, message: "Please enter a Room ID.", severity: "error" });
+            return;
+        }
+        try {
+            const mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: currentCamera }, audio: true });
+            setStream(mediaStream);
+            if (localVideoRef.current) localVideoRef.current.srcObject = mediaStream;
+            
+            socket.emit("check-room", roomID, (roomExists) => {
+                if (roomExists) {
+                    socket.emit("request-to-join", { roomID, user });
+                    setWaitingForApproval(true);
+                } else {
+                    socket.emit("create-room", { roomID, user });
+                    setIsHost(true);
+                    setJoined(true);
+                    setCallStartTime(Date.now());
+                }
+            });
 
-    setStream(null);
-    setPeer(null);
-    setConnected(false);
-    setMySignal('');
-    setOtherSignal('');
-    setInitiator(false);
-    setMicOn(true);
-    setVideoOn(true);
-    setRemoteVideoOn(true);
-  };
+        } catch (err) {
+            console.error("Media access error:", err);
+            setAlertInfo({ open: true, message: "Could not access camera and microphone.", severity: "error" });
+        }
+    };
 
-  const toggleAudio = () => {
-    const audioTracks = stream?.getAudioTracks();
-    if (audioTracks?.length > 0) {
-      const enabled = !audioTracks[0].enabled;
-      audioTracks.forEach(track => (track.enabled = enabled));
-      setMicOn(enabled);
+    const handleRequestResponse = (requesterId, accepted) => {
+        socket.emit("respond-to-request", { to: requesterId, roomID, accepted });
+        setJoinRequests(prev => prev.filter(req => req.id !== requesterId));
+    };
+
+    const endCall = () => {
+        setJoined(false);
+        setIsHost(false);
+        setWaitingForApproval(false);
+        setCallStartTime(null);
+        setTimer("00:00");
+        stream?.getTracks().forEach(track => track.stop());
+        peers.forEach(p => p.peer.destroy());
+        setPeers([]);
+        peersRef.current = [];
+        socket.emit("leave-room", roomID);
+        setAlertInfo({ open: true, message: "You have left the call.", severity: "info" });
+    };
+    
+    // Control Toggles
+    const toggleMic = () => {
+        const newMicOn = !micOn;
+        stream?.getAudioTracks().forEach(track => (track.enabled = newMicOn));
+        setMicOn(newMicOn);
+        socket.emit("toggle-mic", { roomID, micOn: newMicOn });
+    };
+
+    const toggleVideo = () => {
+        const newVideoOn = !videoOn;
+        stream?.getVideoTracks().forEach(track => (track.enabled = newVideoOn));
+        setVideoOn(newVideoOn);
+        socket.emit("toggle-video", { roomID, videoOn: newVideoOn });
+    };
+
+    const switchCamera = async () => {
+        if (!stream) return;
+        const newFacing = currentCamera === "user" ? "environment" : "user";
+        stream.getTracks().forEach(t => t.stop());
+        try {
+            const newStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: newFacing }, audio: true });
+            setStream(newStream);
+            setCurrentCamera(newFacing);
+            if (localVideoRef.current) localVideoRef.current.srcObject = newStream;
+    
+            const oldVideoTrack = stream.getVideoTracks()[0];
+            const newVideoTrack = newStream.getVideoTracks()[0];
+            peersRef.current.forEach(({ peer }) => {
+                peer.replaceTrack(oldVideoTrack, newVideoTrack, stream);
+            });
+            setAlertInfo({ open: true, message: `Switched to ${newFacing} camera`, severity: "info" });
+        } catch (err) {
+            console.error("Camera switch error:", err);
+            setAlertInfo({ open: true, message: "Could not switch camera.", severity: "error" });
+        }
+    };
+
+    const toggleFullscreen = () => {
+        if (!document.fullscreenElement) {
+            videoContainerRef.current?.requestFullscreen().catch(err => {
+                setAlertInfo({ open: true, message: `Error entering fullscreen: ${err.message}`, severity: "error" });
+            });
+        } else {
+            document.exitFullscreen();
+        }
+    };
+
+    const togglePiP = async () => {
+        if (localVideoRef.current && document.pictureInPictureEnabled && !localVideoRef.current.disablePictureInPicture) {
+            try {
+                if (document.pictureInPictureElement) {
+                    await document.exitPictureInPicture();
+                } else {
+                    await localVideoRef.current.requestPictureInPicture();
+                }
+            } catch (err) {
+                console.error("PiP error:", err);
+                setAlertInfo({ open: true, message: "Picture-in-Picture failed.", severity: "error" });
+            }
+        }
+    };
+    
+    const handleCopyRoomID = () => {
+        navigator.clipboard.writeText(roomID);
+        setAlertInfo({ open: true, message: "Room ID copied to clipboard!", severity: "success" });
+    };
+
+    // --- UI Rendering ---
+    if (!joined && !waitingForApproval) {
+        return (
+             <Container maxWidth="sm" sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', color: 'white', textAlign: 'center' }}>
+                <KitchenIcon sx={{ fontSize: 60, color: 'primary.main' }} />
+                <Typography variant="h3" component="h1" sx={{ fontWeight: 'bold', mt: 2 }}>Cook Together</Typography>
+                <Typography variant="h6" sx={{ color: 'grey.400', mb: 4 }}>Connecting Kitchens, One Recipe at a Time</Typography>
+                <Paper elevation={0} sx={{ p: 3, bgcolor: 'transparent', borderRadius: 3, width: '100%', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    <TextField fullWidth variant="outlined" label="Enter Room ID to Join or Create" value={roomID} onChange={e => setRoomID(e.target.value)} sx={{ mb: 2, input: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'gray' } }, '& .MuiInputLabel-root': { color: 'gray' } }} />
+                    <Button variant="contained" onClick={startCall} size="large" fullWidth>Join Call</Button>
+                </Paper>
+            </Container>
+        );
     }
-  };
-
-  const toggleVideo = () => {
-    const videoTracks = stream?.getVideoTracks();
-    if (videoTracks?.length > 0) {
-      const enabled = !videoTracks[0].enabled;
-      videoTracks.forEach(track => (track.enabled = enabled));
-      setVideoOn(enabled);
+    
+    if (waitingForApproval) {
+        return (
+            <Container maxWidth="sm" sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', color: 'white' }}>
+                <CircularProgress color="primary" />
+                <Typography variant="h6" sx={{ mt: 2 }}>Waiting for host to approve your request...</Typography>
+            </Container>
+        );
     }
-  };
 
-  return (
-    <div>
-      <h1 className="text-2xl font-bold text-center text-white p-5">
-        🍳 Two Kitchens, One Recipe — Let’s Cook!
-      </h1>
-      <div className="p-6 max-w-4xl mx-auto bg-gradient-to-br from-[#161825] via-[#1d1f31] to-[#161825] text-white rounded-lg shadow-2xl space-y-4">
-        <h2 className="text-xl font-bold text-center">🎥 Live Kitchen Video Call</h2>
+    return (
+        <Box ref={videoContainerRef} sx={{color: 'white', p: 2, minHeight: '100vh', boxShadow: 10, mb: '10px', pb: '10px', borderRadius: '0.5rem',  background: 'linear-gradient(to bottom right, #161825, #1d1f31, #161825)' }}>
+            <Dialog open={joinRequests.length > 0} onClose={() => {}} PaperProps={{ sx: { bgcolor: 'grey.800', color: 'white' } }}>
+                <DialogTitle>Incoming Join Requests</DialogTitle>
+                <DialogContent>
+                    {joinRequests.map(req => (
+                        <Box key={req.id} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1, mb: 1, bgcolor: 'grey.700', borderRadius: 1 }}>
+                            <Typography>{req.user?.displayName || 'A user'} wants to join.</Typography>
+                            <DialogActions>
+                                <Button onClick={() => handleRequestResponse(req.id, false)} color="error">Decline</Button>
+                                <Button onClick={() => handleRequestResponse(req.id, true)} variant="contained" color="success">Accept</Button>
+                            </DialogActions>
+                        </Box>
+                    ))}
+                </DialogContent>
+            </Dialog>
 
-        <div className="grid grid-cols-2 gap-4 relative">
-          {/* Local Video */}
-          <div className="relative">
-            <video
-              ref={localVideoRef}
-              autoPlay
-              muted
-              playsInline
-              className="w-full h-full bg-black rounded m-2"
-            />
-            {!videoOn && (
-              <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded">
-                <span className="text-white font-semibold">📷 Turn On Camera</span>
-              </div>
-            )}
-          </div>
+            <Typography variant="h5" align="center" sx={{ mb: 2 }}>Group Call • {timer}</Typography>
+            <Grid container spacing={2}>
+                <Grid item xs={12} sm={6} md={4}>
+                    <Card sx={{ position: 'relative', height: '100%', bgcolor: 'black', borderRadius: 2 }}>
+                         <video ref={localVideoRef} muted autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} />
+                         <Box sx={{ position: 'absolute', bottom: 8, left: 8, color: 'white', bgcolor: 'rgba(0,0,0,0.5)', p: '2px 8px', borderRadius: 1 }}><Typography variant="caption">{user?.displayName || "You"}</Typography></Box>
+                         <Box sx={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 1, bgcolor: 'rgba(0,0,0,0.5)', p: 0.5, borderRadius: 1 }}>
+                             {!micOn && <FiMicOff />}
+                             {!videoOn && <FiVideoOff />}
+                         </Box>
+                    </Card>
+                </Grid>
+                {peers.map(p => (
+                    <Grid item xs={12} sm={6} md={4} key={p.peerID}>
+                        <ParticipantVideo peer={p.peer} micOn={p.micOn} videoOn={p.videoOn} displayName={p.user?.displayName} />
+                    </Grid>
+                ))}
+            </Grid>
 
-          {/* Remote Video */}
-          <div className="relative">
-            <video
-              ref={remoteVideoRef}
-              autoPlay
-              playsInline
-              className="w-full h-full bg-black rounded m-2"
-            />
-            {!remoteVideoOn && (
-              <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded">
-                <span className="text-white font-semibold">🎞 Video Paused</span>
-              </div>
-            )}
-          </div>
-        </div>
+            {/* Controls */}
+            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 3, flexWrap: 'wrap', p: 1, bgcolor: 'rgba(0, 0, 0, 0)', borderRadius: '50px' }}>
+                <Tooltip title={micOn ? "Mute Mic" : "Unmute Mic"}><IconButton onClick={toggleMic} sx={{ bgcolor: micOn ? 'success.main' : 'error.main', color: 'white', '&:hover': { bgcolor: micOn ? 'success.dark' : 'error.dark' } }}>{micOn ? <FiMic /> : <FiMicOff />}</IconButton></Tooltip>
+                <Tooltip title={videoOn ? "Turn Off Video" : "Turn On Video"}><IconButton onClick={toggleVideo} sx={{ bgcolor: videoOn ? 'success.main' : 'error.main', color: 'white', '&:hover': { bgcolor: videoOn ? 'success.dark' : 'error.dark' } }}>{videoOn ? <FiVideo /> : <FiVideoOff />}</IconButton></Tooltip>
+                <Tooltip title="Switch Camera"><IconButton onClick={switchCamera} sx={{ bgcolor: 'info.main', color: 'white', '&:hover': { bgcolor: 'info.dark' } }}><FiRepeat /></IconButton></Tooltip>
+                <Tooltip title="Fullscreen"><IconButton onClick={toggleFullscreen} sx={{ bgcolor: 'warning.main', color: 'white', '&:hover': { bgcolor: 'warning.dark' } }}><FiMaximize /></IconButton></Tooltip>
+                <Tooltip title="Picture-in-Picture"><IconButton onClick={togglePiP} sx={{ bgcolor: 'secondary.main', color: 'white', '&:hover': { bgcolor: 'secondary.dark' } }}><FiExternalLink /></IconButton></Tooltip>
+                <Tooltip title="End Call"><IconButton onClick={endCall} sx={{ bgcolor: 'error.main', color: 'white', '&:hover': { bgcolor: 'error.dark' } }}><FiPhoneOff /></IconButton></Tooltip>
+            </Box>
 
-        {!stream && (
-          <button onClick={requestPermissions} className="bg-blue-600 px-4 py-2 rounded w-full">
-            🎤 Allow Camera & Mic
-          </button>
-        )}
+            {/* Participants Panel */}
+            <Accordion sx={{ bgcolor: 'grey.800', color: 'white', mt: 4, maxWidth: '400px', mx: 'auto', mb: 5, borderRadius: 2, '&.Mui-expanded': { margin: '32px auto 0 auto' } }}>
+                <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ color: 'white' }} />}><FiUsers /><Typography sx={{ ml: 1 }}>Participants ({peers.length + 1})</Typography></AccordionSummary>
+                <AccordionDetails>
+                    <List dense>
+                        <ListItem><ListItemText primary={`${user?.displayName || 'You'} ${isHost ? '(Host)' : ''}`} /></ListItem>
+                        {peers.map(p => (<ListItem key={p.peerID}><ListItemText primary={p.user?.displayName || `User (${p.peerID.substring(0,6)}...)`} /></ListItem>))}
+                    </List>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+                        <TextField size="small" value={roomID} readOnly sx={{ flexGrow: 1, input: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'gray' } } }} />
+                        <Button variant="contained" size="small" onClick={handleCopyRoomID} startIcon={<FiCopy />}>Copy</Button>
+                    </Box>
+                </AccordionDetails>
+            </Accordion>
 
-        {stream && !peer && (
-          <div className="flex gap-4 justify-center">
-            <button onClick={createOffer} className="bg-blue-600 px-4 py-2 rounded">
-              📤 Create Offer
-            </button>
-            <button onClick={acceptOffer} className="bg-green-600 px-4 py-2 rounded">
-              📥 Accept Offer
-            </button>
-          </div>
-        )}
-
-        {/* Connection Signal Strings — Always Visible */}
-        <div className="space-y-2">
-          <textarea
-            value={mySignal}
-            readOnly
-            placeholder="Your signal (copy & share)"
-            className="w-full bg-gray-800 p-2 rounded h-24 text-xs"
-          />
-          <textarea
-            value={otherSignal}
-            onChange={e => setOtherSignal(e.target.value)}
-            placeholder="Paste their signal"
-            className="w-full bg-gray-800 p-2 rounded h-24 text-xs"
-          />
-        </div>
-
-        {peer && initiator && !connected && (
-          <button onClick={finalizeConnection} className="bg-yellow-600 px-4 py-2 rounded w-full">
-            🔁 Finalize Connection
-          </button>
-        )}
-
-        {connected && (
-          <div className="flex justify-center gap-4 mt-4">
-            <button
-              onClick={toggleAudio}
-              className={`p-3 rounded-full transition-all duration-300 ${
-                micOn ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'
-              }`}
-              title={micOn ? 'Mute Mic' : 'Unmute Mic'}
-            >
-              {micOn ? <FiMic size={20} /> : <FiMicOff size={20} />}
-            </button>
-
-            <button
-              onClick={toggleVideo}
-              className={`p-3 rounded-full transition-all duration-300 ${
-                videoOn ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'
-              }`}
-              title={videoOn ? 'Turn Off Video' : 'Turn On Video'}
-            >
-              <FiVideo size={20} />
-            </button>
-
-            <button
-              onClick={endCall}
-              className="bg-red-700 hover:bg-red-800 p-3 rounded-full"
-              title="End Call"
-            >
-              <FiPhoneOff size={20} />
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+            <Snackbar open={alertInfo.open} autoHideDuration={4000} onClose={() => setAlertInfo(prev => ({ ...prev, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+                <Alert onClose={() => setAlertInfo(prev => ({ ...prev, open: false }))} severity={alertInfo.severity} sx={{ width: '100%' }}>{alertInfo.message}</Alert>
+            </Snackbar>
+        </Box>
+    );
 }
