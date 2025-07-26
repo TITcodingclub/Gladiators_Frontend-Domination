@@ -145,8 +145,8 @@ export default function VideoRoom() {
             socket.off("user-disconnected");
             socket.off("user-toggled-mic");
             socket.off("user-toggled-video");
-        };
-    }, [joined, stream, roomID, user]);
+        }; 
+    }, [joined, stream, roomID, user, peers]);
 
     // Peer Creation Functions
     function createPeer(userToSignal, callerID, stream) {
@@ -280,10 +280,10 @@ export default function VideoRoom() {
     // --- UI Rendering ---
     if (!joined && !waitingForApproval) {
         return (
-             <Container maxWidth="sm" sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', color: 'white', textAlign: 'center' }}>
+             <Container maxWidth="sm" sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: 'white', textAlign: 'center',background: 'linear-gradient(to bottom right, #161825, #1d1f31, #161825)' }}>
                 <KitchenIcon sx={{ fontSize: 60, color: 'primary.main' }} />
-                <Typography variant="h3" component="h1" sx={{ fontWeight: 'bold', mt: 2 }}>Cook Together</Typography>
-                <Typography variant="h6" sx={{ color: 'grey.400', mb: 4 }}>Connecting Kitchens, One Recipe at a Time</Typography>
+                <Typography variant="h3" component="h1" sx={{ fontWeight: 'bold'}}>Cook Together</Typography>
+                <Typography variant="h6" sx={{ color: 'grey.400', mb: 2 }}>Connecting Kitchens, One Recipe at a Time</Typography>
                 <Paper elevation={0} sx={{ p: 3, bgcolor: 'transparent', borderRadius: 3, width: '100%', border: '1px solid rgba(255,255,255,0.1)' }}>
                     <TextField fullWidth variant="outlined" label="Enter Room ID to Join or Create" value={roomID} onChange={e => setRoomID(e.target.value)} sx={{ mb: 2, input: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'gray' } }, '& .MuiInputLabel-root': { color: 'gray' } }} />
                     <Button variant="contained" onClick={startCall} size="large" fullWidth>Join Call</Button>
@@ -323,8 +323,8 @@ export default function VideoRoom() {
                 <Grid item xs={12} sm={6} md={4}>
                     <Card sx={{ position: 'relative', height: '100%', bgcolor: 'black', borderRadius: 2 }}>
                          <video ref={localVideoRef} muted autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} />
-                         <Box sx={{ position: 'absolute', bottom: 8, left: 8, color: 'white', bgcolor: 'rgba(0,0,0,0.5)', p: '2px 8px', borderRadius: 1 }}><Typography variant="caption">{user?.displayName || "You"}</Typography></Box>
-                         <Box sx={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 1, bgcolor: 'rgba(0,0,0,0.5)', p: 0.5, borderRadius: 1 }}>
+                         <Box sx={{ position: 'absolute', bottom: 8, left: 8, color: 'white', bgcolor: 'rgba(0, 0, 0, 1)', p: '2px 8px', borderRadius: 1 }}><Typography variant="caption">{user?.displayName || "You"}</Typography></Box>
+                         <Box sx={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 2, bgcolor: 'rgba(255, 255, 255, 1)', p: 1.5, borderRadius: 1 }}>
                              {!micOn && <FiMicOff />}
                              {!videoOn && <FiVideoOff />}
                          </Box>
