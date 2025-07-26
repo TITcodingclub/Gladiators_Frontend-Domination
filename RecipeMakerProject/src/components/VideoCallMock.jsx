@@ -276,6 +276,7 @@ export default function VideoRoom() {
         navigator.clipboard.writeText(roomID);
         setAlertInfo({ open: true, message: "Room ID copied to clipboard!", severity: "success" });
     };
+    
 
     // --- UI Rendering ---
     if (!joined && !waitingForApproval) {

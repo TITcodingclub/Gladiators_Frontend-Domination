@@ -1,161 +1,195 @@
+// server.js
+require("dotenv").config(); // ✅ Load environment variables
+
 const express = require("express");
 const http = require("http");
-const { Server } = require("socket.io");
+const mongoose = require("mongoose");
 const cors = require("cors");
+const { Server } = require("socket.io");
 
 const app = express();
-app.use(cors());
-
 const server = http.createServer(app);
 
+// ===== Middleware =====
+app.use(cors());
+app.use(express.json());
+
+// ===== MongoDB Connection =====
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+.then(() => console.log("✅ MongoDB connected"))
+.catch((err) => {
+  console.error("❌ MongoDB connection error:", err.message);
+  process.exit(1);
+});
+
+// ===== Mongoose Schemas =====
+const userSchema = new mongoose.Schema({
+  socketId: String,
+  uid: String,
+  displayName: String,
+  joinedAt: { type: Date, default: Date.now },
+});
+
+const roomSchema = new mongoose.Schema({
+  roomID: String,
+  hostSocketId: String,
+  createdAt: { type: Date, default: Date.now },
+  users: [userSchema],
+});
+
+const Room = mongoose.model("Room", roomSchema);
+
+// ===== REST API: Search Rooms =====
+app.get("/search", async (req, res) => {
+  try {
+    const { query } = req.query;
+    const rooms = await Room.find({ roomID: { $regex: query, $options: "i" } });
+    res.json(rooms);
+  } catch (err) {
+    console.error("Search Error:", err);
+    res.status(500).json({ error: "Failed to search rooms" });
+  }
+});
+
+// ===== WebSocket Setup =====
 const io = new Server(server, {
   cors: {
-    origin: "*", // In production, restrict this to your frontend's URL
+    origin: "*",
     methods: ["GET", "POST"],
   },
 });
 
-// --- Data Structures ---
-// rooms: Stores room information, including the host and a map of users in the room.
-// { [roomID]: { host: socket.id, users: { [socket.id]: { displayName, uid, etc. } } } }
-const rooms = {}; 
-// socketToUser: A simple map to quickly find a user's info from their socket ID.
-const socketToUser = {}; 
+const rooms = {};        // In-memory room map
+const socketToUser = {}; // Map of socketId => user
 
 io.on("connection", (socket) => {
-  console.log(`User connected: ${socket.id}`);
+  console.log(`🔌 User connected: ${socket.id}`);
 
-  // --- Room Management ---
+  socket.on("check-room", (roomID, cb) => cb(!!rooms[roomID]));
 
-  // A client checks if a room exists before attempting to join.
-  socket.on("check-room", (roomID, callback) => {
-    callback(!!rooms[roomID]);
-  });
-
-  // The first user creates a room and becomes the host.
-  socket.on("create-room", ({ roomID, user }) => {
-    rooms[roomID] = {
-      host: socket.id,
-      users: {
-        [socket.id]: user
-      },
-    };
-    socketToUser[socket.id] = user;
-    socket.join(roomID);
-    console.log(`${user.displayName} created and joined room ${roomID} as host.`);
-  });
-
-  // A subsequent user requests to join an existing room.
-  socket.on("request-to-join", ({ roomID, user }) => {
-    const room = rooms[roomID];
-    if (room && room.host) {
-      socketToUser[socket.id] = user; // Temporarily store user info
-      // Forward the request to the host of the room.
-      io.to(room.host).emit("new-join-request", { from: socket.id, user });
-      console.log(`${user.displayName} is requesting to join room ${roomID}.`);
+  socket.on("create-room", async ({ roomID, user }) => {
+    if (!rooms[roomID]) {
+      rooms[roomID] = { host: socket.id, users: { [socket.id]: user } };
+      socketToUser[socket.id] = user;
+      socket.join(roomID);
+      await Room.create({
+        roomID,
+        hostSocketId: socket.id,
+        users: [{ socketId: socket.id, ...user }],
+      });
+      console.log(`🏠 Room created: ${roomID}`);
     }
   });
 
-  // The host accepts or declines a join request.
+  socket.on("request-to-join", ({ roomID, user }) => {
+    const room = rooms[roomID];
+    if (room) {
+      socketToUser[socket.id] = user;
+      io.to(room.host).emit("new-join-request", { from: socket.id, user });
+    }
+  });
+
   socket.on("respond-to-request", ({ to, roomID, accepted }) => {
     if (accepted) {
       io.to(to).emit("request-accepted");
-      console.log(`Host accepted request from ${to} for room ${roomID}.`);
     } else {
       io.to(to).emit("request-declined");
-      console.log(`Host declined request from ${to} for room ${roomID}.`);
-      delete socketToUser[to]; // Clean up user info if declined.
+      delete socketToUser[to];
     }
   });
-  
-  // A user, after being accepted, formally joins the room to set up peer connections.
-  socket.on("join-room", ({ roomID, user }) => {
+
+  socket.on("join-room", async ({ roomID, user }) => {
     const room = rooms[roomID];
-    if (room) {
-      room.users[socket.id] = user;
-      socket.join(roomID);
-      
-      // Get all other users in the room except for the one who just joined.
-      const otherUsers = { ...room.users };
-      delete otherUsers[socket.id];
-      
-      // Send the list of other users to the new joiner.
-      socket.emit("all-users", otherUsers);
-      console.log(`${user.displayName} has now officially joined room ${roomID}.`);
-    }
+    if (!room) return;
+
+    room.users[socket.id] = user;
+    socketToUser[socket.id] = user;
+    socket.join(roomID);
+
+    const otherUsers = { ...room.users };
+    delete otherUsers[socket.id];
+
+    socket.emit("all-users", otherUsers);
+
+    await Room.findOneAndUpdate(
+      { roomID },
+      { $push: { users: { socketId: socket.id, ...user } } }
+    );
   });
 
-  // --- WebRTC Signaling Handlers ---
-
-  // Relays the initial signal from a new peer to an existing peer.
-  socket.on("sending-signal", (payload) => {
-    io.to(payload.userToSignal).emit("user-joined", {
-      signal: payload.signal,
-      callerID: payload.callerID,
-      user: socketToUser[payload.callerID], // Include the user info of the joiner
+  socket.on("sending-signal", ({ userToSignal, callerID, signal }) => {
+    io.to(userToSignal).emit("user-joined", {
+      signal,
+      callerID,
+      user: socketToUser[callerID],
     });
   });
 
-  // Relays the return signal from an existing peer back to the new peer.
-  socket.on("returning-signal", (payload) => {
-    io.to(payload.callerID).emit("receiving-returned-signal", {
-      signal: payload.signal,
+  socket.on("returning-signal", ({ callerID, signal }) => {
+    io.to(callerID).emit("receiving-returned-signal", {
+      signal,
       id: socket.id,
     });
   });
-  
-  // --- In-Call Action Handlers ---
 
-  // Broadcasts a user's microphone status change to others in the room.
   socket.on("toggle-mic", ({ roomID, micOn }) => {
-    socket.to(roomID).emit("user-toggled-mic", { userID: socket.id, micOn });
+    socket.to(roomID).emit("user-toggled-mic", {
+      userID: socket.id,
+      micOn,
+    });
   });
 
-  // Broadcasts a user's video status change to others in the room.
   socket.on("toggle-video", ({ roomID, videoOn }) => {
-    socket.to(roomID).emit("user-toggled-video", { userID: socket.id, videoOn });
+    socket.to(roomID).emit("user-toggled-video", {
+      userID: socket.id,
+      videoOn,
+    });
   });
 
-  // --- Disconnect and Leave Handler ---
-
-  const handleDisconnect = () => {
+  const handleDisconnect = async () => {
     const user = socketToUser[socket.id];
-    console.log(`${user?.displayName || 'User'} disconnected: ${socket.id}`);
-    
+    if (!user) return;
+
     let roomID;
-    // Find which room the disconnected user was part of.
     for (const id in rooms) {
-        if (rooms[id].users[socket.id]) {
-            roomID = id;
-            break;
-        }
+      if (rooms[id].users[socket.id]) {
+        roomID = id;
+        break;
+      }
     }
-    
+
     if (roomID) {
-        const room = rooms[roomID];
-        // Remove the user from the room's user list.
-        delete room.users[socket.id];
-        
-        // If the host disconnected, the call ends for everyone.
-        if (socket.id === room.host) {
-            console.log(`Host of room ${roomID} disconnected. Closing room.`);
-            // Notify all remaining users that the room is closed.
-            Object.keys(room.users).forEach(userID => {
-                io.to(userID).emit("host-left");
-            });
-            delete rooms[roomID];
-        } else {
-            // If a regular user disconnected, just notify others in the room.
-            io.to(roomID).emit("user-disconnected", socket.id);
-        }
+      const room = rooms[roomID];
+      delete room.users[socket.id];
+
+      if (socket.id === room.host) {
+        Object.keys(room.users).forEach((uid) =>
+          io.to(uid).emit("host-left")
+        );
+        delete rooms[roomID];
+        await Room.deleteOne({ roomID });
+      } else {
+        io.to(roomID).emit("user-disconnected", socket.id);
+        await Room.findOneAndUpdate(
+          { roomID },
+          { $pull: { users: { socketId: socket.id } } }
+        );
+      }
     }
-    // Clean up the user from the lookup map.
+
     delete socketToUser[socket.id];
+    console.log(`❌ Disconnected: ${socket.id}`);
   };
 
   socket.on("leave-room", handleDisconnect);
   socket.on("disconnect", handleDisconnect);
 });
 
+// ===== Start Server =====
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
+server.listen(PORT, () =>
+  console.log(`🚀 Server running on http://localhost:${PORT}`)
+);
