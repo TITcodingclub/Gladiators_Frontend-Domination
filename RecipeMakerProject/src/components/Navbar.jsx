@@ -7,8 +7,9 @@ import {
   FaTimes,
   FaHome,
   FaUtensils,
-  FaUsers
-} from 'react-icons/fa'
+  FaUsers,
+  FaPeopleArrows
+} from 'react-icons/fa';
 import { FiLogOut } from 'react-icons/fi'
 
 export default function Navbar() {
@@ -30,11 +31,13 @@ export default function Navbar() {
     }
   }, [])
 
+
 const navItems = [
   { name: 'Home', icon: <FaHome className="inline mr-2" />, path: '/' },
   { name: 'Recipes', icon: <FaUtensils className="inline mr-2" />, path: '/recipes' },
   { name: 'Community', icon: <FaUsers className="inline mr-2" />, path: '/community' },
-]
+  // { name: 'Cook Together', icon: <FaPeopleArrows className="inline mr-2" />, path: '/cook-together' },
+];
 
   return (
     <nav

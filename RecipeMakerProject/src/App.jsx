@@ -3,9 +3,9 @@ import { useAuth } from './hooks/useAuth'
 import Navbar from './components/Navbar'
 import RecipePage from './pages/RecipePage'
 import RecipeGuide from './components/RecipeGuide'
-import    CommunityFeed from './pages/CommunityFeed'
+import CommunityFeed from './pages/CommunityFeed'
 import LoginPage from './pages/LoginPage'
-import ThreadBackground from './components/ThreadBackground'
+// import VideoCallMock from './components/VideoCallMock'
 
 function App() {
   const { user, loading } = useAuth()
@@ -33,6 +33,7 @@ function App() {
          <Route element={<RecipeGuide />} path='/recipes' > </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
           <Route element={<CommunityFeed />} path='/community' > </Route>
+          {/* <Route element={<VideoCallMock />} path='/cook-together' > </Route> */}
         </Routes>
       </div>
     </Router>
