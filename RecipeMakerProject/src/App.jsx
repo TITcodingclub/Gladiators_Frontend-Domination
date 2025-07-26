@@ -3,6 +3,7 @@ import { useAuth } from './hooks/useAuth'
 import Navbar from './components/Navbar'
 import RecipePage from './pages/RecipePage'
 import RecipeGuide from './components/RecipeGuide'
+import    CommunityFeed from './pages/CommunityFeed'
 import LoginPage from './pages/LoginPage'
 import ThreadBackground from './components/ThreadBackground'
 
@@ -31,6 +32,7 @@ function App() {
           <Route element={<LoginPage />} path='/login'></Route>
          <Route element={<RecipeGuide />} path='/recipes' > </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
+          <Route element={<CommunityFeed />} path='/community' > </Route>
         </Routes>
       </div>
     </Router>
