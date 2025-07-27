@@ -1,6 +1,6 @@
 import React from 'react';
 import { Grow, Chip, Stack } from '@mui/material';
-import { green } from '@mui/material/colors';
+import { green, orange } from '@mui/material/colors';
 
 export default function TagAnimator({ tags }) {
   return (
@@ -24,14 +24,14 @@ export default function TagAnimator({ tags }) {
           <Chip
             label={tag}
             sx={{
-              backgroundColor: green[600],
               color: 'white',
               borderRadius: '9999px',
               px: 2,
               py: 0.5,
+              border: `2px solid ${green[800]}`,
               fontWeight: 'bold',
               fontSize: '1rem',
-              boxShadow: `0 4px 10px rgba(0, 128, 0, 0.3)`,
+              boxShadow: `0 6px 12px rgba(0, 0, 0, 0.89)`,
               transition: 'transform 0.3s ease',
               '&:hover': {
                 transform: 'scale(1.05)',

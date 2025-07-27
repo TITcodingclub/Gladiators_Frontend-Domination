@@ -42,6 +42,17 @@ const roomSchema = new mongoose.Schema({
 
 const Room = mongoose.model("Room", roomSchema);
 
+// Example Recipe Schema
+const recipeSchema = new mongoose.Schema({
+  title: String,
+  description: String,
+  ingredients: [String],
+  cookTime: String,
+  steps: [String],
+  createdAt: { type: Date, default: Date.now },
+});
+const Recipe = mongoose.model("Recipe", recipeSchema);
+
 // ===== REST API: Search Rooms =====
 app.get("/search", async (req, res) => {
   try {
@@ -51,6 +62,26 @@ app.get("/search", async (req, res) => {
   } catch (err) {
     console.error("Search Error:", err);
     res.status(500).json({ error: "Failed to search rooms" });
+  }
+});
+
+// GET all recipes
+app.get("/api/recipes", async (req, res) => {
+  try {
+    const recipes = await Recipe.find();
+    res.json(recipes);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch recipes" });
+  }
+});
+
+// POST a new recipe
+app.post("/api/recipes", async (req, res) => {
+  try {
+    const recipe = await Recipe.create(req.body);
+    res.status(201).json(recipe);
+  } catch (err) {
+    res.status(400).json({ error: "Failed to create recipe" });
   }
 });
 
