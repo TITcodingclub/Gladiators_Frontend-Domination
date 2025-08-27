@@ -13,6 +13,12 @@ router.post("/register", verifyFirebaseToken, async (req, res) => {
     if (!name || !email) {
       return res.status(400).json({ message: "Name and Email are required" });
     }
+    if (weight && (isNaN(weight) || weight < 0 || weight > 500)) {
+      return res.status(400).json({ message: "Weight must be a valid number (0-500)" });
+    }
+    if (height && (isNaN(height) || height < 0 || height > 300)) {
+      return res.status(400).json({ message: "Height must be a valid number (0-300)" });
+    }
 
     // Upsert base user doc (name/photo/email)
     await User.findOneAndUpdate(
@@ -38,6 +44,7 @@ router.post("/register", verifyFirebaseToken, async (req, res) => {
     const update = {
       $set: {
         uid,
+        // Only allow specific fields to be set to protect against mass assignment
         name,
         email,
         photo,
@@ -60,7 +67,21 @@ router.post("/register", verifyFirebaseToken, async (req, res) => {
     const profile = await Profile.findOneAndUpdate(filter, update, options);
     await User.findOneAndUpdate({ uid }, { $set: { profileCompleted: true } });
 
-    res.status(201).json({ message: "User registered successfully", profile, profileCompleted: true });
+    // Limit response to non-sensitive profile fields
+    const safe = {
+      uid: profile.uid,
+      dob: profile.dob,
+      gender: profile.gender,
+      weight: profile.weight,
+      height: profile.height,
+      bmi: profile.bmi,
+      bloodGroup: profile.bloodGroup,
+      medicalHistory: profile.medicalHistory,
+      dailyCalories: profile.dailyCalories,
+      goalStatus: profile.goalStatus,
+      phone: profile.phone,
+    };
+    res.status(201).json({ message: "User registered successfully", profile: safe, profileCompleted: true });
   } catch (error) {
     console.error("Registration error:", error);
     res.status(500).json({ message: "Server error", error });

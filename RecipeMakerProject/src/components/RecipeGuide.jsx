@@ -4,6 +4,7 @@ import CookModeView from './CookModeView'
 import { Snackbar, Alert } from '@mui/material'
 import TagAnimator from './TagAnimator'
 import ThreadBackground from './ThreadBackground'
+import axiosInstance from '../utils/axiosInstance'
 
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY)
 
@@ -47,12 +48,12 @@ export default function RecipeGuide({ scrollRef }) {
     const cleanText = (str) => str.replace(/[^\w\s.,:/()-]/g, '').trim()
 
     try {
-      // ✅ Log query
-      await fetch('/api/searches', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, timestamp: new Date().toISOString() }),
-      })
+      // ✅ Log query (ties to current user via token interceptor)
+      try {
+        await axiosInstance.post('/api/users/searches', { query })
+      } catch (e) {
+        // Non-fatal if user not logged in
+      }
 
       // ✅ Validate API key presence
       if (!import.meta.env.VITE_GEMINI_API_KEY) {
@@ -125,6 +126,7 @@ export default function RecipeGuide({ scrollRef }) {
         setSteps(geminiSteps)
 
         // ✅ Save to backend
+        const stepsText = geminiSteps.map((s) => s.text)
         await fetch('/api/recipes/ai', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -133,10 +135,22 @@ export default function RecipeGuide({ scrollRef }) {
             description,
             ingredients,
             cookTime,
-            steps: geminiSteps.map((s) => s.text),
+            steps: stepsText,
             createdAt: new Date().toISOString(),
           }),
         })
+
+        // ✅ Enrich user search with detailed data (if logged in)
+        try {
+          await axiosInstance.post('/api/users/searches', {
+            query,
+            recipeTitle: query,
+            description,
+            ingredients,
+            cookTime,
+            steps: stepsText,
+          })
+        } catch (e) {}
       } else {
         setAlert('No detailed instructions found from Gemini.')
       }

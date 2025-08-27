@@ -12,6 +12,8 @@ const profileSchema = new mongoose.Schema({
   medicalHistory: String,
   dailyCalories: String,
   goalStatus: String,
+  notificationsEnabled: { type: Boolean, default: true },
+  privacy: { type: String, enum: ["public", "private"], default: "public" },
 }, { timestamps: true });
 
 module.exports = mongoose.model("Profile", profileSchema);
