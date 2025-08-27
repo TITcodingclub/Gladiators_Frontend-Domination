@@ -1,5 +1,6 @@
 const express = require("express");
 const Recipe = require("../models/Recipe");
+const verifyFirebaseToken = require("../auth/verifyFirebaseToken");
 const router = express.Router();
 
 // GET all recipes
@@ -13,7 +14,7 @@ router.get("/", async (req, res) => {
 });
 
 // POST a new recipe
-router.post("/", async (req, res) => {
+router.post("/", verifyFirebaseToken, async (req, res) => {
   try {
     const recipe = await Recipe.create(req.body);
     res.status(201).json(recipe);

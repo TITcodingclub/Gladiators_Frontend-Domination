@@ -1,41 +1,28 @@
 const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
-const admin = require("firebase-admin");
-
-// Middleware: Verify Firebase Token
-const verifyFirebaseToken = async (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "No token provided" });
-  }
-
-  const token = authHeader.split(" ")[1];
-
-  try {
-    const decodedToken = await admin.auth().verifyIdToken(token);
-    req.user = decodedToken;
-    next();
-  } catch (error) {
-    return res.status(401).json({ message: "Invalid token", error });
-  }
-};
+const Profile = require("../models/Profile");
+const verifyFirebaseToken = require("../auth/verifyFirebaseToken");
 
 // POST /api/users/register
 router.post("/register", verifyFirebaseToken, async (req, res) => {
   try {
-    const { name, email, photo, age, gender, weight, height, phone, bloodGroup, medicalHistory } = req.body;
+    const { name, email, photo, dob, age, gender, weight, height, phone, bloodGroup, medicalHistory } = req.body;
+    const { uid } = req.user;
 
     if (!name || !email) {
       return res.status(400).json({ message: "Name and Email are required" });
     }
 
-    // Check if user exists
-    let user = await User.findOne({ email });
+    // Upsert base user doc (name/photo/email)
+    await User.findOneAndUpdate(
+      { $or: [{ uid }, { email }] },
+      { $set: { uid, name, email, photo } },
+      { upsert: true }
+    );
 
-    if (user) {
-      return res.status(400).json({ message: "User already exists" });
-    }
+    // Upsert profile by uid and mark completed
+    const filter = { uid };
 
     // Calculate BMI (optional)
     let bmi = "";
@@ -48,24 +35,32 @@ router.post("/register", verifyFirebaseToken, async (req, res) => {
     const dailyCalories = "1800 kcal";
     const goalStatus = "On Track";
 
-    // Create user
-    user = await User.create({
-      name,
-      email,
-      photo,
-      age,
-      gender,
-      weight,
-      height,
-      phone,
-      bloodGroup,
-      medicalHistory,
-      bmi,
-      dailyCalories,
-      goalStatus,
-    });
+    const update = {
+      $set: {
+        uid,
+        name,
+        email,
+        photo,
+        dob,
+        age,
+        gender,
+        weight,
+        height,
+        bmi,
+        phone,
+        bloodGroup,
+        medicalHistory,
+        dailyCalories,
+        goalStatus,
+        profileCompleted: true,
+      },
+    };
 
-    res.status(201).json({ message: "User registered successfully", user });
+    const options = { new: true, upsert: true };
+    const profile = await Profile.findOneAndUpdate(filter, update, options);
+    await User.findOneAndUpdate({ uid }, { $set: { profileCompleted: true } });
+
+    res.status(201).json({ message: "User registered successfully", profile, profileCompleted: true });
   } catch (error) {
     console.error("Registration error:", error);
     res.status(500).json({ message: "Server error", error });

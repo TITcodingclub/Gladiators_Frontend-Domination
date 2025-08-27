@@ -12,7 +12,7 @@ import {
 import { FaUserCircle } from "react-icons/fa";
 import { motion } from "framer-motion";
 import gsap from "gsap";
-import axios from "axios";
+import axiosInstance from "../utils/axiosInstance";
 
 export default function RegisterProfile() {
   const auth = getAuth();
@@ -41,6 +41,15 @@ export default function RegisterProfile() {
 
   useEffect(() => {
     gsap.from(formRef.current, { });
+    // If profile already exists, redirect to profile
+    (async () => {
+      try {
+        const { data } = await axiosInstance.get("/api/users/me");
+        if (data.profileCompleted) {
+          navigate("/profile", { replace: true });
+        }
+      } catch {}
+    })();
   }, []);
 
   const handleChange = (e) => {
@@ -54,13 +63,25 @@ export default function RegisterProfile() {
     setErrorMsg("");
 
     try {
-      const token = await firebaseUser.getIdToken();
-      await axios.post(
-        "/api/users/register",
-        { ...form, firebaseId: firebaseUser.uid },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      navigate("/profile");
+      const { data } = await axiosInstance.post("/api/users/register", {
+        name: form.name,
+        email: form.email,
+        photo: form.photo,
+        dob: form.dob,
+        phone: form.phone,
+        gender: form.gender,
+        weight: form.weight ? Number(form.weight) : undefined,
+        height: form.height ? Number(form.height) : undefined,
+        bloodGroup: form.bloodGroup,
+        medicalHistory: [form.medicalConditions, form.allergies].filter(Boolean).join(", "),
+        dailyCalories: form.dailyCalories,
+        goalStatus: form.goalStatus,
+      });
+      if (data && data.profileCompleted) {
+        navigate("/profile", { replace: true });
+      } else {
+        navigate("/", { replace: true });
+      }
     } catch (error) {
       console.error("Failed to register profile:", error);
       setErrorMsg("Something went wrong. Please try again.");

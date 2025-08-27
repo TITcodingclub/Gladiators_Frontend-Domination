@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { FcGoogle } from 'react-icons/fc'
 import { Box } from '@mui/material'
 import ThreadBackground from '../components/ThreadBackground'
-import axios from 'axios'
+import axiosInstance from '../utils/axiosInstance'
 
 export default function LoginPage() {
   const { user, loading, login } = useAuth() // Firebase auth state
@@ -18,10 +18,7 @@ export default function LoginPage() {
       
       setCheckingProfile(true)
       try {
-        const token = localStorage.getItem('token')
-        const { data } = await axios.get('/api/users/me', {
-          headers: { Authorization: `Bearer ${token}` },
-        })
+        const { data } = await axiosInstance.get('/api/users/me')
         
         if (data.user && data.user.profileCompleted) {
           navigate('/', { replace: true })

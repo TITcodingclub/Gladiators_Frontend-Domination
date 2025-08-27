@@ -17,12 +17,8 @@ export function useAuth() {
         localStorage.setItem("user", JSON.stringify(firebaseUser));
 
         try {
-          // ✅ Sync user to backend
-          await axiosInstance.post("/api/users/login", {
-            uid: firebaseUser.uid,
-            displayName: firebaseUser.displayName,
-            photoURL: firebaseUser.photoURL,
-          });
+          // ✅ Sync user to backend with ID token via interceptor
+          await axiosInstance.post("/api/users/login");
         } catch (err) {
           console.error("❌ Failed to sync user with backend:", err);
         }

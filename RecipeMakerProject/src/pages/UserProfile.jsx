@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { LogOut, Heart, Settings, User, Calendar, Phone, Activity, Thermometer, Droplet } from "lucide-react";
 import { MdEmail, MdPhone } from "react-icons/md"; // ✅ New icons
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import axiosInstance from "../utils/axiosInstance";
 import { getAuth, signOut } from "firebase/auth";
 import ThreadBackground from "../components/ThreadBackground";
 
@@ -32,38 +32,35 @@ export default function UserProfile() {
 
   useEffect(() => {
     const fetchUserData = async () => {
-      const token = localStorage.getItem("token");
-      if (!firebaseUser && !token) navigate("/login");
+      if (!firebaseUser) return navigate("/login");
 
       try {
-        if (token) {
-          const { data } = await axios.get("/api/users/me", {
-            headers: { Authorization: `Bearer ${token}` },
-          });
+        const { data } = await axiosInstance.get("/api/users/me");
 
-          const u = data.user;
-          setUser((prev) => ({
-            ...prev,
-            name: u.name || prev?.displayName,
-            email: u.email || prev?.email,
-            photo: u.photo || prev?.photoURL,
-          }));
+        const u = data.user || {};
+        const p = data.profile || {};
 
-          setProfile({
-            age: u.age || "",
-            gender: u.gender || "",
-            weight: u.weight || "",
-            height: u.height || "",
-            phone: u.phone || "",
-            bloodGroup: u.bloodGroup || "",
-            medicalHistory: u.medicalHistory || "",
-            bmi: u.bmi || "22.5",
-            dailyCalories: u.dailyCalories || "1800 kcal",
-            goalStatus: u.goalStatus || "On Track",
-          });
+        setUser((prev) => ({
+          ...prev,
+          name: u.name || prev?.displayName,
+          email: u.email || prev?.email,
+          photo: u.photo || prev?.photoURL,
+        }));
 
-          setFavorites(data.favorites || []);
-        }
+        setProfile({
+          age: p.age || "",
+          gender: p.gender || "",
+          weight: p.weight || "",
+          height: p.height || "",
+          phone: p.phone || "",
+          bloodGroup: p.bloodGroup || "",
+          medicalHistory: p.medicalHistory || "",
+          bmi: u.bmi || "22.5",
+          dailyCalories: p.dailyCalories || "1800 kcal",
+          goalStatus: p.goalStatus || "On Track",
+        });
+
+        setFavorites(data.favorites || []);
       } catch (error) {
         console.error(error);
         navigate("/login");
@@ -71,6 +68,10 @@ export default function UserProfile() {
     };
 
     fetchUserData();
+    // Refetch when window regains focus to stay in sync
+    const onFocus = () => fetchUserData();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
   }, [firebaseUser, navigate]);
 
   const handleLogout = async () => {

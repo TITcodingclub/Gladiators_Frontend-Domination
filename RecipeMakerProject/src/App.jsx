@@ -1,6 +1,8 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import Navbar from './components/Navbar';
+import { useEffect, useState } from 'react'
+import axiosInstance from './utils/axiosInstance'
 
 import RecipePage from './pages/RecipePage';
 import RecipeGuide from './components/RecipeGuide';
@@ -12,6 +14,40 @@ import RegisterProfile from './pages/RegisterProfile'; // ✅ import new page
 // ✅ Protected Route Component
 function ProtectedRoute({ user, children }) {
   return user ? children : <Navigate to="/login" replace />;
+}
+
+// ✅ Ensures a profile exists; otherwise redirects to register-profile
+function RequireCompletedProfile({ children }) {
+  const [checking, setChecking] = useState(true)
+  const [completed, setCompleted] = useState(false)
+
+  useEffect(() => {
+    let isMounted = true
+    const check = async () => {
+      try {
+        const { data } = await axiosInstance.get('/api/users/me')
+        if (!isMounted) return
+        setCompleted(!!data.profileCompleted)
+      } catch {
+        setCompleted(false)
+      } finally {
+        if (isMounted) setChecking(false)
+      }
+    }
+    check()
+    return () => { isMounted = false }
+  }, [])
+
+  if (checking) {
+    return (
+      <div className="w-screen h-screen flex justify-center items-center bg-black">
+        <div className="animate-spin rounded-full h-20 w-20 border-t-2 border-b-2 border-[#FF742C]"></div>
+      </div>
+    )
+  }
+
+  if (!completed) return <Navigate to="/register-profile" replace />
+  return children
 }
 
 function App() {
@@ -36,7 +72,9 @@ function App() {
             path="/"
             element={
               <ProtectedRoute user={user}>
-                <RecipePage />
+                <RequireCompletedProfile>
+                  <RecipePage />
+                </RequireCompletedProfile>
               </ProtectedRoute>
             }
           />
@@ -48,7 +86,9 @@ function App() {
             path="/recipes"
             element={
               <ProtectedRoute user={user}>
-                <RecipeGuide />
+                <RequireCompletedProfile>
+                  <RecipeGuide />
+                </RequireCompletedProfile>
               </ProtectedRoute>
             }
           />
@@ -56,7 +96,9 @@ function App() {
             path="/community"
             element={
               <ProtectedRoute user={user}>
-                <CommunityFeed />
+                <RequireCompletedProfile>
+                  <CommunityFeed />
+                </RequireCompletedProfile>
               </ProtectedRoute>
             }
           />
@@ -64,7 +106,9 @@ function App() {
             path="/profile"
             element={
               <ProtectedRoute user={user}>
-                <UserProfile />
+                <RequireCompletedProfile>
+                  <UserProfile />
+                </RequireCompletedProfile>
               </ProtectedRoute>
             }
           />

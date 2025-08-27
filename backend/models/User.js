@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema({
+  uid: { type: String, unique: true, index: true },
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   photo: String,
@@ -14,6 +15,7 @@ const userSchema = new mongoose.Schema({
   bmi: String,
   dailyCalories: String,
   goalStatus: String,
+  profileCompleted: { type: Boolean, default: false },
 });
 
 const User = mongoose.model("User", userSchema);
