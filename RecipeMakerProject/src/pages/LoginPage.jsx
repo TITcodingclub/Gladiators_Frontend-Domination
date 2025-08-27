@@ -1,27 +1,58 @@
-// src/pages/LoginPage.jsx
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { FcGoogle } from 'react-icons/fc'
 import { Box } from '@mui/material'
 import ThreadBackground from '../components/ThreadBackground'
+import axios from 'axios'
 
 export default function LoginPage() {
-  const { user, login } = useAuth()
+  const { user, loading, login } = useAuth() // Firebase auth state
   const navigate = useNavigate()
-
-  // Redirect to main page once authenticated
+  const [checkingProfile, setCheckingProfile] = useState(false)
+  
+  
   useEffect(() => {
-    if (user) navigate('/', { replace: true })
-  }, [user, navigate])
+    const checkProfile = async () => {
+      if (!user) return
+      
+      setCheckingProfile(true)
+      try {
+        const token = localStorage.getItem('token')
+        const { data } = await axios.get('/api/users/me', {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        
+        if (data.user && data.user.profileCompleted) {
+          navigate('/', { replace: true })
+        } else {
+          navigate('/register-profile', { replace: true })
+        }
+      } catch (err) {
+        console.error('Error checking profile:', err)
+        navigate('/register-profile', { replace: true })
+      } finally {
+        setCheckingProfile(false)
+      }
+    }
+
+    if (!loading && user) checkProfile()
+  }, [user, loading, navigate])
+
+  if (loading || checkingProfile) {
+    return (
+      <div className="w-screen h-screen flex justify-center items-center bg-black">
+        <p className="text-white text-lg">Checking profile...</p>
+      </div>
+    )
+  }
 
   return (
     <>
       <ThreadBackground />
       <div className="min-h-screen flex items-center justify-center bg-transparent">
         <div className="w-full max-w-md p-8 bg-gradient-to-br from-[#0c0d14] via-[#1d1f31] to-[#0c0d14] rounded-2xl text-center space-y-6 shadow-2xl">
-          
-          {/* Centered Animated SVG Logo */}
+          {/* Logo */}
           <div className="flex justify-center">
             <Box sx={{ width: 220, height: 60 }}>
               <svg viewBox="0 0 180 60" width="100%" height="100%">
@@ -51,12 +82,11 @@ export default function LoginPage() {
             </Box>
           </div>
 
-          {/* Animated typing tagline */}
           <p className="text-gray-400 text-sm whitespace-nowrap overflow-hidden border-r-2 border-gray-400 animate-typing">
             Your intelligent cooking assistant.
           </p>
 
-          {/* Google Sign-In Button */}
+          {/* Google Sign-In */}
           <button
             onClick={login}
             className="flex items-center justify-center w-full gap-3 px-5 py-3 border border-gray-600 rounded-lg bg-white dark:bg-gray-700 hover:shadow-lg transition cursor-pointer"

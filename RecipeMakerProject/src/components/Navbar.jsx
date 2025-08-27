@@ -1,50 +1,31 @@
-import { useState, useRef, useEffect } from 'react'
-import { useAuth } from '../hooks/useAuth'
+import { useState } from 'react';
+import { useAuth } from '../hooks/useAuth';
 import {
-  FaChevronDown,
   FaUserCircle,
   FaBars,
   FaTimes,
   FaHome,
   FaUtensils,
-  FaUsers,
-  FaPeopleArrows
+  FaUsers
 } from 'react-icons/fa';
-import { FiLogOut } from 'react-icons/fi'
+import { useNavigate } from 'react-router-dom';
 
 export default function Navbar() {
-  const { user, login, logout } = useAuth()
-  const [open, setOpen] = useState(false)
-  const [mobileMenu, setMobileMenu] = useState(false)
-  const dropdownRef = useRef(null)
+  const { user, login } = useAuth();
+  const [mobileMenu, setMobileMenu] = useState(false);
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setOpen(false)
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [])
-
-
-const navItems = [
-  { name: 'Home', icon: <FaHome className="inline mr-2" />, path: '/' },
-  { name: 'Recipes', icon: <FaUtensils className="inline mr-2" />, path: '/recipes' },
-  { name: 'Community', icon: <FaUsers className="inline mr-2" />, path: '/community' },
-  // { name: 'Cook Together', icon: <FaPeopleArrows className="inline mr-2" />, path: '/cook-together' },
-];
+  const navItems = [
+    { name: 'Home', icon: <FaHome className="inline mr-2" />, path: '/' },
+    { name: 'Recipes', icon: <FaUtensils className="inline mr-2" />, path: '/recipes' },
+    { name: 'Community', icon: <FaUsers className="inline mr-2" />, path: '/community' },
+  ];
 
   return (
-    <nav
-      className={`fixed w-full px-6 md:px-10 py-4 flex justify-between items-center shadow-xl z-50
-        bg-gradient-to-br from-white via-gray-100 to-white text-gray-800
-        dark:from-[#0f101a] dark:via-[#151623] dark:to-[#0f101a] dark:text-white`}
-    >
+    <nav className="fixed w-full px-6 md:px-10 py-4 flex justify-between items-center shadow-xl z-50
+      bg-gradient-to-br from-white via-gray-100 to-white text-gray-800
+      dark:from-[#0f101a] dark:via-[#151623] dark:to-[#0f101a] dark:text-white">
+      
       {/* Logo */}
       <div className="w-[200px] h-[50px]">
         <svg viewBox="0 0 300 60" width="100%" height="100%">
@@ -75,14 +56,11 @@ const navItems = [
 
       {/* Desktop Nav */}
       <ul className="hidden md:flex gap-10">
-        {navItems.map(({ name, icon, path}, index) => (
-          <li
-            key={name}
-            className={`opacity-0 translate-y-2 animate-fadeSlideIn animation-delay-${index * 150}`}
-          >
+        {navItems.map(({ name, icon, path }, index) => (
+          <li key={name} className={`opacity-0 translate-y-2 animate-fadeSlideIn animation-delay-${index * 150}`}>
             <a
               href={path}
-              className="text-xl flex items-center transition-transform duration-300 ease-in-out hover:scale-110 hover:text-[#FF742C] dark:hover:text-[#FF742C] "
+              className="text-xl flex items-center transition-transform duration-300 ease-in-out hover:scale-110 hover:text-[#FF742C] dark:hover:text-[#FF742C]"
             >
               {icon}
               {name}
@@ -103,38 +81,18 @@ const navItems = [
 
       {/* User / Auth Section */}
       {user ? (
-        <div className="relative hidden md:flex" ref={dropdownRef}>
-          <button
-            onClick={() => setOpen(!open)}
-            className="flex items-center gap-2 text-sm font-medium cursor-pointer focus:outline-none"
-          >
-            {user.photoURL ? (
-              <img
-                src={user.photoURL}
-                alt="Avatar"
-                className="w-8 h-8 rounded-full"
-              />
-            ) : (
-              <FaUserCircle className="w-8 h-8 text-[#FF742C] cursor-pointer" />
-            )}
-            <FaChevronDown className="text-xs text-[#FF742C]" />
-          </button>
-
-          {open && (
-            <div
-              className="absolute top-10 right-0 mt-2 w-44 cursor-pointer rounded shadow-md z-50
-              bg-white dark:bg-[#1d1f31] border dark:border-gray-700"
-            >
-              
-
-              <button
-                onClick={logout}
-                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-800 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
-              >
-                <FiLogOut className="text-[#FF742C]" />
-                Logout
-              </button>
-            </div>
+        <div
+          className="hidden md:flex items-center gap-2 cursor-pointer"
+          onClick={() => navigate('/profile')}
+        >
+          {user.photoURL ? (
+            <img
+              src={user.photoURL}
+              alt="Avatar"
+              className="w-10 h-10 rounded-full border-2 border-[#FF742C] hover:scale-110 transition"
+            />
+          ) : (
+            <FaUserCircle className="w-10 h-10 text-[#FF742C]" />
           )}
         </div>
       ) : (
@@ -146,19 +104,9 @@ const navItems = [
         </button>
       )}
 
-      {/* Mobile Backdrop */}
-      {mobileMenu && (
-        <div
-          className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm md:hidden"
-          onClick={() => setMobileMenu(false)}
-        />
-      )}
-
       {/* Mobile Drawer */}
       {mobileMenu && (
-        <div
-          className="fixed top-0 left-0 w-[90%] z-50 m-5 animate-slideDown bg-white dark:bg-[#1b1d2a] border-t border-gray-200 dark:border-gray-700 px-6 py-6 shadow-2xl rounded-b-xl md:hidden"
-        >
+        <div className="fixed top-0 left-0 w-[90%] z-50 m-5 animate-slideDown bg-white dark:bg-[#1b1d2a] border-t border-gray-200 dark:border-gray-700 px-6 py-6 shadow-2xl rounded-b-xl md:hidden">
           <div className="flex justify-end mb-4">
             <button
               className="text-2xl text-[#FF742C] hover:scale-110 transition-transform"
@@ -172,7 +120,7 @@ const navItems = [
             <a
               key={name}
               href={path}
-              className="block text-lg  text-gray-800 dark:text-white transition-all duration-300 hover:text-[#FF742C] mt-3 dark:hover:text-[#FF742C] transform hover:scale-105 animate-fadeInUp"
+              className="block text-lg text-gray-800 dark:text-white transition-all duration-300 hover:text-[#FF742C] mt-3 dark:hover:text-[#FF742C] transform hover:scale-105 animate-fadeInUp"
               style={{ animationDelay: `${i * 0.1}s`, animationFillMode: 'both' }}
             >
               {icon}
@@ -180,25 +128,26 @@ const navItems = [
             </a>
           ))}
 
-          <div className="flex flex-col gap-3 pt-5">
-            
-
+          {user ? (
             <button
-              onClick={user ? logout : login}
-              className="block text-left text-lg  text-gray-800 dark:text-white transition-all duration-300 hover:text-[#FF742C] dark:hover:text-[#FF742C] animate-fadeInUp"
-              style={{ animationDelay: '0.5s', animationFillMode: 'both' }}
+              onClick={() => {
+                setMobileMenu(false);
+                navigate('/profile');
+              }}
+              className="block text-left text-lg mt-5 text-gray-800 dark:text-white hover:text-[#FF742C] dark:hover:text-[#FF742C]"
             >
-              {user ? (
-                <>
-                  <FiLogOut className="inline mr-2 text-[#FF742C]" /> Logout
-                </>
-              ) : (
-                'Sign in with Google'
-              )}
+              View Profile
             </button>
-          </div>
+          ) : (
+            <button
+              onClick={login}
+              className="block text-left text-lg mt-5 text-gray-800 dark:text-white hover:text-[#FF742C] dark:hover:text-[#FF742C]"
+            >
+              Sign in with Google
+            </button>
+          )}
         </div>
       )}
     </nav>
-  )
+  );
 }
