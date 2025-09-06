@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { LogOut, Heart, Settings, User, Calendar, Phone, Activity, Thermometer, Droplet } from "lucide-react";
-import { MdEmail, MdPhone, MdFavorite, MdFavoriteBorder } from "react-icons/md"; // ✅ New icons
+import { LogOut, Heart, Settings, User, Calendar, Phone, Activity, Thermometer, Droplet, Image, RefreshCw } from "lucide-react";
+import { MdEmail, MdPhone, MdFavorite, MdFavoriteBorder, MdPhotoCamera } from "react-icons/md"; // ✅ New icons
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../utils/axiosInstance";
 import { getAuth, signOut } from "firebase/auth";
 import ThreadBackground from "../components/ThreadBackground";
+import axios from "axios";
 
 export default function UserProfile() {
   const navigate = useNavigate();
@@ -20,6 +21,10 @@ export default function UserProfile() {
   const [saving, setSaving] = useState(false);
   const [showConfirmLogout, setShowConfirmLogout] = useState(false);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [showProfileImageSelector, setShowProfileImageSelector] = useState(false);
+  const [unsplashImages, setUnsplashImages] = useState([]);
+  const [loadingImages, setLoadingImages] = useState(false);
+  const [imageSearchQuery, setImageSearchQuery] = useState("profile picture");
 
   // Extended profile details
   const [profile, setProfile] = useState({
@@ -148,6 +153,46 @@ export default function UserProfile() {
     }
   };
 
+  // Fetch profile images from Unsplash
+  const fetchUnsplashImages = async (query = imageSearchQuery) => {
+    try {
+      setLoadingImages(true);
+      // Using the Unsplash API
+      const response = await axios.get(
+        `https://api.unsplash.com/search/photos?query=${query}&per_page=9&orientation=squarish`,
+        {
+          headers: {
+            Authorization: `Client-ID ${import.meta.env.VITE_UNSPLASH_KEY || '7sDvEbdILJIrn7gP0LMQQi7LZkTNCt8K4_C5-UYnClg'}`
+          }
+        }
+      );
+      setUnsplashImages(response.data.results);
+    } catch (error) {
+      console.error("Failed to fetch images from Unsplash", error);
+    } finally {
+      setLoadingImages(false);
+    }
+  };
+
+  // Update profile image
+  const updateProfileImage = async (imageUrl) => {
+    try {
+      setSaving(true);
+      const { data } = await axiosInstance.put("/api/users/profile", { photo: imageUrl });
+      if (data && data.user) {
+        setUser(prev => ({
+          ...prev,
+          photo: imageUrl
+        }));
+      }
+      setShowProfileImageSelector(false);
+    } catch (error) {
+      console.error("Failed to update profile image", error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -184,16 +229,27 @@ export default function UserProfile() {
           transition={{ duration: 0.5 }}
           className="bg-white/10 p-6 rounded-3xl flex flex-col sm:flex-row items-center gap-6 shadow-2xl backdrop-blur-md"
         >
-          <motion.img
-            whileHover={{ scale: 1.1 }}
-            src={
-              user.photo ||
-              user.photoURL ||
-              `https://ui-avatars.com/api/?name=${user.name || user.displayName}`
-            }
-            alt="User Avatar"
-            className="w-28 h-28 rounded-full border-4 border-white shadow-lg"
-          />
+          <div className="relative group">
+            <motion.img
+              whileHover={{ scale: 1.05 }}
+              src={
+                user.photo ||
+                user.photoURL ||
+                `https://ui-avatars.com/api/?name=${user.name || user.displayName}`
+              }
+              alt="User Avatar"
+              className="w-28 h-28 rounded-full border-4 border-white shadow-lg object-cover"
+            />
+            <button 
+              onClick={() => {
+                setShowProfileImageSelector(true);
+                fetchUnsplashImages();
+              }}
+              className="absolute bottom-0 right-0 bg-green-500 text-white p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-green-600"
+            >
+              <MdPhotoCamera size={20} />
+            </button>
+          </div>
           <div className="text-center sm:text-left w-full">
             <motion.h2
               initial={{ opacity: 0, x: -10 }}
@@ -224,6 +280,91 @@ export default function UserProfile() {
             
           </div>
         </motion.div>
+
+        {/* Profile Image Selector Modal */}
+        <AnimatePresence>
+          {showProfileImageSelector && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+              onClick={() => setShowProfileImageSelector(false)}
+            >
+              <motion.div 
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="bg-[#1d1f31] rounded-xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-bold text-white">Choose Profile Picture</h2>
+                  <button 
+                    onClick={() => setShowProfileImageSelector(false)}
+                    className="text-white/70 hover:text-white"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {/* Search input */}
+                <div className="flex gap-2 mb-6">
+                  <input
+                    type="text"
+                    value={imageSearchQuery}
+                    onChange={(e) => setImageSearchQuery(e.target.value)}
+                    placeholder="Search for images..."
+                    className="flex-1 bg-[#161825] border border-gray-700 rounded-lg px-4 py-2 text-white"
+                  />
+                  <button
+                    onClick={() => fetchUnsplashImages()}
+                    disabled={loadingImages}
+                    className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 disabled:opacity-50"
+                  >
+                    {loadingImages ? (
+                      <RefreshCw className="animate-spin" size={18} />
+                    ) : (
+                      <Image size={18} />
+                    )}
+                    Search
+                  </button>
+                </div>
+
+                {/* Image grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  {loadingImages ? (
+                    <div className="col-span-full flex justify-center py-12">
+                      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+                    </div>
+                  ) : unsplashImages.length > 0 ? (
+                    unsplashImages.map((image) => (
+                      <div 
+                        key={image.id} 
+                        className="aspect-square rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-green-500 transition-all"
+                        onClick={() => updateProfileImage(image.urls.regular)}
+                      >
+                        <img 
+                          src={image.urls.small} 
+                          alt={image.alt_description || "Unsplash image"}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ))
+                  ) : (
+                    <p className="col-span-full text-center text-white/70 py-8">
+                      No images found. Try a different search term.
+                    </p>
+                  )}
+                </div>
+
+                <div className="mt-4 text-xs text-white/50 text-center">
+                  Images provided by <a href="https://unsplash.com" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline">Unsplash</a>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Extended Profile Info (read-only) */}
         <motion.div className="grid grid-cols-1 md:grid-cols-2 gap-6">

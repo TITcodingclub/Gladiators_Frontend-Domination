@@ -69,13 +69,14 @@ export default function Navbar() {
         ))}
       </ul>
 
-      {/* Mobile Menu Toggle */}
+      {/* Mobile Menu Toggle - Improved with animation */}
       <div className="md:hidden">
         <button
           onClick={() => setMobileMenu(!mobileMenu)}
-          className="text-2xl text-[#FF742C] focus:outline-none"
+          className="text-2xl text-[#FF742C] focus:outline-none p-2 rounded-full hover:bg-gray-800/20 transition-colors duration-300 relative z-50"
+          aria-label="Toggle menu"
         >
-          {mobileMenu ? <FaTimes /> : <FaBars />}
+          {mobileMenu ? <FaTimes className="transform transition-transform duration-300 rotate-90 hover:rotate-180" /> : <FaBars className="transform transition-transform duration-300 hover:rotate-90" />}
         </button>
       </div>
 
@@ -104,49 +105,101 @@ export default function Navbar() {
         </button>
       )}
 
-      {/* Mobile Drawer */}
+      {/* Mobile Drawer - Improved with animations and backdrop */}
       {mobileMenu && (
-        <div className="fixed top-0 left-0 w-[90%] z-50 m-5 animate-slideDown bg-white dark:bg-[#1b1d2a] border-t border-gray-200 dark:border-gray-700 px-6 py-6 shadow-2xl rounded-b-xl md:hidden">
-          <div className="flex justify-end mb-4">
-            <button
-              className="text-2xl text-[#FF742C] hover:scale-110 transition-transform"
-              onClick={() => setMobileMenu(false)}
-            >
-              <FaTimes />
-            </button>
+        <>
+          {/* Backdrop with blur effect */}
+          <div 
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden"
+            onClick={() => setMobileMenu(false)}
+          />
+          
+          <div className="fixed top-0 right-0 h-full w-[80%] max-w-sm z-50 animate-slideDown bg-gradient-to-br from-[#0f101a]/95 via-[#151623]/95 to-[#0f101a]/95 border-l border-gray-700/50 px-6 py-6 shadow-2xl md:hidden overflow-y-auto backdrop-blur-md">
+            <div className="flex items-center justify-between mb-8">
+              {/* Logo in mobile menu */}
+              <div className="w-[150px] h-[40px]">
+                <svg viewBox="0 0 300 60" width="100%" height="100%">
+                  <text
+                    id="nutrithy-logo-mobile"
+                    x="0"
+                    y="45"
+                    fontSize="30"
+                    fill="none"
+                    stroke="#22c55e"
+                    strokeWidth="2"
+                  >
+                    Nutrithy 🍳
+                  </text>
+                </svg>
+              </div>
+              
+              <button
+                className="text-2xl text-[#FF742C] hover:scale-110 transition-transform p-2 rounded-full hover:bg-gray-800/30"
+                onClick={() => setMobileMenu(false)}
+                aria-label="Close menu"
+              >
+                <FaTimes />
+              </button>
+            </div>
+
+            <div className="space-y-6 mt-6">
+              {navItems.map(({ name, icon, path }, i) => (
+                <a
+                  key={name}
+                  href={path}
+                  onClick={() => setMobileMenu(false)}
+                  className="flex items-center text-lg text-white transition-all duration-300 hover:text-[#FF742C] transform hover:translate-x-2 animate-fadeInUp p-3 rounded-lg hover:bg-gray-800/30"
+                  style={{ animationDelay: `${i * 0.1}s`, animationFillMode: 'both' }}
+                >
+                  <span className="text-[#FF742C] mr-3 text-xl">{icon}</span>
+                  {name}
+                </a>
+              ))}
+
+              {user ? (
+                <div className="mt-8 pt-6 border-t border-gray-700/30">
+                  <div className="flex items-center mb-4">
+                    {user.photoURL ? (
+                      <img
+                        src={user.photoURL}
+                        alt="Avatar"
+                        className="w-10 h-10 rounded-full border-2 border-[#FF742C]"
+                      />
+                    ) : (
+                      <FaUserCircle className="w-10 h-10 text-[#FF742C]" />
+                    )}
+                    <div className="ml-3">
+                      <p className="text-white font-medium">{user.displayName || 'User'}</p>
+                      <p className="text-gray-400 text-sm">{user.email}</p>
+                    </div>
+                  </div>
+                  
+                  <button
+                    onClick={() => {
+                      setMobileMenu(false);
+                      navigate('/profile');
+                    }}
+                    className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-[#FF742C] to-orange-600 text-white rounded-lg font-medium transition hover:shadow-lg hover:shadow-orange-500/20 mt-2"
+                  >
+                    <FaUserCircle />
+                    View Profile
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => {
+                    login();
+                    setMobileMenu(false);
+                  }}
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-[#FF742C] to-orange-600 text-white rounded-lg font-medium transition hover:shadow-lg hover:shadow-orange-500/20 mt-8"
+                >
+                  <FcGoogle className="text-xl" />
+                  Sign in with Google
+                </button>
+              )}
+            </div>
           </div>
-
-          {navItems.map(({ name, icon, path }, i) => (
-            <a
-              key={name}
-              href={path}
-              className="block text-lg text-gray-800 dark:text-white transition-all duration-300 hover:text-[#FF742C] mt-3 dark:hover:text-[#FF742C] transform hover:scale-105 animate-fadeInUp"
-              style={{ animationDelay: `${i * 0.1}s`, animationFillMode: 'both' }}
-            >
-              {icon}
-              {name}
-            </a>
-          ))}
-
-          {user ? (
-            <button
-              onClick={() => {
-                setMobileMenu(false);
-                navigate('/profile');
-              }}
-              className="block text-left text-lg mt-5 text-gray-800 dark:text-white hover:text-[#FF742C] dark:hover:text-[#FF742C]"
-            >
-              View Profile
-            </button>
-          ) : (
-            <button
-              onClick={login}
-              className="block text-left text-lg mt-5 text-gray-800 dark:text-white hover:text-[#FF742C] dark:hover:text-[#FF742C]"
-            >
-              Sign in with Google
-            </button>
-          )}
-        </div>
+        </>
       )}
     </nav>
   );

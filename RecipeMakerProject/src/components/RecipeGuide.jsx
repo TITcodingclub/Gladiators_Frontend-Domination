@@ -5,6 +5,8 @@ import { Snackbar, Alert } from '@mui/material'
 import TagAnimator from './TagAnimator'
 import ThreadBackground from './ThreadBackground'
 import axiosInstance from '../utils/axiosInstance'
+import { motion } from 'framer-motion'
+import axios from 'axios'
 
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY)
 
@@ -19,7 +21,10 @@ export default function RecipeGuide({ scrollRef }) {
     description: '',
     ingredients: [],
     cookTime: '',
+    image: ''
   })
+  const [recipeImage, setRecipeImage] = useState('')
+  const [loadingImage, setLoadingImage] = useState(false)
 
   useEffect(() => {
     if (scrollRef?.current) {
@@ -27,15 +32,56 @@ export default function RecipeGuide({ scrollRef }) {
     }
   }, [scrollRef])
 
-  // Example fetch in RecipeGuide.jsx
+  // Fetch recipes on component mount
   useEffect(() => {
-    fetch('/api/recipes')
-      .then((res) => res.json())
-      .then((data) => {
-        // Do something with data
-        console.log(data)
-      })
+    const fetchRecipes = async () => {
+      try {
+        const response = await axiosInstance.get('/api/recipes')
+        // Do something with response.data
+        console.log(response.data)
+      } catch (error) {
+        console.error('Error fetching recipes:', error)
+      }
+    }
+    
+    fetchRecipes()
   }, [])
+  
+  // Function to fetch recipe image from Unsplash
+  const fetchRecipeImage = async (searchTerm) => {
+    setLoadingImage(true)
+    try {
+      // Using Unsplash API to get recipe images with key from environment variables
+      const unsplashAccessKey = import.meta.env.VITE_UNSPLASH_KEY
+      const response = await axios.get(`https://api.unsplash.com/search/photos`, {
+        params: {
+          query: searchTerm + ' food',
+          per_page: 1,
+          orientation: 'landscape'
+        },
+        headers: {
+          Authorization: `Client-ID ${unsplashAccessKey}`
+        }
+      })
+      
+      if (response.data.results && response.data.results.length > 0) {
+        const imageUrl = response.data.results[0].urls.regular
+        setRecipeImage(imageUrl)
+        setRecipeDetails(prev => ({ ...prev, image: imageUrl }))
+      } else {
+        // If no image found, use a default food image
+        setRecipeImage('https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=1470&auto=format&fit=crop')
+        setRecipeDetails(prev => ({ ...prev, image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=1470&auto=format&fit=crop' }))
+      }
+    } catch (error) {
+      console.error('Error fetching recipe image:', error)
+      // Use a default image on error
+      setRecipeImage('https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=1470&auto=format&fit=crop')
+      setRecipeDetails(prev => ({ ...prev, image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=1470&auto=format&fit=crop' }))
+    } finally {
+      setLoadingImage(false)
+    }
+  }
 
   const handleSearch = async () => {
     if (!query.trim() || isLoading) return
@@ -44,6 +90,11 @@ export default function RecipeGuide({ scrollRef }) {
     setSteps(null)
     setAlert('')
     setRecipeDetails({ description: '', ingredients: [], cookTime: '' })
+    
+    // Scroll to loading indicator for better UX
+    if (scrollRef?.current) {
+      scrollRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
 
     const cleanText = (str) => str.replace(/[^\w\s.,:/()-]/g, '').trim()
 
@@ -52,6 +103,7 @@ export default function RecipeGuide({ scrollRef }) {
       try {
         await axiosInstance.post('/api/users/searches', { query })
       } catch (e) {
+      console.log(e)
         // Non-fatal if user not logged in
       }
 
@@ -124,21 +176,26 @@ export default function RecipeGuide({ scrollRef }) {
 
       if (geminiSteps.length > 0) {
         setSteps(geminiSteps)
+        
+        // Fetch a relevant image for the recipe
+        await fetchRecipeImage(query)
 
         // ✅ Save to backend
         const stepsText = geminiSteps.map((s) => s.text)
-        await fetch('/api/recipes/ai', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+        try {
+          await axiosInstance.post('/api/recipes/ai', {
             title: query,
             description,
             ingredients,
             cookTime,
             steps: stepsText,
+            image: recipeImage,
             createdAt: new Date().toISOString(),
-          }),
-        })
+          })
+        } catch (e) {
+          console.error('Error saving AI recipe:', e)
+          // Non-fatal error, continue with the recipe display
+        }
 
         // ✅ Enrich user search with detailed data (if logged in)
         try {
@@ -150,13 +207,25 @@ export default function RecipeGuide({ scrollRef }) {
             cookTime,
             steps: stepsText,
           })
-        } catch (e) {}
+        } catch (e) {
+        console.log(e)
+        }
       } else {
         setAlert('No detailed instructions found from Gemini.')
       }
     } catch (error) {
       console.error('❌ Error fetching recipe from Gemini:', error)
-      setAlert('Failed to fetch recipe. Please try again.')
+      
+      // Provide more specific error messages based on error type
+      if (!import.meta.env.VITE_GEMINI_API_KEY) {
+        setAlert('API key is missing. Please check your configuration.')
+      } else if (error.message?.includes('network')) {
+        setAlert('Network error. Please check your internet connection and try again.')
+      } else if (error.message?.includes('quota')) {
+        setAlert('API quota exceeded. Please try again later.')
+      } else {
+        setAlert('Failed to fetch recipe. Please try again with different keywords.')
+      }
     } finally {
       setIsLoading(false)
     }
@@ -213,102 +282,233 @@ export default function RecipeGuide({ scrollRef }) {
           </div>
         </div>
         
-        <div className="flex flex-col sm:flex-row gap-3">
-          <input
-            type="text"
-            placeholder="Search any recipe with AI..."
-            className="flex-1 p-3 rounded border border-gray-600 bg-gray-800 text-white"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={handleKeyDown}
-          />
-          <button
+        <div className="flex flex-col sm:flex-row gap-3 relative">
+          <div className="relative flex-1 group">
+            <div className="absolute inset-0 bg-gradient-to-r from-green-400/20 to-blue-500/20 rounded-lg blur opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <input
+              type="text"
+              placeholder="Search any recipe with AI..."
+              className="flex-1 w-full p-4 pl-10 rounded-lg border border-gray-600 bg-gray-800/90 text-white shadow-inner focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all duration-300 backdrop-blur-sm"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={handleKeyDown}
+            />
+            {query && (
+              <button 
+                onClick={() => setQuery('')} 
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+          <motion.button
             onClick={handleSearch}
-            disabled={isLoading}
-            className="px-5 py-3 bg-green-600 hover:bg-green-700 text-white rounded font-semibold disabled:bg-gray-500 disabled:cursor-not-allowed"
+            disabled={isLoading || !query.trim()}
+            className="px-5 py-4 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 text-white rounded-lg font-semibold shadow-lg hover:shadow-green-500/20 transition-all duration-300 disabled:from-gray-500 disabled:to-gray-600 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
           >
-            {isLoading ? 'Searching Recipe...' : 'Get Recipe with AI'}
-          </button>
+            {isLoading ? (
+              <>
+                <motion.div 
+                  className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                ></motion.div>
+                <span>Searching...</span>
+              </>
+            ) : (
+              <>
+                <span>Get Recipe with AI</span>
+                <motion.svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  className="h-5 w-5" 
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor"
+                  initial={{ x: -3 }}
+                  animate={{ x: 0 }}
+                  transition={{ duration: 0.3, delay: 0.1 }}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                </motion.svg>
+              </>
+            )}
+          </motion.button>
         </div>
         
         {isLoading && (
-            <div className="flex justify-center items-center gap-4 py-10">
-                <div className="w-8 h-8 border-4 border-green-400 border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-xl text-green-400 font-semibold">
-                    Nutrithy - loading your recipe...
-                </p>
-            </div>
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col justify-center items-center gap-4 py-10 bg-gradient-to-br from-[#161825]/50 via-[#1d1f31]/50 to-[#161825]/50 backdrop-blur-sm rounded-xl border border-gray-700/30 shadow-lg"
+            >
+                <motion.div 
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                  className="w-12 h-12 border-4 border-green-400 border-t-transparent rounded-full"
+                ></motion.div>
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.3, duration: 0.5 }}
+                  className="flex flex-col items-center"
+                >
+                    <p className="text-xl text-green-400 font-semibold">
+                        Nutrithy is preparing your recipe
+                    </p>
+                    <p className="text-sm text-gray-400 mt-1">
+                        This may take a few moments...
+                    </p>
+                </motion.div>
+                <div className="mt-2 flex gap-2">
+                    {['Analyzing ingredients', 'Calculating nutrition', 'Preparing steps'].map((text, i) => (
+                        <motion.span 
+                          key={i} 
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: 0.5 + (i * 0.2), duration: 0.3 }}
+                          className="px-3 py-1 bg-gray-800/70 text-gray-300 text-xs rounded-full"
+                        >
+                            {text}
+                        </motion.span>
+                    ))}
+                </div>
+            </motion.div>
         )}
 
         {/* --- IMPROVED CUSTOM RECIPE FORM UI --- */}
         {!steps && !isLoading && (
-          <div className="bg-gradient-to-br from-[#161825] via-[#1d1f31] to-[#161825] border border-gray-700 p-6 rounded-xl space-y-4">
-            <h2 className="text-2xl font-bold text-white text-center mb-2">Add Your Own Recipe</h2>
+          <div className="bg-gradient-to-br from-[#161825] via-[#1d1f31] to-[#161825] border border-gray-700 p-6 rounded-xl space-y-6 shadow-xl backdrop-blur-sm relative overflow-hidden">
+            {/* Background decorative elements */}
+            <div className="absolute -top-24 -right-24 w-48 h-48 bg-green-500/10 rounded-full blur-3xl"></div>
+            <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl"></div>
             
-            {/* Recipe Name Input */}
-            <input
-              type="text"
-              placeholder="Recipe Name"
-              className="w-full p-3 rounded-md bg-gray-800 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 transition"
-              value={customName}
-              onChange={e => setCustomName(e.target.value)}
-            />
-            
-            {/* Steps Section */}
-            <div className="space-y-3">
-              {customSteps.map((step, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    placeholder={`Step ${i + 1}`}
-                    className="flex-grow p-3 rounded-md bg-gray-800 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 transition"
-                    value={step}
-                    onChange={(e) => handleCustomStepChange(e, i)}
-                  />
-                  {customSteps.length > 1 && (
-                    <button 
-                      onClick={() => handleRemoveCustomStep(i)}
-                      className="p-2 text-gray-400 hover:text-red-500 rounded-full hover:bg-gray-700 transition-colors"
-                      title="Remove Step"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  )}
+            <div className="relative">
+              <h2 className="text-2xl font-bold text-white text-center mb-1">Add Your Own Recipe</h2>
+              <p className="text-gray-400 text-center text-sm mb-4">Create and save your personal recipes</p>
+              
+              {/* Recipe Name Input with icon */}
+              <div className="relative mb-6">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
                 </div>
-              ))}
-            </div>
+                <input
+                  type="text"
+                  placeholder="Recipe Name"
+                  className="w-full p-4 pl-10 rounded-lg bg-gray-800/80 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition shadow-inner"
+                  value={customName}
+                  onChange={e => setCustomName(e.target.value)}
+                />
+              </div>
+              
+              {/* Steps Section with numbered indicators */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                  Recipe Steps
+                </h3>
+                
+                {customSteps.map((step, i) => (
+                  <div key={i} className="flex items-center gap-3 group">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-white font-bold text-sm">
+                      {i + 1}
+                    </div>
+                    <div className="relative flex-grow">
+                      <input
+                        type="text"
+                        placeholder={`Describe step ${i + 1}`}
+                        className="w-full p-3 rounded-lg bg-gray-800/80 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition pr-10"
+                        value={step}
+                        onChange={(e) => handleCustomStepChange(e, i)}
+                      />
+                      {customSteps.length > 1 && (
+                        <button 
+                          onClick={() => handleRemoveCustomStep(i)}
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Remove Step"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
 
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-2 pt-2">
-              <button
-                onClick={() => setCustomSteps([...customSteps, ''])}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-semibold transition"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-                </svg>
-                Add Step
-              </button>
-              <button
-                onClick={saveCustom}
-                className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md font-semibold transition"
-              >
-                Save Recipe
-              </button>
+              {/* Action Buttons with improved styling */}
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-6">
+                <button
+                  onClick={() => setCustomSteps([...customSteps, ''])}
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition shadow-md hover:shadow-blue-500/20"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                  </svg>
+                  Add Step
+                </button>
+                <button
+                  onClick={saveCustom}
+                  disabled={!customName.trim() || !customSteps.some(step => step.trim())}
+                  className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 text-white rounded-lg font-semibold transition shadow-md hover:shadow-green-500/20 disabled:from-gray-500 disabled:to-gray-600 disabled:cursor-not-allowed"
+                >
+                  Save Recipe
+                </button>
+              </div>
             </div>
           </div>
         )}
 
         {steps && (
           <div className="space-y-4">
-            <CookModeView
-              steps={steps}
-              description={recipeDetails.description}
-              ingredients={recipeDetails.ingredients}
-              cookTime={recipeDetails.cookTime}
-            />
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              {recipeImage && (
+                <div className="relative w-full h-48 sm:h-64 mb-6 overflow-hidden rounded-lg">
+                  {loadingImage ? (
+                    <div className="absolute inset-0 flex items-center justify-center bg-gray-800/50">
+                      <div className="w-8 h-8 border-3 border-green-400 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  ) : (
+                    <img 
+                      src={recipeImage} 
+                      alt={query} 
+                      className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                    />
+                  )}
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+                    <p className="text-white text-sm">Image via Unsplash</p>
+                  </div>
+                </div>
+              )}
+              <CookModeView
+                steps={steps}
+                description={recipeDetails.description}
+                ingredients={recipeDetails.ingredients}
+                cookTime={recipeDetails.cookTime}
+              />
+            </motion.div>
             <button
               onClick={() => setSteps(null)}
               className="text-green-400 hover:text-red-400 text-sm mt-2"
@@ -320,22 +520,30 @@ export default function RecipeGuide({ scrollRef }) {
 
         <Snackbar
           open={!!alert}
-          autoHideDuration={3000}
+          autoHideDuration={5000}
           onClose={() => setAlert('')}
           anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
           TransitionProps={{ onEnter: (node) => node.classList.add('fade-in') }}
         >
           <Alert
             onClose={() => setAlert('')}
-            severity="info"
-            icon={false}
+            severity={alert?.includes('Failed') || alert?.includes('error') || alert?.includes('missing') ? 'error' : 'info'}
+            icon={alert?.includes('Failed') || alert?.includes('error') || alert?.includes('missing') ? true : false}
             sx={{
               width: '100%',
               fontWeight: '600',
               backdropFilter: 'blur(8px)',
-              backgroundColor: 'rgba(30, 41, 59, 0.8)',
+              backgroundColor: alert?.includes('Failed') || alert?.includes('error') || alert?.includes('missing') 
+                ? 'rgba(220, 38, 38, 0.15)' 
+                : alert?.includes('saved') 
+                  ? 'rgba(22, 163, 74, 0.15)' 
+                  : 'rgba(30, 41, 59, 0.8)',
               color: '#f1f5f9',
-              border: '1px solid rgba(51, 65, 85, 0.6)',
+              border: `1px solid ${alert?.includes('Failed') || alert?.includes('error') || alert?.includes('missing')
+                ? 'rgba(220, 38, 38, 0.3)'
+                : alert?.includes('saved')
+                  ? 'rgba(22, 163, 74, 0.3)'
+                  : 'rgba(51, 65, 85, 0.6)'}`,
               boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
               borderRadius: '12px',
               textAlign: 'center',

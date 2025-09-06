@@ -8,6 +8,7 @@ import TagAnimator from '../components/TagAnimator'
 import EmojiReactions from '../components/EmojiReactions'
 import RecipeGuide from '../components/RecipeGuide'
 import ThreadBackground from '../components/ThreadBackground'
+import DietPlanner from '../components/DietPlanner'
 
 export default function RecipePage() {
   const { user } = useAuth()
@@ -22,6 +23,10 @@ export default function RecipePage() {
         <VoiceWithVideoSection />
       </DragDropBoard>
 
+      {/* AI Diet Planner Section */}
+      <div className="mt-6">
+        <DietPlanner />
+      </div>
 
       {/* 👇 Pass callback to RecipeGuide to get selected steps */}
       {/* <RecipeGuide onRecipeSelect={setSelectedSteps} /> */}
