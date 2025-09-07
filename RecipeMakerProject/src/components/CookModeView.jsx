@@ -1,278 +1,104 @@
 import React, { useState, useEffect } from 'react';
-import CookStep from './CookStep';
-import {
-  Box, Typography, Grid, Paper, Divider, Checkbox, Button,
-} from '@mui/material';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import TimerIcon from '@mui/icons-material/Timer';
-import KitchenIcon from '@mui/icons-material/Kitchen';
-import ListAltIcon from '@mui/icons-material/ListAlt';
-import RestaurantIcon from '@mui/icons-material/Restaurant';
-import MenuBookIcon from '@mui/icons-material/MenuBook';
 import { motion } from 'framer-motion';
+import { Timer, List, Book, Coffee } from 'lucide-react';
+import CookStep from './CookStep';
 
 export default function CookModeView({ steps = [], description = '', ingredients = [], cookTime = 'Unknown' }) {
-  // Initialize with empty arrays with proper length to avoid uncontrolled to controlled warning
-  const [checkedStates, setCheckedStates] = useState(() => Array(steps.length).fill(false));
-  const [ingredientChecked, setIngredientChecked] = useState(() => Array(ingredients.length).fill(false));
+  const [checkedStates, setCheckedStates] = useState(() =>
+    steps.map((_, i) => JSON.parse(localStorage.getItem(`cookstep-${i}`)) || false)
+  );
+  const [ingredientChecked, setIngredientChecked] = useState(() =>
+    ingredients.map((_, i) => JSON.parse(localStorage.getItem(`ingredient-${i}`)) || false)
+  );
+
   const [timerActive, setTimerActive] = useState(false);
   const [seconds, setSeconds] = useState(0);
 
-  // Update state arrays when steps or ingredients change
   useEffect(() => {
-    setCheckedStates(Array(steps.length).fill(false));
-    setIngredientChecked(Array(ingredients.length).fill(false));
-    setTimerActive(false);
-    setSeconds(0);
-  }, [steps, ingredients]);
-
-  // Timer countdown
-  useEffect(() => {
-    let interval;
-    if (timerActive) {
-      interval = setInterval(() => setSeconds((s) => s + 1), 1000);
-    }
+    const interval = timerActive ? setInterval(() => setSeconds(s => s + 1), 1000) : null;
     return () => clearInterval(interval);
   }, [timerActive]);
 
-  const handleToggleStep = (index) => {
-    setCheckedStates((prev) => {
+  const toggleStep = (index) => {
+    setCheckedStates(prev => {
       const copy = [...prev];
       copy[index] = !copy[index];
+      localStorage.setItem(`cookstep-${index}`, JSON.stringify(copy[index]));
       return copy;
     });
   };
 
-  const handleToggleIngredient = (index) => {
-    setIngredientChecked((prev) => {
+  const toggleIngredient = (index) => {
+    setIngredientChecked(prev => {
       const copy = [...prev];
       copy[index] = !copy[index];
+      localStorage.setItem(`ingredient-${index}`, JSON.stringify(copy[index]));
       return copy;
     });
   };
 
-  const formatTime = (totalSeconds) => {
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  const formatTime = (sec) => {
+    const m = String(Math.floor(sec / 60)).padStart(2, '0');
+    const s = String(sec % 60).padStart(2, '0');
+    return `${m}:${s}`;
   };
 
   return (
-    <Box sx={{
-      bgcolor: '#0f172a',
-      color: '#fff',
-      minHeight: '100vh',
-      p: { xs: 2, md: 4 },
-      borderRadius: 2,
-      overflow: 'hidden',
-      position: 'relative',
-    }}>
-      {/* --- Timer Button --- */}
-      <motion.div
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 260, damping: 20 }}
-      >
-        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Button
-              variant="contained"
-              startIcon={<TimerIcon />}
-              onClick={() => setTimerActive(!timerActive)}
-              sx={{
-                bgcolor: timerActive ? '#f43f5e' : '#3b82f6',
-                color: '#fff',
-                borderRadius: 8,
-                px: 3,
-                py: 1.5,
-                fontSize: '1.1rem',
-                fontWeight: 'bold',
-                '&:hover': {
-                  bgcolor: timerActive ? '#e11d48' : '#2563eb',
-                },
-                transition: 'all 0.2s ease-in-out',
-              }}
-            >
-              {timerActive ? 'Stop Timer' : 'Start Timer'} {timerActive && `(${formatTime(seconds)})`}
-            </Button>
-          </motion.div>
-        </Box>
+    <div className="min-h-screen p-4 md:p-8 text-white flex flex-col gap-6">
+
+      {/* TIMER */}
+      <motion.div className="self-center mb-4">
+        <div className={`px-6 py-3 rounded-2xl font-bold text-xl md:text-2xl text-center transition-all ${timerActive ? 'bg-red-600 shadow-red-500/40' : 'bg-blue-600 shadow-blue-500/40'}`}
+          style={{ boxShadow: timerActive ? '0 0 20px rgba(244,63,94,0.4)' : '0 0 20px rgba(59,130,246,0.4)' }}
+          onClick={() => setTimerActive(!timerActive)}
+        >
+          {timerActive ? `Stop Timer (${formatTime(seconds)})` : 'Start Timer'} <Timer className="inline ml-2" size={24}/>
+        </div>
       </motion.div>
 
-      {/* --- Recipe Info --- */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <Paper elevation={0} sx={{ p: 3, mb: 3, bgcolor: 'rgba(30,41,59,0.22)', borderRadius: 3 }}>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-          >
-            <Typography variant="body1" sx={{ color: '#fff', fontStyle: 'italic', textAlign: 'center', mb: 2, fontSize: '1.15rem' }}>
-              {description}
-            </Typography>
-          </motion.div>
-          <Divider sx={{ bgcolor: 'rgba(255,255,255,0.12)', mb: 2 }} />
-          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 4, flexWrap: 'wrap' }}>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3, duration: 0.5 }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <AccessTimeIcon sx={{ color: '#60a5fa' }} />
-                <Typography variant="body2" sx={{ color: '#cbd5e1' }}>
-                  Cook Time: {cookTime}
-                </Typography>
-              </Box>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.4, duration: 0.5 }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <RestaurantIcon sx={{ color: '#60a5fa' }} />
-                <Typography variant="body2" sx={{ color: '#cbd5e1' }}>
-                  Ingredients: {ingredients.length}
-                </Typography>
-              </Box>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5, duration: 0.5 }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <ListAltIcon sx={{ color: '#60a5fa' }} />
-                <Typography variant="body2" sx={{ color: '#cbd5e1' }}>
-                  Steps: {steps.length}
-                </Typography>
-              </Box>
-            </motion.div>
-          </Box>
-        </Paper>
-      </motion.div>
+      {/* DESCRIPTION */}
+      <div className="bg-gray-800 rounded-2xl p-6 text-center text-white/80 text-base md:text-lg shadow-inner">
+        <p className="italic leading-relaxed">{description}</p>
+      </div>
 
-      <Grid container spacing={3}>
-        {/* --- Ingredients --- */}
-        <Grid item xs={12} md={4}>
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
-            <Paper elevation={0} sx={{ p: 3, bgcolor: 'rgba(30,41,59,0.22)', borderRadius: 3, height: '100%' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 1 }}>
-                <KitchenIcon sx={{ color: '#60a5fa' }} />
-                <Typography variant="h6" sx={{ color: '#f1f5f9', fontWeight: 'bold' }}>
-                  Ingredients
-                </Typography>
-              </Box>
-              <Divider sx={{ bgcolor: 'rgba(255,255,255,0.12)', mb: 2 }} />
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {ingredients.map((ingredient, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 * index, duration: 0.3 }}
-                    whileHover={{ scale: 1.02 }}
-                  >
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        p: 1,
-                        borderRadius: 2,
-                        bgcolor: ingredientChecked[index] ? 'rgba(96,165,250,0.1)' : 'transparent',
-                        transition: 'all 0.2s ease',
-                      }}
-                    >
-                      <Checkbox
-                        checked={ingredientChecked[index]}
-                        onChange={() => handleToggleIngredient(index)}
-                        sx={{
-                          color: '#60a5fa',
-                          '&.Mui-checked': {
-                            color: '#60a5fa',
-                          },
-                        }}
-                      />
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: ingredientChecked[index] ? '#60a5fa' : '#cbd5e1',
-                          textDecoration: ingredientChecked[index] ? 'line-through' : 'none',
-                          transition: 'all 0.2s ease',
-                        }}
-                      >
-                        {ingredient}
-                      </Typography>
-                    </Box>
-                  </motion.div>
-                ))}
-              </Box>
-            </Paper>
-          </motion.div>
-        </Grid>
+      {/* MAIN CONTENT */}
+      <div className="flex flex-col lg:flex-row gap-6">
 
-        {/* --- Cooking Steps --- */}
-        <Grid item xs={12} md={8}>
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-          >
-            <Paper elevation={0} sx={{ p: 3, bgcolor: 'rgba(30,41,59,0.22)', borderRadius: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 1 }}>
-                <MenuBookIcon sx={{ color: '#60a5fa' }} />
-                <Typography variant="h6" sx={{ color: '#f1f5f9', fontWeight: 'bold' }}>
-                  Cooking Steps
-                </Typography>
-              </Box>
-              <Divider sx={{ bgcolor: 'rgba(255,255,255,0.12)', mb: 2 }} />
-              <Box sx={{ position: 'relative' }}>
-                {/* Vertical gradient line */}
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    left: '24px',
-                    top: '10px',
-                    bottom: '10px',
-                    width: '2px',
-                    background: 'linear-gradient(to bottom, rgba(96,165,250,0.7), rgba(96,165,250,0.1))',
-                    zIndex: 0,
-                  }}
-                />
-                <Box sx={{ maxHeight: '60vh', overflow: 'auto', pr: 2 }}>
-                  {steps.map((step, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.1 * index, duration: 0.4 }}
-                    >
-                      <CookStep
-                        step={step}
-                        index={index}
-                        isChecked={checkedStates[index]}
-                        onToggle={() => handleToggleStep(index)}
-                      />
-                    </motion.div>
-                  ))}
-                </Box>
-              </Box>
-            </Paper>
-          </motion.div>
-        </Grid>
-      </Grid>
-    </Box>
+        {/* INGREDIENTS */}
+        <div className="flex-1 flex flex-col bg-gray-800 p-4 rounded-2xl shadow-md">
+          <h2 className="text-2xl font-bold mb-4 flex items-center gap-2"><Coffee size={24}/> Ingredients</h2>
+          <div className="flex flex-col gap-3 max-h-[60vh] overflow-y-auto pr-2">
+            {ingredients.map((ing, i) => (
+              <div
+                key={i}
+                onClick={() => toggleIngredient(i)}
+                className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors duration-300 ${ingredientChecked[i] ? 'bg-gradient-to-r from-blue-900 to-blue-700 text-blue-200 shadow-inner' : 'bg-gray-700 hover:bg-gray-600'}`}
+              >
+                <input type="checkbox" checked={ingredientChecked[i]} readOnly className="accent-blue-400 w-5 h-5"/>
+                <span className={`${ingredientChecked[i] ? 'line-through' : ''} text-base md:text-lg`}>{ing}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* COOKING STEPS */}
+        <div className="flex-1 flex flex-col bg-gray-800 p-4 rounded-2xl shadow-md relative">
+          <h2 className="text-2xl font-bold mb-4 flex items-center gap-2"><Book size={24}/> Cooking Steps</h2>
+
+          <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto pr-4 relative z-10">
+            {steps.map((step, i) => (
+              <CookStep
+                key={i}
+                index={i}
+                step={step}
+                checked={checkedStates[i]}
+                onToggle={() => toggleStep(i)}
+              />
+            ))}
+          </div>
+        </div>
+
+      </div>
+    </div>
   );
 }

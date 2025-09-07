@@ -1,162 +1,109 @@
-import React from 'react';
-import { Card, CardHeader, CardContent, CardActions, Typography, Chip, Box } from '@mui/material';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
-import EmojiReactions from './EmojiReactions';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { CheckCircle, Circle } from "lucide-react";
+import EmojiReactions from "./EmojiReactions";
 
-// Define the pulse animation for the tags
-const pulseKeyframe = {
-  '@keyframes pulse': {
-    '0%, 100%': { opacity: 1 },
-    '50%': { opacity: 0.7 },
-  },
-};
+export default function CookStep({ index, step }) {
+  // Load initial state from localStorage
+  const [checked, setChecked] = useState(() => {
+    const saved = localStorage.getItem(`cookstep-${index}`);
+    return saved ? JSON.parse(saved) : false;
+  });
 
-/**
- * CookStep Component - Now a controlled component.
- * @param {object} props
- * @param {number} props.index - The step number.
- * @param {object} props.step - The step data { text, tags }.
- * @param {boolean} props.checked - The completion status of the step.
- * @param {Function} props.onToggle - Function to call when the check status is toggled.
- */
-export default function CookStep({ index, step, checked, onToggle }) {
+  // Update localStorage whenever checked changes
+  useEffect(() => {
+    localStorage.setItem(`cookstep-${index}`, JSON.stringify(checked));
+  }, [checked, index]);
+
+  const handleToggle = () => setChecked(!checked);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
-      animate={{ 
-        opacity: 1, 
+      animate={{
+        opacity: 1,
         y: 0,
         scale: checked ? 0.98 : 1,
-        backgroundColor: checked ? '#1A1C2C' : '#222439',
       }}
-      transition={{ 
-        type: "spring", 
-        stiffness: 300, 
+      transition={{
+        type: "spring",
+        stiffness: 300,
         damping: 20,
-        delay: index * 0.1
+        delay: index * 0.1,
       }}
-      whileHover={{ 
-        y: -4,
-        boxShadow: checked 
-          ? '0 6px 16px rgba(34, 197, 94, 0.2)' 
-          : '0 12px 28px rgba(0, 0, 0, 0.12)',
-        borderColor: 'rgba(59, 130, 246, 0.5)'
+      whileHover={{
+        borderColor: "rgba(59, 130, 246, 0.5)",
       }}
+      className="relative mb-4 rounded-2xl border p-5 overflow-visible transition-all duration-300"
     >
-      <Card 
-        elevation={checked ? 1 : 4}
-        sx={{ 
-          mb: 3,
-          bgcolor: 'inherit', 
-          borderRadius: '12px',
-          border: '1px solid',
-          borderColor: checked ? 'transparent' : 'rgba(255, 255, 255, 0.1)',
-          opacity: checked ? 0.85 : 1,
-          boxShadow: checked 
-            ? '0 4px 12px rgba(34, 197, 94, 0.15)' 
-            : '0 8px 20px rgba(0, 0, 0, 0.08)',
-          position: 'relative',
-          overflow: 'visible',
-          '&::before': checked ? {
-            content: '""',
-            position: 'absolute',
-          top: '50%',
-          left: '10%',
-          right: '10%',
-          height: '2px',
-          background: 'rgba(34, 197, 94, 0.4)',
-          zIndex: 1
-        } : {}
-      }}
-    >
-      <CardHeader
-        title={
-          <Typography variant="h6" component="h3" sx={{ color: '#fff', fontWeight: 'bold' }}>
-            Step {index + 1}
-          </Typography>
-        }
-        action={
-          <Chip
-            variant={checked ? 'filled' : 'outlined'}
-            label={checked ? 'Completed' : 'Mark as Done'}
-            onClick={onToggle}
-            icon={checked ? <CheckCircleIcon /> : <RadioButtonUncheckedIcon />}
-            color={checked ? 'success' : 'default'}
-            sx={{
-              color: '#fff',
-              borderColor: 'rgba(255, 255, 255, 0.3)',
-              fontWeight: '600',
-              transition: 'all 0.3s ease',
-              '& .MuiChip-icon': {
-                color: checked ? '#fff' : 'rgba(255, 255, 255, 0.5)',
-              }
-            }}
-          />
-        }
-        sx={{ pb: 0 }}
-      />
-      <CardContent sx={{ 
-        opacity: checked ? 0.5 : 1,
-        transition: 'opacity 0.4s ease-in-out',
-        }}>
-        {/* Step Instructions */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 + (index * 0.1), duration: 0.5 }}
+      {/* Header */}
+      <div className="flex items-center justify-between pb-3">
+        <h3
+          className={`text-lg font-bold transition-colors duration-300 ${
+            checked ? "text-green-400" : "text-white"
+          }`}
         >
-          <Typography 
-            variant="body1" 
-            sx={{ 
-              color: 'rgba(255, 255, 255, 0.7)',
-              mt: 1,
-              textDecoration: checked ? 'line-through' : 'none',
-              textDecorationThickness: '2px',
-            }}
-          >
-            {step.text}
-          </Typography>
-        </motion.div>
+          Step {index + 1}
+        </h3>
+        <motion.button
+          onClick={handleToggle}
+          whileTap={{ scale: 0.95 }}
+          className={`flex items-center gap-2 rounded-full px-4 py-1 text-sm font-semibold transition-all duration-300 ${
+            checked
+              ? "bg-green-600 text-white border border-green-500 hover:bg-green-700"
+              : "bg-transparent text-white border border-white/30 hover:bg-white/10"
+          }`}
+        >
+          {checked ? <CheckCircle size={18} /> : <Circle size={18} />}
+          {checked ? "Completed" : "Mark as Done"}
+        </motion.button>
+      </div>
 
-        {/* Tags */}
-        <Box sx={{ mt: 3, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-          {step.tags.map((tag, i) => (
-            <motion.div
-              key={`motion-${tag}`}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ 
-                delay: 0.3 + (index * 0.1) + (i * 0.1), 
-                duration: 0.3,
-                type: "spring",
-                stiffness: 500
-              }}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Chip
-                key={tag}
-                label={`#${tag}`}
-                size="small"
-                sx={{
-                  ...pulseKeyframe,
-                  bgcolor: 'primary.main',
-                  color: '#fff',
-                  fontWeight: '500',
-                }}
-              />
-            </motion.div>
-          ))}
-        </Box>
-      </CardContent>
-      
+      {/* Step Text */}
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2 + index * 0.1, duration: 0.5 }}
+        className={`mt-2 text-base transition-all duration-300 ${
+          checked ? "line-through decoration-2 text-white/50" : "text-white/80"
+        }`}
+      >
+        {step.text}
+      </motion.p>
+
+      {/* Tags */}
+      <div className="mt-4 flex flex-wrap gap-2">
+        {step.tags.map((tag, i) => (
+          <motion.span
+            key={tag}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{
+              delay: 0.3 + index * 0.1 + i * 0.1,
+              duration: 0.3,
+              type: "spring",
+              stiffness: 500,
+            }}
+            whileHover={{ scale: 1.15, rotate: -2 }}
+            whileTap={{ scale: 0.95 }}
+            className={`rounded-full px-3 py-1 text-xs font-medium text-white ${
+              checked ? "bg-green-500" : "bg-blue-600"
+            } shadow-md`}
+          >
+            #{tag}
+          </motion.span>
+        ))}
+      </div>
+
       {/* Emoji Reactions */}
-      <CardActions sx={{ justifyContent: 'flex-start', px: 2, pt: 0 }}>
+      <div className="mt-4">
         <EmojiReactions stepId={index} />
-      </CardActions>
-    </Card>
+      </div>
+
+      {/* Strike line if completed */}
+      {checked && (
+        <div className="absolute left-[10%] right-[10%] top-1/2 h-[2px] bg-green-500/50 z-10 rounded-full"></div>
+      )}
     </motion.div>
   );
 }

@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { LogOut, Heart, Settings, User, Calendar, Phone, Activity, Thermometer, Droplet, Image, RefreshCw } from "lucide-react";
-import { MdEmail, MdPhone, MdFavorite, MdFavoriteBorder, MdPhotoCamera } from "react-icons/md"; // ✅ New icons
+import { LogOut, Heart, Settings, User, Calendar, Phone, Activity, Thermometer, Droplet, Image, RefreshCw, ChefHat, Clock, Share2, PieChart, TrendingUp, Award, Bell, Palette, Save, Edit3 } from "lucide-react";
+import { MdEmail, MdPhone, MdFavorite, MdFavoriteBorder, MdPhotoCamera, MdShare,MdRadioButtonUnchecked, MdRestaurant,MdCheckCircle } from "react-icons/md"; // Icons
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../utils/axiosInstance";
 import { getAuth, signOut } from "firebase/auth";
 import ThreadBackground from "../components/ThreadBackground";
 import axios from "axios";
+import { Utensils, Flame, Target, Plus, UserCircle, Stethoscope, Search } from "lucide-react";
+
 
 export default function UserProfile() {
   const navigate = useNavigate();
@@ -25,6 +27,33 @@ export default function UserProfile() {
   const [unsplashImages, setUnsplashImages] = useState([]);
   const [loadingImages, setLoadingImages] = useState(false);
   const [imageSearchQuery, setImageSearchQuery] = useState("profile picture");
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [selectedRecipe, setSelectedRecipe] = useState(null);
+  const [shareUrl, setShareUrl] = useState("");
+  const [shareSuccess, setShareSuccess] = useState(false);
+  const [copiedToClipboard, setCopiedToClipboard] = useState(false);
+  
+  // User statistics
+  const [userStats, setUserStats] = useState({
+    totalRecipes: 0,
+    favoriteCount: 0,
+    searchCount: 0,
+    lastActive: "",
+    topCategories: [],
+    streakDays: 0
+  });
+  
+  // Profile completion tracking
+  const [profileCompletion, setProfileCompletion] = useState({
+    percentage: 0,
+    items: [
+      { name: "Profile Picture", completed: false },
+      { name: "Personal Info", completed: false },
+      { name: "Medical History", completed: false },
+      { name: "Favorite Recipes", completed: false },
+      { name: "Notification Settings", completed: false }
+    ]
+  });
 
   // Extended profile details
   const [profile, setProfile] = useState({
@@ -83,6 +112,23 @@ export default function UserProfile() {
           dailyCalories: p.dailyCalories || "",
           goalStatus: p.goalStatus || "",
         });
+        
+        // Calculate profile completion
+        const completionItems = [
+          { name: "Profile Picture", completed: !!u.photo },
+          { name: "Personal Info", completed: !!(p.age && p.gender && p.phone) },
+          { name: "Medical History", completed: !!(p.medicalHistory && p.bloodGroup) },
+          { name: "Favorite Recipes", completed: false }, // Will update when favorites are loaded
+          { name: "Notification Settings", completed: true } // Default to true as it's a toggle
+        ];
+        
+        const completedCount = completionItems.filter(item => item.completed).length;
+        const percentage = Math.round((completedCount / completionItems.length) * 100);
+        
+        setProfileCompletion({
+          percentage,
+          items: completionItems
+        });
 
         setEditForm({
           dob: p.dob || "",
@@ -100,13 +146,106 @@ export default function UserProfile() {
 
         try {
           const recent = await axiosInstance.get('/api/users/searches/recent');
-          setRecentSearches(recent.data?.searches || []);
-          setFavorites((recent.data?.searches || []).filter((s) => s.isFavorite));
-        } catch {}
+          const searches = recent.data?.searches || [];
+          setRecentSearches(searches);
+          const favs = searches.filter((s) => s.isFavorite);
+          setFavorites(favs);
+          
+          // Update user statistics
+          setUserStats({
+            totalRecipes: searches.length,
+            favoriteCount: favs.length,
+            searchCount: searches.length,
+            lastActive: searches.length > 0 ? new Date(searches[0].createdAt).toLocaleDateString() : 'Never',
+            topCategories: getTopCategories(searches),
+            streakDays: calculateStreak(searches)
+          });
+          
+          // Update favorites completion status
+          setProfileCompletion(prev => {
+            const updatedItems = prev.items.map(item => 
+              item.name === "Favorite Recipes" 
+                ? { ...item, completed: favs.length > 0 } 
+                : item
+            );
+            const completedCount = updatedItems.filter(item => item.completed).length;
+            const percentage = Math.round((completedCount / updatedItems.length) * 100);
+            
+            return {
+              percentage,
+              items: updatedItems
+            };
+          });
+        } catch (error) {
+          console.error("Failed to fetch recent searches", error);
+        }
       } catch (error) {
         console.error(error);
         navigate("/login");
       }
+    };
+    
+    // Helper function to extract top categories from searches
+    const getTopCategories = (searches) => {
+      const categories = {};
+      searches.forEach(search => {
+        // Extract category from search query or title
+        const query = search.query?.toLowerCase() || '';
+        const words = query.split(' ');
+        
+        // Simple category extraction - could be improved with NLP
+        const possibleCategories = ['breakfast', 'lunch', 'dinner', 'dessert', 'snack', 'vegetarian', 'vegan', 'gluten-free', 'keto', 'healthy'];
+        
+        possibleCategories.forEach(category => {
+          if (query.includes(category)) {
+            categories[category] = (categories[category] || 0) + 1;
+          }
+        });
+      });
+      
+      // Convert to array and sort by count
+      return Object.entries(categories)
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 3); // Top 3 categories
+    };
+    
+    // Calculate user streak based on search dates
+    const calculateStreak = (searches) => {
+      if (searches.length === 0) return 0;
+      
+      // Get unique dates of activity
+      const dates = searches.map(s => new Date(s.createdAt).toDateString());
+      const uniqueDates = [...new Set(dates)].map(d => new Date(d));
+      uniqueDates.sort((a, b) => b - a); // Sort descending
+      
+      // Check if most recent date is today or yesterday
+      const today = new Date().toDateString();
+      const yesterday = new Date(Date.now() - 86400000).toDateString();
+      const mostRecent = uniqueDates[0]?.toDateString();
+      
+      if (mostRecent !== today && mostRecent !== yesterday) {
+        return 0; // Streak broken
+      }
+      
+      // Count consecutive days
+      let streak = 1;
+      for (let i = 1; i < uniqueDates.length; i++) {
+        const current = uniqueDates[i];
+        const prev = uniqueDates[i-1];
+        
+        // Check if dates are consecutive
+        const diffTime = prev - current;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays === 1) {
+          streak++;
+        } else {
+          break; // Streak broken
+        }
+      }
+      
+      return streak;
     };
 
     fetchUserData();
@@ -199,7 +338,9 @@ export default function UserProfile() {
       localStorage.removeItem("token");
       try {
         await axios.post("/api/users/logout");
-      } catch {}
+      } catch {(e)=>
+      console.log(e)
+      }
       navigate("/login");
     } catch (error) {
       console.error(error);
@@ -227,58 +368,99 @@ export default function UserProfile() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="bg-white/10 p-6 rounded-3xl flex flex-col sm:flex-row items-center gap-6 shadow-2xl backdrop-blur-md"
+          className="bg-white/10 p-6 rounded-3xl flex flex-col gap-6 shadow-2xl backdrop-blur-md"
         >
-          <div className="relative group">
-            <motion.img
-              whileHover={{ scale: 1.05 }}
-              src={
-                user.photo ||
-                user.photoURL ||
-                `https://ui-avatars.com/api/?name=${user.name || user.displayName}`
-              }
-              alt="User Avatar"
-              className="w-28 h-28 rounded-full border-4 border-white shadow-lg object-cover"
-            />
-            <button 
-              onClick={() => {
-                setShowProfileImageSelector(true);
-                fetchUnsplashImages();
-              }}
-              className="absolute bottom-0 right-0 bg-green-500 text-white p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-green-600"
-            >
-              <MdPhotoCamera size={20} />
-            </button>
-          </div>
-          <div className="text-center sm:text-left w-full">
-            <motion.h2
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-              className="text-3xl font-bold text-white"
-            >
-              {user.name || user.displayName || "User"}
-            </motion.h2>
+          {/* User info section with avatar and details */}
+          <div className="flex flex-col sm:flex-row items-center gap-6 w-full">
+            <div className="relative group">
+              <motion.img
+                whileHover={{ scale: 1.05 }}
+                src={
+                  user.photo ||
+                  user.photoURL ||
+                  `https://ui-avatars.com/api/?name=${user.name || user.displayName}`
+                }
+                alt="User Avatar"
+                className="w-28 h-28 rounded-full border-4 border-white shadow-lg object-cover"
+              />
+              <button 
+                onClick={() => {
+                  setShowProfileImageSelector(true);
+                  fetchUnsplashImages();
+                }}
+                className="absolute bottom-0 right-0 bg-green-500 text-white p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-green-600"
+              >
+                <MdPhotoCamera size={20} />
+              </button>
+            </div>
+            <div className="text-center sm:text-left w-full">
+              <motion.h2
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 }}
+                className="text-3xl font-bold text-white"
+              >
+                {user.name || user.displayName || "User"}
+              </motion.h2>
 
-            {/* ✅ Email with icon */}
-            <p className="text-white/70 mt-2 flex items-center gap-2">
-              <MdEmail className="text-green-400" size={20} />
-              <a href={`mailto:${user.email}`} className="hover:underline">
-                {user.email}
-              </a>
-            </p>
-
-            {/* ✅ Phone with icon */}
-            {profile.phone && (
-              <p className="text-white/70 mt-1 flex items-center gap-2">
-                <MdPhone className="text-green-400" size={20} />
-                <a href={`tel:${profile.phone}`} className="hover:underline">
-                  {profile.phone}
+              {/* ✅ Email with icon */}
+              <p className="text-white/70 mt-2 flex items-center gap-2">
+                <MdEmail className="text-green-400" size={20} />
+                <a href={`mailto:${user.email}`} className="hover:underline">
+                  {user.email}
                 </a>
               </p>
-            )}
-            
+
+              {/* ✅ Phone with icon */}
+              {profile.phone && (
+                <p className="text-white/70 mt-1 flex items-center gap-2">
+                  <MdPhone className="text-green-400" size={20} />
+                  <a href={`tel:${profile.phone}`} className="hover:underline">
+                    {profile.phone}
+                  </a>
+                </p>
+              )}
+            </div>
           </div>
+          
+          {/* Profile completion progress */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="w-full bg-white/5 p-4 rounded-xl backdrop-blur-sm"
+          >
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-white font-medium">Profile Completion</h3>
+              <span className="text-white font-bold text-lg">{profileCompletion.percentage}%</span>
+            </div>
+            
+            {/* Progress bar */}
+            <div className="w-full h-3 bg-white/10 rounded-full overflow-hidden">
+              <motion.div 
+                initial={{ width: 0 }}
+                animate={{ width: `${profileCompletion.percentage}%` }}
+                transition={{ delay: 0.5, duration: 1 }}
+                className="h-full rounded-full bg-gradient-to-r from-green-400 to-blue-500"
+              />
+            </div>
+            
+            {/* Completion items */}
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+              {profileCompletion.items.map((item) => (
+                <div key={item.name} className="flex items-center gap-2">
+                  {item.completed ? (
+                    <div className="text-green-400"><MdCheckCircle size={18} /></div>
+                  ) : (
+                    <div className="text-white/30"><MdRadioButtonUnchecked size={18} /></div>
+                  )}
+                  <span className={`text-sm ${item.completed ? 'text-white' : 'text-white/50'}`}>
+                    {item.name}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
         </motion.div>
 
         {/* Profile Image Selector Modal */}
@@ -366,113 +548,545 @@ export default function UserProfile() {
           )}
         </AnimatePresence>
 
-        {/* Extended Profile Info (read-only) */}
-        <motion.div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <ProfileCard icon={<Calendar size={20} />} label="Age" value={profile.age} />
-          <ProfileCard icon={<User size={20} />} label="Gender" value={profile.gender} />
-          <ProfileCard icon={<Droplet size={20} />} label="Blood Group" value={profile.bloodGroup} />
-          <ProfileCard icon={<Thermometer size={20} />} label="Weight" value={profile.weight} />
-          <ProfileCard icon={<Activity size={20} />} label="Height" value={profile.height} />
-          <ProfileCard icon={<Activity size={20} />} label="BMI" value={profile.bmi} />
-          <ProfileCard icon={<Activity size={20} />} label="Calories" value={profile.dailyCalories} />
-          <ProfileCard icon={<Activity size={20} />} label="Goals" value={profile.goalStatus} />
-          <ProfileCard icon={<Activity size={20} />} label="Medical History" value={profile.medicalHistory} />
-        </motion.div>
-
-        {/* Recent Searches */}
-        <motion.div>
-          <h3 className="text-2xl font-bold mb-4 flex items-center gap-2 text-white">
-            Recent Searches
+        {/* Recipe Activity Stats Dashboard */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="bg-white/10 p-6 rounded-3xl backdrop-blur-md border border-white/20 shadow-xl relative overflow-hidden"
+        >
+          {/* Background decoration */}
+          <div className="absolute -right-20 -top-20 w-64 h-64 bg-gradient-to-br from-green-400/10 to-blue-500/10 rounded-full blur-3xl"></div>
+          <div className="absolute -left-20 -bottom-20 w-64 h-64 bg-gradient-to-tr from-purple-400/10 to-pink-500/10 rounded-full blur-3xl"></div>
+          <h3 className="text-2xl font-bold mb-6 text-white flex items-center gap-2">
+            <PieChart className="text-green-400" size={24} /> Recipe Activity
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {recentSearches.length > 0 ? (
-              recentSearches.map((s) => (
-                <div key={s._id} className="p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center gap-3">
-                  <img src={s.image || '/images/default.jpg'} alt={s.recipeTitle || s.query} className="w-16 h-16 rounded-xl object-cover" />
-                  <div className="flex-1">
-                    <p className="text-white font-semibold truncate">{s.recipeTitle || s.query}</p>
-                    <p className="text-white/60 text-sm truncate">{s.query}</p>
-                  </div>
-
-                  <motion.button
-                    whileHover={{ scale: 1.2 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={async () => {
-                      try {
-                        if (s.isFavorite) {
-                          await axiosInstance.delete(`/api/users/searches/${s._id}/favorite`);
-                          setRecentSearches((prev) =>
-                            prev.map((it) =>
-                              it._id === s._id ? { ...it, isFavorite: false } : it
-                            )
-                          );
-                          setFavorites((prev) => prev.filter((it) => it._id !== s._id));
-                        } else {
-                          await axiosInstance.post(`/api/users/searches/${s._id}/favorite`);
-                          setRecentSearches((prev) =>
-                            prev.map((it) =>
-                              it._id === s._id ? { ...it, isFavorite: true } : it
-                            )
-                          );
-                          setFavorites((prev) =>
-                            prev.find((it) => it._id === s._id)
-                              ? prev
-                              : [...prev, { ...s, isFavorite: true }]
-                          );
-                        }
-                      } catch (e) {
-                        console.error("Favorite toggle failed", e);
-                      }
-                    }}
-                    className="text-red-500 hover:text-red-600 transition"
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <StatCard 
+              icon={<ChefHat size={20} />} 
+              label="Total Recipes" 
+              value={userStats.totalRecipes} 
+              color="from-blue-400 to-blue-500"
+            />
+            <StatCard 
+              icon={<Heart size={20} />} 
+              label="Favorites" 
+              value={userStats.favoriteCount} 
+              color="from-red-400 to-red-500"
+            />
+            <StatCard 
+              icon={<TrendingUp size={20} />} 
+              label="Streak" 
+              value={`${userStats.streakDays} days`} 
+              color="from-green-400 to-green-500"
+            />
+            <StatCard 
+              icon={<Clock size={20} />} 
+              label="Last Active" 
+              value={userStats.lastActive} 
+              color="from-purple-400 to-purple-500"
+            />
+          </div>
+          
+          {userStats.topCategories.length > 0 && (
+            <div className="mt-4">
+              <h4 className="text-lg font-semibold text-white mb-3">Top Categories</h4>
+              <div className="flex flex-wrap gap-2">
+                {userStats.topCategories.map((category, index) => (
+                  <span 
+                    key={index}
+                    className="px-3 py-1 rounded-full text-sm font-medium bg-gradient-to-r from-green-400/80 to-green-500/80 text-white"
                   >
-                    {s.isFavorite ? (
-                      <MdFavorite size={28} />
-                    ) : (
-                      <MdFavoriteBorder size={28} className="text-white" />
-                    )}
-                  </motion.button>
-
-                </div>
-              ))
-            ) : (
-              <p className="text-white/60">No recent searches.</p>
-            )}
+                    {category.name} ({category.count})
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Activity chart */}
+          <div className="mt-6 p-4 bg-white/5 rounded-xl">
+            <h4 className="text-lg font-semibold text-white mb-3">Weekly Activity</h4>
+            <div className="flex items-end justify-between h-32 gap-1">
+              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => {
+                // Generate random height for demo purposes - in real app, use actual data
+                const height = Math.floor(Math.random() * 80) + 20;
+                return (
+                  <div key={day} className="flex flex-col items-center flex-1">
+                    <motion.div 
+                      initial={{ height: 0 }}
+                      animate={{ height: `${height}%` }}
+                      transition={{ delay: 0.1 * index, duration: 0.8 }}
+                      className="w-full rounded-t-md bg-gradient-to-t from-green-400 to-green-300"
+                    />
+                    <span className="text-xs text-white/70 mt-2">{day}</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </motion.div>
+        
+        {/* Nutrition Tracking Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="bg-white/10 p-6 rounded-3xl backdrop-blur-md border border-white/20 shadow-xl relative overflow-hidden"
+        >
+          {/* Background decoration */}
+          <div className="absolute -right-20 -bottom-20 w-64 h-64 bg-gradient-to-br from-purple-400/10 to-pink-500/10 rounded-full blur-3xl"></div>
+          
+          <h3 className="text-2xl font-bold mb-6 text-white flex items-center gap-2">
+            <Utensils className="text-purple-400" size={24} /> Nutrition Tracking
+          </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Daily Calorie Intake */}
+            <div className="bg-white/5 rounded-xl p-4">
+              <h4 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+                <Flame size={18} className="text-orange-400" /> Daily Calories
+              </h4>
+              
+              <div className="relative pt-1">
+                <div className="flex mb-2 items-center justify-between">
+                  <div>
+                    <span className="text-xs font-semibold inline-block text-white">
+                      {Math.floor(Math.random() * 500) + 1500} / 2000 kcal
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs font-semibold inline-block text-white">
+                      {Math.floor(Math.random() * 30) + 70}%
+                    </span>
+                  </div>
+                </div>
+                <div className="overflow-hidden h-2 mb-4 text-xs flex rounded-full bg-white/10">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.floor(Math.random() * 30) + 70}%` }}
+                    transition={{ duration: 1 }}
+                    className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-gradient-to-r from-orange-400 to-red-500"
+                  ></motion.div>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-3 gap-2 mt-4">
+                <div className="text-center p-2 bg-white/5 rounded-lg">
+                  <div className="text-xs text-white/70">Protein</div>
+                  <div className="text-sm font-bold text-white">{Math.floor(Math.random() * 30) + 70}g</div>
+                </div>
+                <div className="text-center p-2 bg-white/5 rounded-lg">
+                  <div className="text-xs text-white/70">Carbs</div>
+                  <div className="text-sm font-bold text-white">{Math.floor(Math.random() * 50) + 150}g</div>
+                </div>
+                <div className="text-center p-2 bg-white/5 rounded-lg">
+                  <div className="text-xs text-white/70">Fat</div>
+                  <div className="text-sm font-bold text-white">{Math.floor(Math.random() * 20) + 40}g</div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Nutrient Goals */}
+            <div className="bg-white/5 rounded-xl p-4">
+              <h4 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+                <Target size={18} className="text-blue-400" /> Nutrient Goals
+              </h4>
+              
+              <div className="space-y-4">
+                {['Protein', 'Fiber', 'Vitamin C', 'Iron'].map((nutrient, index) => {
+                  const progress = Math.floor(Math.random() * 60) + 40;
+                  return (
+                    <div key={nutrient} className="space-y-1">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-white">{nutrient}</span>
+                        <span className="text-xs text-white/70">{progress}%</span>
+                      </div>
+                      <div className="overflow-hidden h-1.5 text-xs flex rounded-full bg-white/10">
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: `${progress}%` }}
+                          transition={{ delay: 0.1 * index, duration: 0.8 }}
+                          className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-gradient-to-r from-blue-400 to-indigo-500"
+                        ></motion.div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              
+              <button className="w-full mt-4 py-2 px-4 bg-gradient-to-r from-purple-500 to-indigo-600 text-white text-sm font-medium rounded-lg hover:from-purple-600 hover:to-indigo-700 transition-all duration-300 flex items-center justify-center gap-2">
+                <Plus size={16} /> Track New Meal
+              </button>
+            </div>
+          </div>
+        </motion.div>
+        
+        {/* Extended Profile Info (read-only) */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+          className="bg-white/10 p-6 rounded-3xl backdrop-blur-md border border-white/20 shadow-xl relative overflow-hidden"
+        >
+          {/* Background decoration */}
+          <div className="absolute -left-20 -top-20 w-64 h-64 bg-gradient-to-br from-blue-400/10 to-green-500/10 rounded-full blur-3xl"></div>
+          
+          <h3 className="text-2xl font-bold mb-6 text-white flex items-center gap-2">
+            <UserCircle className="text-blue-400" size={24} /> Personal Information
+          </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <ProfileCard 
+              icon={<Calendar size={20} className="text-blue-400" />} 
+              label="Age" 
+              value={profile.age || "Not specified"} 
+              onClick={() => setEditMode(true)}
+            />
+            <ProfileCard 
+              icon={<User size={20} className="text-purple-400" />} 
+              label="Gender" 
+              value={profile.gender || "Not specified"} 
+              onClick={() => setEditMode(true)}
+            />
+            <ProfileCard 
+              icon={<Droplet size={20} className="text-red-400" />} 
+              label="Blood Group" 
+              value={profile.bloodGroup || "Not specified"} 
+              onClick={() => setEditMode(true)}
+            />
+            <ProfileCard 
+              icon={<Thermometer size={20} className="text-orange-400" />} 
+              label="Weight" 
+              value={profile.weight ? `${profile.weight} kg` : "Not specified"} 
+              onClick={() => setEditMode(true)}
+            />
+            <ProfileCard 
+              icon={<Activity size={20} className="text-green-400" />} 
+              label="Height" 
+              value={profile.height ? `${profile.height} cm` : "Not specified"} 
+              onClick={() => setEditMode(true)}
+            />
+            <ProfileCard 
+              icon={<Activity size={20} className="text-indigo-400" />} 
+              label="BMI" 
+              value={profile.bmi || "Not calculated"} 
+              onClick={() => setEditMode(true)}
+            />
+            <ProfileCard 
+              icon={<Flame size={20} className="text-yellow-400" />} 
+              label="Daily Calories" 
+              value={profile.dailyCalories ? `${profile.dailyCalories} kcal` : "Not calculated"} 
+              onClick={() => setEditMode(true)}
+            />
+            <ProfileCard 
+              icon={<Target size={20} className="text-pink-400" />} 
+              label="Goals" 
+              value={profile.goalStatus || "Not specified"} 
+              onClick={() => setEditMode(true)}
+            />
+          </div>
+          
+          {/* Medical History Section */}
+          <div className="mt-6 p-4 bg-white/5 rounded-xl">
+            <h4 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+              <Stethoscope size={18} className="text-red-400" /> Medical History
+            </h4>
+            <p className="text-white/80 p-3 bg-white/5 rounded-lg">
+              {profile.medicalHistory || "No medical history provided. Click to add your medical information."}
+            </p>
+            <button 
+              onClick={() => setEditMode(true)}
+              className="mt-4 py-2 px-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-sm font-medium rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 flex items-center justify-center gap-2 w-full md:w-auto"
+            >
+              <Edit3 size={16} /> Update Medical Info
+            </button>
+          </div>
+        </motion.div>
+
+        {/* Settings Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.5 }}
+          className="bg-white/10 p-6 rounded-3xl backdrop-blur-md border border-white/20 shadow-xl relative overflow-hidden"
+        >
+          {/* Background decoration */}
+          <div className="absolute -right-20 -bottom-20 w-64 h-64 bg-gradient-to-br from-indigo-400/10 to-blue-500/10 rounded-full blur-3xl"></div>
+          
+          <h3 className="text-2xl font-bold mb-6 text-white flex items-center gap-2">
+            <Settings className="text-indigo-400" size={24} /> Preferences
+          </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Notification Preferences */}
+            <div className="bg-white/5 rounded-xl p-4">
+              <h4 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <Bell size={18} className="text-indigo-400" /> Notifications
+              </h4>
+              
+              {['Recipe Recommendations', 'New Features', 'Health Tips', 'Weekly Summary'].map((item, index) => (
+                <div key={item} className="flex items-center justify-between py-2 border-b border-white/10 last:border-0">
+                  <span className="text-white">{item}</span>
+                  <label className="inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="sr-only"
+                      defaultChecked={index < 2}
+                    />
+                    <span className="w-10 h-5 bg-white/20 rounded-full shadow-inner relative transition-all">
+                      <span
+                        className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-md transition-transform ${index < 2 ? 'translate-x-5 bg-indigo-400' : ''}`}
+                      ></span>
+                    </span>
+                  </label>
+                </div>
+              ))}
+              
+              <button className="w-full mt-4 py-2 px-4 bg-gradient-to-r from-indigo-500 to-blue-600 text-white text-sm font-medium rounded-lg hover:from-indigo-600 hover:to-blue-700 transition-all duration-300 flex items-center justify-center gap-2">
+                <Save size={16} /> Save Preferences
+              </button>
+            </div>
+            
+            {/* Theme Preferences */}
+            <div className="bg-white/5 rounded-xl p-4">
+              <h4 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <Palette size={18} className="text-blue-400" /> Appearance
+              </h4>
+              
+              <div className="space-y-4">
+                {/* Theme Selection */}
+                <div>
+                  <p className="text-white mb-2">Theme</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {['System', 'Light', 'Dark'].map((theme, index) => (
+                      <div 
+                        key={theme}
+                        className={`p-2 rounded-lg text-center cursor-pointer transition-all ${index === 2 ? 'bg-indigo-500 text-white' : 'bg-white/10 text-white/70 hover:bg-white/20'}`}
+                      >
+                        {theme}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Color Scheme */}
+                <div>
+                  <p className="text-white mb-2">Color Scheme</p>
+                  <div className="flex gap-2">
+                    {['#6366f1', '#8b5cf6', '#ec4899', '#10b981', '#3b82f6'].map((color) => (
+                      <div 
+                        key={color}
+                        className={`w-8 h-8 rounded-full cursor-pointer transition-all ${color === '#6366f1' ? 'ring-2 ring-white ring-offset-2 ring-offset-gray-800' : ''}`}
+                        style={{ backgroundColor: color }}
+                      ></div>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Font Size */}
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <p className="text-white">Font Size</p>
+                    <p className="text-white/70">Medium</p>
+                  </div>
+                  <input 
+                    type="range" 
+                    min="1" 
+                    max="3" 
+                    defaultValue="2"
+                    className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer"
+                  />
+                  <div className="flex justify-between text-xs text-white/50 mt-1">
+                    <span>Small</span>
+                    <span>Medium</span>
+                    <span>Large</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+        
+        {/* Recent Searches section removed - now available in RecipeGuide.jsx */}
 
         {/* Favorite Recipes */}
         <motion.div>
           <h3 className="text-2xl font-bold mb-4 flex items-center gap-2 text-white">
             <Heart size={24} className="text-red-500" /> Favorite Recipes
           </h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {favorites.length > 0 ? (
               favorites.map((recipe) => (
                 <motion.div
                   key={recipe._id}
-                  whileHover={{ scale: 1.05 }}
-                  className="relative rounded-2xl overflow-hidden shadow-lg cursor-pointer group"
+                  whileHover={{ scale: 1.02 }}
+                  className="bg-white/10 backdrop-blur-md rounded-2xl overflow-hidden shadow-xl border border-white/20"
                 >
-                  <img
-                    src={recipe.image || "/images/default.jpg"}
-                    alt={recipe.recipeTitle || recipe.title}
-                    className="w-full h-40 object-cover group-hover:brightness-75 transition"
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-                    <p className="text-white font-bold text-lg text-center px-3">
-                      {recipe.recipeTitle || recipe.title}
-                    </p>
+                  <div className="relative">
+                    <img
+                      src={recipe.image || "/images/default.jpg"}
+                      alt={recipe.recipeTitle || recipe.title}
+                      className="w-full h-48 object-cover"
+                    />
+                    <div className="absolute top-0 right-0 p-2 flex gap-2">
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        className="bg-white/20 backdrop-blur-md p-2 rounded-full shadow-lg hover:bg-white/30 transition-all"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedRecipe(recipe);
+                          setShareUrl(`${window.location.origin}/recipe/${recipe._id}`);
+                          setShowShareModal(true);
+                        }}
+                      >
+                        <Share2 size={18} className="text-white" />
+                      </motion.button>
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        className="bg-white/20 backdrop-blur-md p-2 rounded-full shadow-lg hover:bg-white/30 transition-all"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          try {
+                            await axiosInstance.delete(`/api/users/searches/${recipe._id}/favorite`);
+                            setRecentSearches((prev) =>
+                              prev.map((it) =>
+                                it._id === recipe._id ? { ...it, isFavorite: false } : it
+                              )
+                            );
+                            setFavorites((prev) => prev.filter((it) => it._id !== recipe._id));
+                          } catch (e) {
+                            console.error("Favorite toggle failed", e);
+                          }
+                        }}
+                      >
+                        <MdFavorite size={18} className="text-red-500" />
+                      </motion.button>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4">
+                    <h4 className="text-white font-bold text-lg mb-2 line-clamp-1">
+                      {recipe.recipeTitle || recipe.title || recipe.query}
+                    </h4>
+                    
+                    {recipe.description && (
+                      <p className="text-white/70 text-sm mb-3 line-clamp-2">
+                        {recipe.description}
+                      </p>
+                    )}
+                    
+                    <div className="flex items-center justify-between mt-2">
+                      <div className="flex items-center gap-1 text-white/60 text-xs">
+                        <Clock size={14} />
+                        <span>{recipe.cookTime || 'Unknown'}</span>
+                      </div>
+                      
+                      <button 
+                        onClick={() => navigate(`/recipe/${recipe._id}`)}
+                        className="text-green-400 text-sm font-medium hover:text-green-300 transition-colors"
+                      >
+                        View Recipe →
+                      </button>
+                    </div>
                   </div>
                 </motion.div>
               ))
             ) : (
-              <p className="text-white/60 col-span-full text-center">
-                No favorite recipes yet.
-              </p>
+              <div className="col-span-full bg-white/10 backdrop-blur-md rounded-2xl p-8 text-center border border-white/20">
+                <div className="flex flex-col items-center gap-4">
+                  <Heart size={48} className="text-white/30" />
+                  <p className="text-white/60 text-lg">
+                    No favorite recipes yet.
+                  </p>
+                  <p className="text-white/40 text-sm max-w-md mx-auto">
+                    Start exploring recipes and mark your favorites to see them here!
+                  </p>
+                  <button
+                    onClick={() => navigate('/recipes')}
+                    className="mt-4 px-6 py-2 bg-gradient-to-r from-green-400 to-green-500 text-white rounded-full font-medium hover:from-green-500 hover:to-green-600 transition-all shadow-lg"
+                  >
+                    Discover Recipes
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         </motion.div>
+        
+        {/* Share Recipe Modal */}
+        <AnimatePresence>
+          {showShareModal && selectedRecipe && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+              onClick={() => setShowShareModal(false)}
+            >
+              <motion.div 
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="bg-[#1d1f31] rounded-xl p-6 max-w-md w-full"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-bold text-white">Share Recipe</h2>
+                  <button 
+                    onClick={() => setShowShareModal(false)}
+                    className="text-white/70 hover:text-white"
+                  >
+                    ✕
+                  </button>
+                </div>
+                
+                <div className="mb-6">
+                  <p className="text-white/70 mb-2">Share this delicious recipe with friends:</p>
+                  <h3 className="text-white font-semibold mb-4">{selectedRecipe.recipeTitle || selectedRecipe.title || selectedRecipe.query}</h3>
+                  
+                  <div className="flex items-center gap-2 bg-[#161825] p-3 rounded-lg mb-4">
+                    <input 
+                      type="text" 
+                      value={shareUrl} 
+                      readOnly 
+                      className="bg-transparent text-white flex-1 outline-none"
+                    />
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(shareUrl);
+                        setCopiedToClipboard(true);
+                        setTimeout(() => setCopiedToClipboard(false), 2000);
+                      }}
+                      className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-lg text-sm font-medium transition-colors"
+                    >
+                      {copiedToClipboard ? 'Copied!' : 'Copy'}
+                    </button>
+                  </div>
+                  
+                  <div className="flex justify-center gap-4 mt-6">
+                    <ShareButton 
+                      icon={<MdShare size={20} />} 
+                      label="Share" 
+                      onClick={() => {
+                        if (navigator.share) {
+                          navigator.share({
+                            title: selectedRecipe.recipeTitle || selectedRecipe.title || 'Check out this recipe!',
+                            text: selectedRecipe.description || 'I found this amazing recipe!',
+                            url: shareUrl
+                          }).catch(err => console.error('Share failed:', err));
+                        }
+                      }} 
+                    />
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Account Settings */}
         <div className="mt-auto">
@@ -738,18 +1352,59 @@ export default function UserProfile() {
   );
 }
 
-function ProfileCard({ icon, label, value }) {
+function ProfileCard({ icon, label, value, onClick }) {
   return (
     <motion.div
       whileHover={{ scale: 1.02, boxShadow: "0 10px 25px rgba(0,0,0,0.2)" }}
-      className="flex items-center gap-4 p-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl"
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: "spring", stiffness: 400, damping: 17 }}
+      onClick={onClick}
+      className={`flex items-center gap-4 p-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl group ${onClick ? 'cursor-pointer' : ''}`}
     >
-      <div className="text-green-400">{icon}</div>
-      <div>
+      <div className="text-green-400 group-hover:scale-110 transition-transform duration-300">{icon}</div>
+      <div className="flex-1">
         <p className="text-white/70 text-sm">{label}</p>
         <p className="text-white font-semibold">{value || "-"}</p>
       </div>
+      {onClick && (
+        <div className="text-white/40 group-hover:text-white/80 transition-colors duration-300">
+          <Edit3 size={16} />
+        </div>
+      )}
     </motion.div>
+  );
+}
+
+// Component for statistics card
+function StatCard({ icon, label, value, color }) {
+  return (
+    <motion.div 
+      whileHover={{ y: -5 }}
+      className="bg-white/10 backdrop-blur-md rounded-xl p-5 border border-white/20 shadow-lg"
+    >
+      <div className={`bg-gradient-to-br ${color} w-12 h-12 rounded-lg flex items-center justify-center mb-4 shadow-lg`}>
+        {icon}
+      </div>
+      <h4 className="text-white/60 text-sm mb-1">{label}</h4>
+      <p className="text-white text-2xl font-bold">{value}</p>
+    </motion.div>
+  );
+}
+
+// Component for share buttons
+function ShareButton({ icon, label, onClick }) {
+  return (
+    <motion.button
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      className="flex flex-col items-center gap-1"
+      onClick={onClick}
+    >
+      <div className="bg-white/10 hover:bg-white/20 p-3 rounded-full transition-colors">
+        {icon}
+      </div>
+      <span className="text-white/70 text-xs">{label}</span>
+    </motion.button>
   );
 }
 

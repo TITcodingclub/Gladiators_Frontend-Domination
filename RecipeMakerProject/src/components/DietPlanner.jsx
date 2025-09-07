@@ -3,6 +3,7 @@ import { Box, Typography, Button, TextField, CircularProgress, Chip, Divider } f
 import { FiActivity, FiTarget, FiCalendar, FiRefreshCw, FiClock } from 'react-icons/fi';
 import { MdFastfood, MdOutlineWaterDrop, MdOutlineFoodBank, MdOutlineLocalFireDepartment } from 'react-icons/md';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import {motion} from 'framer-motion'
 
 const MODEL_NAME = "gemini-1.5-pro";
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || ""; // Use environment variable

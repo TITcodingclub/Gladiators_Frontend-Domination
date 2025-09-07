@@ -1,44 +1,11 @@
 import { useEffect } from 'react';
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 import toast from 'react-hot-toast';
-import { Button, Box, Typography } from '@mui/material';
-import MicIcon from '@mui/icons-material/Mic';
-import StopIcon from '@mui/icons-material/Stop';
-import { styled, keyframes } from '@mui/material/styles';
-
-
-const pulse = keyframes`
-  0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.6); }
-  70% { box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
-`;
-
-const SpeakButton = styled(Button)(({ theme }) => ({
-  backgroundColor: '#4caf50',
-  color: '#fff',
-  padding: '10px 20px',
-  animation: `${pulse} 1.5s infinite`,
-  '&:hover': {
-    backgroundColor: '#43a047'
-  }
-}));
-
-const StopButton = styled(Button)(({ theme }) => ({
-  backgroundColor: '#f44336',
-  color: '#fff',
-  padding: '10px 20px',
-  '&:hover': {
-    backgroundColor: '#e53935'
-  }
-}));
+import { motion } from 'framer-motion';
+import { Mic, Square } from 'lucide-react';
 
 export default function VoiceInput({ onVoiceAdd }) {
-  const {
-    transcript,
-    listening,
-    resetTranscript,
-    browserSupportsSpeechRecognition
-  } = useSpeechRecognition();
+  const { transcript, listening, resetTranscript, browserSupportsSpeechRecognition } = useSpeechRecognition();
 
   useEffect(() => {
     if (!listening && transcript.trim()) {
@@ -50,54 +17,57 @@ export default function VoiceInput({ onVoiceAdd }) {
 
   if (!browserSupportsSpeechRecognition) {
     return (
-      <Box sx={{ border: '1px solid red', borderRadius: 2, p: 2, backgroundColor: '#2a0000', color: '#ffcccc' }}>
-        <Typography variant="body1">Your browser does not support speech recognition.</Typography>
-      </Box>
+      <div className="p-4 rounded-lg border border-red-500 bg-red-900 text-red-200">
+        Your browser does not support speech recognition.
+      </div>
     );
   }
 
   return (
-    <Box sx={{ boxShadow:10, borderRadius: 2, p: 3, background: 'linear-gradient(to bottom right, #161825, #1d1f31)', color: 'white' }}>
-      <Typography variant="h6" sx={{ mb: 2 }}>🎤 Voice-Controlled Task Input</Typography>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-2xl shadow-xl text-white flex flex-col gap-4"
+    >
+      <h2 className="text-lg md:text-xl font-bold">🎤 Voice-Controlled Task Input</h2>
 
-      <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 3 }}>
+      <div className="flex flex-wrap gap-4">
         {!listening ? (
-          <SpeakButton
-            variant="contained"
-            startIcon={<MicIcon />}
+          <motion.button
             onClick={() => SpeechRecognition.startListening({ continuous: false })}
+            className="flex items-center gap-2 px-5 py-3 rounded-full font-semibold bg-green-600 shadow-md shadow-green-500/50 hover:bg-green-700 transition-colors duration-300"
+            whileTap={{ scale: 0.95 }}
+            animate={{ boxShadow: listening ? '0 0 15px rgba(76, 175, 80, 0.5)' : '0 0 0 rgba(76,175,80,0)' }}
           >
+            <Mic size={20} />
             Speak
-          </SpeakButton>
+          </motion.button>
         ) : (
-          <StopButton
-            variant="contained"
-            startIcon={<StopIcon />}
-            onClick={() => SpeechRecognition.stopListening()}
+          <motion.button
+            onClick={() => SpeechRecognition.SquareListening()}
+            className="flex items-center gap-2 px-5 py-3 rounded-full font-semibold bg-red-600 shadow-md shadow-red-500/50 hover:bg-red-700 transition-colors duration-300"
+            whileTap={{ scale: 0.95 }}
           >
+            <Square size={20} />
             Stop
-          </StopButton>
+          </motion.button>
         )}
-      </Box>
+      </div>
 
-      <Box
-        sx={{
-          p: 2,
-          backgroundColor: '#1a1c2e',
-          border: '1px solid #555',
-          borderRadius: 1,
-          fontFamily: 'monospace',
-          minHeight: '4rem'
-        }}
-      >
-        {transcript || <span style={{ color: '#aaa' }}>Say something…</span>}
-      </Box>
+      <div className="bg-gray-900 border border-gray-700 rounded-md p-3 font-mono min-h-[4rem] text-gray-300">
+        {transcript || <span className="text-gray-500 italic">Say something…</span>}
+      </div>
 
       {listening && (
-        <Typography variant="body2" sx={{ color: 'lightgreen', mt: 2, fontStyle: 'italic' }}>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-green-400 italic mt-2"
+          transition={{ repeat: Infinity, repeatType: 'reverse', duration: 0.8 }}
+        >
           🎧 Listening...
-        </Typography>
+        </motion.div>
       )}
-    </Box>
+    </motion.div>
   );
 }

@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import CookModeView from './CookModeView'
-import { Snackbar, Alert } from '@mui/material'
 import TagAnimator from './TagAnimator'
 import ThreadBackground from './ThreadBackground'
 import axiosInstance from '../utils/axiosInstance'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
+import { MdFavorite, MdFavoriteBorder, MdAccessTime } from 'react-icons/md'
 
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY)
 
@@ -25,12 +25,24 @@ export default function RecipeGuide({ scrollRef }) {
   })
   const [recipeImage, setRecipeImage] = useState('')
   const [loadingImage, setLoadingImage] = useState(false)
+  const [recentSearches, setRecentSearches] = useState([])
+  const [loadingRecentSearches, setLoadingRecentSearches] = useState(false)
 
   useEffect(() => {
     if (scrollRef?.current) {
       scrollRef.current.scrollIntoView({ behavior: 'smooth' })
     }
   }, [scrollRef])
+
+  // Auto-hide alert after 5 seconds
+  useEffect(() => {
+    if (alert) {
+      const timer = setTimeout(() => {
+        setAlert('');
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [alert]);
 
   // Fetch recipes on component mount
   useEffect(() => {
@@ -46,6 +58,40 @@ export default function RecipeGuide({ scrollRef }) {
     
     fetchRecipes()
   }, [])
+  
+  // Fetch recent searches when component mounts
+  useEffect(() => {
+    const initializeRecentSearches = async () => {
+      try {
+        await fetchRecentSearches()
+      } catch (error) {
+        console.error('Error initializing recent searches:', error)
+      }
+    }
+    
+    initializeRecentSearches()
+  }, [])
+  
+  // Function to fetch recent searches - returns a promise for better async handling
+  const fetchRecentSearches = async () => {
+    try {
+      setLoadingRecentSearches(true)
+      const response = await axiosInstance.get('/api/users/searches/recent')
+      const searches = response.data?.searches || []
+      
+      // Sort searches by date (newest first) for better UX
+      searches.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      
+      setRecentSearches(searches)
+      return searches
+    } catch (error) {
+      console.error('Failed to fetch recent searches', error)
+      // Non-fatal if user not logged in
+      return []
+    } finally {
+      setLoadingRecentSearches(false)
+    }
+  }
   
   // Function to fetch recipe image from Unsplash
   const fetchRecipeImage = async (searchTerm) => {
@@ -102,9 +148,11 @@ export default function RecipeGuide({ scrollRef }) {
       // ✅ Log query (ties to current user via token interceptor)
       try {
         await axiosInstance.post('/api/users/searches', { query })
+        // Refresh recent searches after adding a new one
+        await fetchRecentSearches()
       } catch (e) {
-      console.log(e)
-        // Non-fatal if user not logged in
+        console.error('Error logging search query:', e)
+        // Non-fatal if user not logged in - continue with recipe generation
       }
 
       // ✅ Validate API key presence
@@ -244,6 +292,30 @@ export default function RecipeGuide({ scrollRef }) {
     const newSteps = customSteps.filter((_, i) => i !== index)
     setCustomSteps(newSteps)
   }
+  
+  // Handle favorite toggle with real-time updates
+  const toggleFavorite = async (searchId, isFavorite) => {
+    try {
+      if (isFavorite) {
+        await axiosInstance.delete(`/api/users/searches/${searchId}/favorite`)
+      } else {
+        await axiosInstance.post(`/api/users/searches/${searchId}/favorite`)
+      }
+      
+      // Update the local state immediately for responsive UI
+      setRecentSearches(prev => 
+        prev.map(search => 
+          search._id === searchId ? { ...search, isFavorite: !isFavorite } : search
+        )
+      )
+      
+      // Refresh recent searches to ensure consistency with server
+      fetchRecentSearches()
+    } catch (error) {
+      console.error('Failed to toggle favorite', error)
+      setAlert('Failed to update favorite status. Please try again.')
+    }
+  }
 
   // FIX: Function to update a specific custom step
   const handleCustomStepChange = (e, index) => {
@@ -269,46 +341,58 @@ export default function RecipeGuide({ scrollRef }) {
   return (
     <>
       <ThreadBackground />
-      <div ref={scrollRef} className="w-full lg:px-20 lg:py-10 px-5 py-5 space-y-6">
-        <div className="mt-12 sm:mt-24 flex flex-col items-center text-center">
+      <motion.div ref={scrollRef} className="w-full lg:px-20 lg:py-10 px-5 py-5 space-y-6">
+        <motion.div className="mt-12 sm:mt-24 flex flex-col items-center text-center">
           <h1 className="text-4xl sm:text-5xl font-bold text-green-400">
             AI Recipe Guide
           </h1>
           <p className="text-gray-300 mt-2">
             Your personal AI-powered cooking companion.
           </p>
-          <div className="mt-3">
+          <motion.div className="mt-3">
             <TagAnimator tags={['🥦 vegan', '⏳ quick', '🌶️ spicy', '🔥 grilled', '🍰 dessert']} />
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
         
-        <div className="flex flex-col sm:flex-row gap-3 relative">
-          <div className="relative flex-1 group">
-            <div className="absolute inset-0 bg-gradient-to-r from-green-400/20 to-blue-500/20 rounded-lg blur opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        <motion.div 
+          className="flex flex-col sm:flex-row gap-3 relative"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
+          <motion.div 
+            className="relative flex-1 group"
+            whileHover={{ boxShadow: '0 0 15px rgba(74, 222, 128, 0.2)' }}
+            transition={{ duration: 0.3 }}
+          >
+            <motion.div className="absolute inset-0 bg-gradient-to-r from-green-400/20 to-blue-500/20 rounded-lg blur opacity-0 group-hover:opacity-100 transition-opacity duration-300"></motion.div>
+            <motion.div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
-            </div>
-            <input
+            </motion.div>
+            <motion.input
               type="text"
               placeholder="Search any recipe with AI..."
               className="flex-1 w-full p-4 pl-10 rounded-lg border border-gray-600 bg-gray-800/90 text-white shadow-inner focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all duration-300 backdrop-blur-sm"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={handleKeyDown}
+              whileFocus={{ boxShadow: '0 0 0 2px rgba(74, 222, 128, 0.3)' }}
             />
             {query && (
-              <button 
+              <motion.button 
                 onClick={() => setQuery('')} 
                 className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white"
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
-              </button>
+              </motion.button>
             )}
-          </div>
+          </motion.div>
           <motion.button
             onClick={handleSearch}
             disabled={isLoading || !query.trim()}
@@ -346,67 +430,232 @@ export default function RecipeGuide({ scrollRef }) {
               </>
             )}
           </motion.button>
-        </div>
+        </motion.div>
+        
+        {/* Recent Searches Section */}
+      {recentSearches.length > 0 && !steps && !isLoading && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="mb-6 mt-4"
+        >
+          <motion.div className="mb-3 flex items-center">
+            <h2 className="text-3xl text-white font-semibold flex items-center">
+              <MdAccessTime  className="mr-2 text-3xl" />
+              Recent Searches
+            </h2>
+          </motion.div>
+          
+          <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {recentSearches.map((search) => (
+              <motion.div
+                key={search._id}
+                whileHover={{ scale: 1.03 }}
+                transition={{ type: 'spring', stiffness: 300 }}
+                className="h-full"
+              >
+                <motion.div className="rounded-xl overflow-hidden shadow-lg bg-white dark:bg-gray-800 h-full flex flex-col relative border border-gray-200 dark:border-gray-700">
+                  {/* Image */}
+                  <motion.div 
+                    className="h-36 bg-cover bg-center relative"
+                    style={{
+                      backgroundImage: `url(${search.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c'})`
+                    }}
+                  >
+                    {/* Favorite Button */}
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      className="absolute top-2 right-2 z-10 bg-white/80 dark:bg-gray-800/80 rounded-full w-9 h-9 flex items-center justify-center cursor-pointer shadow-md"
+                      onClick={() => toggleFavorite(search._id, search.isFavorite)}
+                    >
+                      {search.isFavorite ? (
+                        <MdFavorite size={22} className="text-red-500" />
+                      ) : (
+                        <MdFavoriteBorder size={22} className="text-gray-600 dark:text-gray-400" />
+                      )}
+                    </motion.button>
+                  </motion.div>
+                  
+                  {/* Content */}
+                  <motion.div className="p-4 flex-grow flex flex-col">
+                    <h3 className="text-lg font-semibold mb-1 text-gray-900 dark:text-white">
+                      {search.query}
+                    </h3>
+                    
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                      {new Date(search.createdAt).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </p>
+                    
+                    <motion.button
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.97 }}
+                      className="mt-auto self-start px-3 py-1.5 border border-red-400 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-sm font-medium transition-colors"
+                      onClick={() => {
+                        setQuery(search.query);
+                        handleSearch();
+                      }}
+                    >
+                      Search Again
+                    </motion.button>
+                  </motion.div>
+                </motion.div>
+              </motion.div>
+            ))}
+          </motion.div>
+        </motion.div>
+      )}
+      
+      {/* Loading indicator for recent searches */}
+      {loadingRecentSearches && (
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+          className="flex justify-center py-4"
+        >
+          <motion.div 
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            className="w-6 h-6 border-2 border-gray-200 border-t-green-500 rounded-full"
+          />
+        </motion.div>
+      )}
+      
+      {/* Empty State for Recent Searches */}
+      {!loadingRecentSearches && recentSearches.length === 0 && (
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="flex flex-col items-center justify-center p-8 bg-slate-900/70 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-xl mt-6"
+        >
+          <motion.div 
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="mb-4 text-gray-400"
+          >
+            <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+            </svg>
+          </motion.div>
+          <motion.h3 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="text-xl font-semibold text-gray-100 mb-2"
+          >
+            No Recent Searches
+          </motion.h3>
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="text-gray-400 text-center"
+          >
+            Your recent searches will appear here.
+          </motion.p>
+        </motion.div>
+      )}
         
         {isLoading && (
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              className="flex flex-col justify-center items-center gap-4 py-10 bg-gradient-to-br from-[#161825]/50 via-[#1d1f31]/50 to-[#161825]/50 backdrop-blur-sm rounded-xl border border-gray-700/30 shadow-lg"
-            >
-                <motion.div 
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                  className="w-12 h-12 border-4 border-green-400 border-t-transparent rounded-full"
-                ></motion.div>
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.3, duration: 0.5 }}
-                  className="flex flex-col items-center"
-                >
-                    <p className="text-xl text-green-400 font-semibold">
-                        Nutrithy is preparing your recipe
-                    </p>
-                    <p className="text-sm text-gray-400 mt-1">
-                        This may take a few moments...
-                    </p>
-                </motion.div>
-                <div className="mt-2 flex gap-2">
-                    {['Analyzing ingredients', 'Calculating nutrition', 'Preparing steps'].map((text, i) => (
-                        <motion.span 
-                          key={i} 
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: 0.5 + (i * 0.2), duration: 0.3 }}
-                          className="px-3 py-1 bg-gray-800/70 text-gray-300 text-xs rounded-full"
-                        >
-                            {text}
-                        </motion.span>
-                    ))}
-                </div>
-            </motion.div>
-        )}
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="flex flex-col justify-center items-center gap-4 py-10 bg-gradient-to-br from-[#161825]/50 via-[#1d1f31]/50 to-[#161825]/50 backdrop-blur-sm rounded-xl border border-gray-700/30 shadow-lg"
+          >
+              <motion.div 
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                className="w-12 h-12 border-4 border-green-400 border-t-transparent rounded-full"
+              ></motion.div>
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3, duration: 0.5 }}
+                className="flex flex-col items-center"
+              >
+                  <motion.p 
+                    initial={{ y: 5, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.4 }}
+                    className="text-xl text-green-400 font-semibold"
+                  >
+                      Nutrithy is preparing your recipe
+                  </motion.p>
+                  <motion.p 
+                    initial={{ y: 5, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.5 }}
+                    className="text-sm text-gray-400 mt-1"
+                  >
+                      This may take a few moments...
+                  </motion.p>
+              </motion.div>
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.6 }}
+                className="mt-2 flex gap-2"
+              >
+                  {['Analyzing ingredients', 'Calculating nutrition', 'Preparing steps'].map((text, i) => (
+                      <motion.span 
+                        key={i} 
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.5 + (i * 0.2), duration: 0.3 }}
+                        className="px-3 py-1 bg-gray-800/70 text-gray-300 text-xs rounded-full"
+                      >
+                          {text}
+                      </motion.span>
+                  ))}
+              </motion.div>
+          </motion.div>
+      )}
 
         {/* --- IMPROVED CUSTOM RECIPE FORM UI --- */}
         {!steps && !isLoading && (
-          <div className="bg-gradient-to-br from-[#161825] via-[#1d1f31] to-[#161825] border border-gray-700 p-6 rounded-xl space-y-6 shadow-xl backdrop-blur-sm relative overflow-hidden">
-            {/* Background decorative elements */}
-            <div className="absolute -top-24 -right-24 w-48 h-48 bg-green-500/10 rounded-full blur-3xl"></div>
-            <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl"></div>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="bg-gradient-to-br from-[#161825] via-[#1d1f31] to-[#161825] border border-gray-700 p-6 rounded-xl space-y-6 shadow-xl backdrop-blur-sm relative overflow-hidden"
+          >
             
-            <div className="relative">
-              <h2 className="text-2xl font-bold text-white text-center mb-1">Add Your Own Recipe</h2>
-              <p className="text-gray-400 text-center text-sm mb-4">Create and save your personal recipes</p>
+            <motion.div className="relative">
+              <motion.h2 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="text-2xl font-bold text-white text-center mb-1"
+              >
+                Add Your Own Recipe
+              </motion.h2>
+              <motion.p 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+                className="text-gray-400 text-center text-sm mb-4"
+              >
+                Create and save your personal recipes
+              </motion.p>
               
               {/* Recipe Name Input with icon */}
-              <div className="relative mb-6">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <motion.div className="relative mb-6">
+                <motion.div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                   </svg>
-                </div>
+                </motion.div>
                 <input
                   type="text"
                   placeholder="Recipe Name"
@@ -414,32 +663,48 @@ export default function RecipeGuide({ scrollRef }) {
                   value={customName}
                   onChange={e => setCustomName(e.target.value)}
                 />
-              </div>
+              </motion.div>
               
               {/* Steps Section with numbered indicators */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+              <motion.div className="space-y-4">
+                <motion.h3 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="text-lg font-semibold text-white flex items-center gap-2"
+                >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                   Recipe Steps
-                </h3>
+                </motion.h3>
                 
                 {customSteps.map((step, i) => (
-                  <div key={i} className="flex items-center gap-3 group">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-white font-bold text-sm">
+                  <motion.div 
+                    key={i} 
+                    className="flex items-center gap-3 group"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.1, duration: 0.3 }}
+                  >
+                    <motion.div 
+                      whileHover={{ scale: 1.1 }}
+                      className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-white font-bold text-sm"
+                    >
                       {i + 1}
-                    </div>
-                    <div className="relative flex-grow">
-                      <input
-                        type="text"
+                    </motion.div>
+                    <motion.div className="relative flex-grow">
+                      <textarea
                         placeholder={`Describe step ${i + 1}`}
-                        className="w-full p-3 rounded-lg bg-gray-800/80 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition pr-10"
+                        className="w-full p-3 rounded-lg bg-gray-800/80 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition pr-10 resize-none"
                         value={step}
                         onChange={(e) => handleCustomStepChange(e, i)}
+                        rows={Math.max(1, Math.min(3, step.split('\n').length))}
                       />
                       {customSteps.length > 1 && (
-                        <button 
+                        <motion.button 
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
                           onClick={() => handleRemoveCustomStep(i)}
                           className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
                           title="Remove Step"
@@ -447,16 +712,18 @@ export default function RecipeGuide({ scrollRef }) {
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
-                        </button>
+                        </motion.button>
                       )}
-                    </div>
-                  </div>
+                    </motion.div>
+                  </motion.div>
                 ))}
-              </div>
+              </motion.div>
 
-              {/* Action Buttons with improved styling */}
-              <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-6">
-                <button
+              {/* Action Buttons with Framer Motion */}
+              <motion.div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-6">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={() => setCustomSteps([...customSteps, ''])}
                   className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition shadow-md hover:shadow-blue-500/20"
                 >
@@ -464,32 +731,35 @@ export default function RecipeGuide({ scrollRef }) {
                     <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
                   </svg>
                   Add Step
-                </button>
-                <button
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={saveCustom}
                   disabled={!customName.trim() || !customSteps.some(step => step.trim())}
                   className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 text-white rounded-lg font-semibold transition shadow-md hover:shadow-green-500/20 disabled:from-gray-500 disabled:to-gray-600 disabled:cursor-not-allowed"
                 >
                   Save Recipe
-                </button>
-              </div>
-            </div>
-          </div>
+                </motion.button>
+              </motion.div>
+            </motion.div>
+          </motion.div>
         )}
 
         {steps && (
-          <div className="space-y-4">
+          <motion.div className="space-y-4">
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
-            >
+              className="relative overflow-hidden rounded-xl bg-black/20 backdrop-blur-md p-6 border border-slate-700/50 shadow-xl"
+            > 
               {recipeImage && (
-                <div className="relative w-full h-48 sm:h-64 mb-6 overflow-hidden rounded-lg">
+                <motion.div className="relative w-full h-48 sm:h-64 mb-6 overflow-hidden rounded-lg">
                   {loadingImage ? (
-                    <div className="absolute inset-0 flex items-center justify-center bg-gray-800/50">
-                      <div className="w-8 h-8 border-3 border-green-400 border-t-transparent rounded-full animate-spin"></div>
-                    </div>
+                    <motion.div className="absolute inset-0 flex items-center justify-center bg-gray-800/50">
+                      <motion.div className="w-8 h-8 border-3 border-green-400 border-t-transparent rounded-full animate-spin"></motion.div>
+                    </motion.div>
                   ) : (
                     <img 
                       src={recipeImage} 
@@ -497,10 +767,10 @@ export default function RecipeGuide({ scrollRef }) {
                       className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
                     />
                   )}
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+                  <motion.div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
                     <p className="text-white text-sm">Image via Unsplash</p>
-                  </div>
-                </div>
+                  </motion.div>
+                </motion.div>
               )}
               <CookModeView
                 steps={steps}
@@ -509,52 +779,61 @@ export default function RecipeGuide({ scrollRef }) {
                 cookTime={recipeDetails.cookTime}
               />
             </motion.div>
-            <button
-              onClick={() => setSteps(null)}
-              className="text-green-400 hover:text-red-400 text-sm mt-2"
-            >
-              ← Back to search
-            </button>
-          </div>
+              <motion.button
+                onClick={() => setSteps(null)}
+                className="flex items-center gap-3 px-5 py-2 rounded-full font-semibold text-green-400 text-sm md:text-base shadow-lg backdrop-blur-sm bg-green-900/20 border border-green-400/30 transition-all duration-300 focus:outline-none"
+                initial={{ x: -50, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                whileHover={{
+                  scale: 1.05,
+                  backgroundColor: 'rgba(16,185,129,0.2)',
+                  color: '#10B981',
+                  boxShadow: '0 8px 20px rgba(16,185,129,0.4)',
+                }}
+                whileTap={{ scale: 0.97, boxShadow: '0 4px 10px rgba(16,185,129,0.3)' }}
+                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+              >
+                <span className="text-lg md:text-xl animate-pulse">←</span>
+                Back to search
+              </motion.button>
+          </motion.div>
         )}
 
-        <Snackbar
-          open={!!alert}
-          autoHideDuration={5000}
-          onClose={() => setAlert('')}
-          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-          TransitionProps={{ onEnter: (node) => node.classList.add('fade-in') }}
-        >
-          <Alert
-            onClose={() => setAlert('')}
-            severity={alert?.includes('Failed') || alert?.includes('error') || alert?.includes('missing') ? 'error' : 'info'}
-            icon={alert?.includes('Failed') || alert?.includes('error') || alert?.includes('missing') ? true : false}
-            sx={{
-              width: '100%',
-              fontWeight: '600',
-              backdropFilter: 'blur(8px)',
-              backgroundColor: alert?.includes('Failed') || alert?.includes('error') || alert?.includes('missing') 
-                ? 'rgba(220, 38, 38, 0.15)' 
-                : alert?.includes('saved') 
-                  ? 'rgba(22, 163, 74, 0.15)' 
-                  : 'rgba(30, 41, 59, 0.8)',
-              color: '#f1f5f9',
-              border: `1px solid ${alert?.includes('Failed') || alert?.includes('error') || alert?.includes('missing')
-                ? 'rgba(220, 38, 38, 0.3)'
-                : alert?.includes('saved')
-                  ? 'rgba(22, 163, 74, 0.3)'
-                  : 'rgba(51, 65, 85, 0.6)'}`,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-              borderRadius: '12px',
-              textAlign: 'center',
-              px: 3,
-              py: 1.5,
-            }}
-          >
-            {alert}
-          </Alert>
-        </Snackbar>
-      </div>
+        <AnimatePresence>
+          {!!alert && (
+            <motion.div 
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 max-w-md w-full"
+            >
+              <motion.div 
+                className={`px-4 py-3 rounded-xl shadow-lg backdrop-blur-md border flex items-center justify-between
+                  ${alert?.includes('Failed') || alert?.includes('error') || alert?.includes('missing')
+                    ? 'bg-red-500/15 border-red-500/30 text-red-50'
+                    : alert?.includes('saved')
+                      ? 'bg-green-500/15 border-green-500/30 text-green-50'
+                      : 'bg-gray-800/80 border-gray-700/60 text-gray-100'}
+                `}
+                role="alert"
+              >
+                <span className="font-semibold text-center flex-grow">{alert}</span>
+                <button 
+                  onClick={() => setAlert('')}
+                  className="ml-3 flex-shrink-0 text-gray-300 hover:text-white transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        
+
+      </motion.div>
     </>
   )
 }
