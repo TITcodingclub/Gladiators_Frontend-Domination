@@ -15,13 +15,6 @@ export function useAuth() {
       if (firebaseUser) {
         setUser(firebaseUser);
         localStorage.setItem("user", JSON.stringify(firebaseUser));
-
-        try {
-          // ✅ Sync user to backend with ID token via interceptor
-          await axiosInstance.post("/api/users/login");
-        } catch (err) {
-          console.error("❌ Failed to sync user with backend:", err);
-        }
       } else {
         setUser(null);
         localStorage.removeItem("user");
@@ -35,8 +28,12 @@ export function useAuth() {
   const login = async () => {
     try {
       await signInWithPopup(auth, provider);
+      // After Firebase login, sync user and get profileCompleted
+      const { data } = await axiosInstance.post("/api/users/login");
+      return data;
     } catch (error) {
       console.error("❌ Login failed:", error);
+      throw error;
     }
   };
 

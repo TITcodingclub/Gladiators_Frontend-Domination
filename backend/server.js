@@ -2,6 +2,8 @@ require("dotenv").config();
 const express = require("express");
 const http = require("http");
 const cors = require("cors");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
 const { Server } = require("socket.io");
 const connectDB = require("./config/db");
 const recipeRoutes = require("./routes/recipeRoutes");
@@ -14,7 +16,21 @@ const app = express();
 const server = http.createServer(app);
 
 // Middleware
-app.use(cors());
+const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || "http://localhost:5173";
+app.use(
+  cors({
+    origin: FRONTEND_ORIGIN,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+app.use(helmet());
+
+// Basic rate limit for auth/profile routes
+const apiLimiter = rateLimit({ windowMs: 60 * 1000, max: 60 });
+app.use("/api/users", apiLimiter);
+app.use("/api/recipes", apiLimiter);
 app.use(express.json());
 
 // Connect MongoDB

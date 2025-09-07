@@ -1,26 +1,24 @@
 const express = require("express");
-const Recipe = require("../models/Recipe");
 const verifyFirebaseToken = require("../auth/verifyFirebaseToken");
+const recipeController = require("../controllers/recipeController");
 const router = express.Router();
 
 // GET all recipes
-router.get("/", async (req, res) => {
-  try {
-    const recipes = await Recipe.find();
-    res.json(recipes);
-  } catch (err) {
-    res.status(500).json({ error: "Failed to fetch recipes" });
-  }
-});
+router.get("/", recipeController.getAllRecipes);
 
 // POST a new recipe
-router.post("/", verifyFirebaseToken, async (req, res) => {
-  try {
-    const recipe = await Recipe.create(req.body);
-    res.status(201).json(recipe);
-  } catch (err) {
-    res.status(400).json({ error: "Failed to create recipe" });
-  }
-});
+router.post("/", verifyFirebaseToken, recipeController.createRecipe);
+
+// POST an AI-generated recipe
+router.post("/ai", recipeController.createAIRecipe);
+
+// GET a recipe by ID
+router.get("/:id", recipeController.getRecipeById);
+
+// PUT update a recipe
+router.put("/:id", verifyFirebaseToken, recipeController.updateRecipe);
+
+// DELETE a recipe
+router.delete("/:id", verifyFirebaseToken, recipeController.deleteRecipe);
 
 module.exports = router;
