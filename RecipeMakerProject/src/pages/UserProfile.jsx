@@ -368,22 +368,28 @@ export default function UserProfile() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="bg-white/10 p-6 rounded-3xl flex flex-col gap-6 shadow-2xl backdrop-blur-md"
+          className="flex flex-col gap-6"
         >
           {/* User info section with avatar and details */}
-          <div className="flex flex-col sm:flex-row items-center gap-6 w-full">
-            <div className="relative group">
+          <div className="flex flex-col sm:flex-row items-center gap-6 w-full p-6 bg-black/50 rounded-xl shadow-2xl relative overflow-hidden">
+            {/* Decorative floating blur shapes */}
+            <div className="absolute -top-10 -left-10 w-40 h-40 bg-green-400/30 rounded-full blur-3xl animate-pulse"></div>
+            <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-teal-400/30 rounded-full blur-3xl animate-pulse"></div>
+          
+            {/* Avatar */}
+            <div className="relative group flex-shrink-0">
               <motion.img
-                whileHover={{ scale: 1.05 }}
+                whileHover={{ scale: 1.1, rotate: [0, 2, -2, 0] }}
                 src={
                   user.photo ||
                   user.photoURL ||
                   `https://ui-avatars.com/api/?name=${user.name || user.displayName}`
                 }
                 alt="User Avatar"
-                className="w-28 h-28 rounded-full border-4 border-white shadow-lg object-cover"
+                className="w-45 h-45 rounded-full border-4 border-white shadow-xl object-cover transition-all duration-300"
               />
-              <button 
+              {/* <motion.button
+                whileHover={{ scale: 1.1 }}
                 onClick={() => {
                   setShowProfileImageSelector(true);
                   fetchUnsplashImages();
@@ -391,40 +397,52 @@ export default function UserProfile() {
                 className="absolute bottom-0 right-0 bg-green-500 text-white p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-green-600"
               >
                 <MdPhotoCamera size={20} />
-              </button>
+              </motion.button> */}
             </div>
+          
+            {/* User Info */}
             <div className="text-center sm:text-left w-full">
               <motion.h2
-                initial={{ opacity: 0, x: -10 }}
+                initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2 }}
-                className="text-3xl font-bold text-white"
+                transition={{ delay: 0.2, duration: 0.5 }}
+                className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white drop-shadow-lg"
               >
                 {user.name || user.displayName || "User"}
               </motion.h2>
-
-              {/* ✅ Email with icon */}
-              <p className="text-white/70 mt-2 flex items-center gap-2">
+          
+              {/* Email */}
+              <motion.p
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.4, duration: 0.5 }}
+                className="text-white/70 mt-2 flex items-center gap-2 hover:text-white transition-colors"
+              >
                 <MdEmail className="text-green-400" size={20} />
                 <a href={`mailto:${user.email}`} className="hover:underline">
                   {user.email}
                 </a>
-              </p>
-
-              {/* ✅ Phone with icon */}
+              </motion.p>
+          
+              {/* Phone */}
               {profile.phone && (
-                <p className="text-white/70 mt-1 flex items-center gap-2">
+                <motion.p
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.5, duration: 0.5 }}
+                  className="text-white/70 mt-1 flex items-center gap-2 hover:text-white transition-colors"
+                >
                   <MdPhone className="text-green-400" size={20} />
                   <a href={`tel:${profile.phone}`} className="hover:underline">
                     {profile.phone}
                   </a>
-                </p>
+                </motion.p>
               )}
             </div>
           </div>
-          
+                
           {/* Profile completion progress */}
-          <motion.div 
+          {/* <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
@@ -435,7 +453,6 @@ export default function UserProfile() {
               <span className="text-white font-bold text-lg">{profileCompletion.percentage}%</span>
             </div>
             
-            {/* Progress bar */}
             <div className="w-full h-3 bg-white/10 rounded-full overflow-hidden">
               <motion.div 
                 initial={{ width: 0 }}
@@ -445,7 +462,6 @@ export default function UserProfile() {
               />
             </div>
             
-            {/* Completion items */}
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
               {profileCompletion.items.map((item) => (
                 <div key={item.name} className="flex items-center gap-2">
@@ -460,11 +476,11 @@ export default function UserProfile() {
                 </div>
               ))}
             </div>
-          </motion.div>
+          </motion.div> */}
         </motion.div>
 
         {/* Profile Image Selector Modal */}
-        <AnimatePresence>
+        {/* <AnimatePresence>
           {showProfileImageSelector && (
             <motion.div
               initial={{ opacity: 0 }}
@@ -490,7 +506,6 @@ export default function UserProfile() {
                   </button>
                 </div>
 
-                {/* Search input */}
                 <div className="flex gap-2 mb-6">
                   <input
                     type="text"
@@ -513,7 +528,6 @@ export default function UserProfile() {
                   </button>
                 </div>
 
-                {/* Image grid */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   {loadingImages ? (
                     <div className="col-span-full flex justify-center py-12">
@@ -546,7 +560,7 @@ export default function UserProfile() {
               </motion.div>
             </motion.div>
           )}
-        </AnimatePresence>
+        </AnimatePresence> */}
 
         {/* Recipe Activity Stats Dashboard */}
         <motion.div
