@@ -10,6 +10,7 @@ const recipeRoutes = require("./routes/recipeRoutes");
 const roomRoutes = require("./routes/roomRoutes");
 const userRoutes = require("./routes/userRoutes");
 const userRegistrationRoute = require("./routes/userRegistrationRoute");
+const dietPlanRoutes = require("./routes/dietPlanRoutes");
 const socketHandler = require("./socket/socketHandler");
 
 const app = express();
@@ -39,6 +40,7 @@ connectDB();
 // Routes
 app.use("/api/recipes", recipeRoutes);
 app.use("/api/rooms", roomRoutes);
+app.use("/api/diet-plans", dietPlanRoutes);
 
 // ✅ Users routes
 app.use("/api/users", userRoutes); // existing user operations (login, profile, etc.)

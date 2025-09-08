@@ -1,47 +1,38 @@
-import { useContext, useEffect, useState } from 'react'
+import { useContext, useEffect, useState, useRef } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import DragDropBoard, { BoardContext } from '../components/DragDropBoard'
 import VoiceInput from '../components/VoiceInput'
-import VideoCallMock from '../components/VideoCallMock'
-import CookModeView from '../components/CookModeView'
-import TagAnimator from '../components/TagAnimator'
-import EmojiReactions from '../components/EmojiReactions'
-import RecipeGuide from '../components/RecipeGuide'
 import ThreadBackground from '../components/ThreadBackground'
+import VideoCallMock from '../components/VideoCallMock'
+// import TagAnimator from '../components/TagAnimator'
+// import EmojiReactions from '../components/EmojiReactions'
 import DietPlanner from '../components/DietPlanner'
+import { motion } from 'framer-motion'
+import { gsap } from 'gsap'
+import { FiClock, FiHeart } from 'react-icons/fi'
+import { GiChefToque } from 'react-icons/gi'
 
-export default function RecipePage() {
-  const { user } = useAuth()
-
+// 🔹 StatsCard
+function StatsCard({ icon, title, value, color }) {
   return (
-   <>
-   <ThreadBackground />
-    <div className="px-10 py-5 w-full mx-auto flex flex-col gap-6">
-      <GreetingHeader user={user} />
-
-      <DragDropBoard>
-        <VoiceWithVideoSection />
-      </DragDropBoard>
-
-      {/* AI Diet Planner Section */}
-      <div className="mt-6">
-        <DietPlanner />
+    <motion.div 
+      className={`bg-gradient-to-br ${color} p-4 rounded-xl shadow-lg text-white flex items-center gap-4`}
+      transition={{ type: "spring", stiffness: 400, damping: 10 }}
+    >
+      <div className="bg-white/20 p-3 rounded-lg">{icon}</div>
+      <div>
+        <h3 className="text-sm font-medium text-white/80">{title}</h3>
+        <p className="text-2xl font-bold">{value}</p>
       </div>
-
-      {/* 👇 Pass callback to RecipeGuide to get selected steps */}
-      {/* <RecipeGuide onRecipeSelect={setSelectedSteps} /> */}
-
-      {/* 👇 Only show cook mode when steps are selected */}
-      {/* {selectedSteps && <CookModeView steps={selectedSteps} />} */}
-    </div>
-   </>
+    </motion.div>
   )
 }
 
-// ✨ Greeting with typing animation
+// 🔹 GreetingHeader
 function GreetingHeader({ user }) {
   const fullText = user?.displayName ? `, ${user.displayName}` : ''
   const [typedText, setTypedText] = useState('')
+  const headerRef = useRef(null)
 
   useEffect(() => {
     let i = 0
@@ -53,23 +44,103 @@ function GreetingHeader({ user }) {
     return () => clearInterval(interval)
   }, [fullText])
 
+  useEffect(() => {
+    gsap.fromTo(
+      ".chef-emoji",
+      { y: -10, rotate: -5 },
+      { y: 5, rotate: 5, duration: 1.5, repeat: -1, yoyo: true, ease: "elastic.out(1, 0.3)" }
+    )
+  }, [])
+
   return (
-    <div className="text-center">
-      <h1 className="lg:text-3xl text-lg lg:font-bold text-green-500 mt-25">
-        Hello Chef{typedText} 👨‍🍳
-      </h1>
-      <p className="text-sm text-gray-400 mt-2">Ready to cook something delicious today?</p>
-    </div>
+    <motion.div 
+      ref={headerRef}
+      className="text-center py-6"
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <motion.h1
+        className="lg:text-4xl text-2xl font-bold flex items-center justify-center gap-2 bg-gradient-to-r from-green-400 to-emerald-600 text-transparent bg-clip-text"
+        whileHover={{ scale: 1.05 }}
+      >
+        Hello Chef{typedText} <span className="chef-emoji"> 👨‍🍳</span>
+      </motion.h1>
+      <motion.p 
+        className="text-md text-gray-300 mt-3 italic"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5, duration: 0.5 }}
+      >
+       Ready to cook something delicious today? 🍳 Let’s make your meals fun and healthy!
+      </motion.p>
+    </motion.div>
   )
 }
 
-// ✅ Safe voice section inside DragDropBoard
+// 🔹 Voice + Video Section
 function VoiceWithVideoSection() {
   const { addCard, activeColumn } = useContext(BoardContext)
   return (
-    <div className="flex flex-col gap-4">
+    <motion.div className="flex flex-col gap-6">
       <VoiceInput onVoiceAdd={(text) => addCard(activeColumn, text)} />
-      <VideoCallMock />
-    </div>
+      <motion.div className="rounded-xl overflow-hidden shadow-lg">
+        <VideoCallMock />
+      </motion.div>
+    </motion.div>
+  )
+}
+
+// 🔹 Main Page
+export default function RecipePage() {
+  const { user } = useAuth()
+  const pageRef = useRef(null)
+
+  useEffect(() => {
+    gsap.fromTo(
+      pageRef.current.children,
+      { y: 30, opacity: 0 },
+      { y: 0, opacity: 1, stagger: 0.1, duration: 0.6, ease: "power2.out" }
+    )
+  }, [])
+
+  return (
+    <>
+      <ThreadBackground />
+      <motion.div 
+        ref={pageRef}
+        className="px-10 pt-25 w-full mx-auto flex flex-col gap-8 max-w-7xl"
+      >
+        <GreetingHeader user={user} />
+
+        {/* Recipe Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 my-4">
+          <StatsCard icon={<GiChefToque size={24} />} title="Recipes Created" value="12" color="from-blue-500 to-indigo-600" />
+          <StatsCard icon={<FiClock size={24} />} title="Cooking Time" value="3.5 hrs" color="from-amber-500 to-orange-600" />
+          <StatsCard icon={<FiHeart size={24} />} title="Favorite Recipes" value="5" color="from-rose-500 to-pink-600" />
+        </div>
+
+        {/* Drag + Voice + Video */}
+        <DragDropBoard>
+          <VoiceWithVideoSection />
+        </DragDropBoard>
+
+        {/* AI Diet Planner */}
+        <div>
+          {/* <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+            <span className="text-green-400">AI</span> Diet Planner
+            <TagAnimator tags={["Smart", "Personalized", "Nutritious"]} />
+          </h2> */}
+          <div>
+            <DietPlanner />
+          </div>
+        </div>
+
+        {/* Emoji Reactions */}
+        {/* <div className="mt-6 flex justify-center">
+          <EmojiReactions />
+        </div> */}
+      </motion.div>
+    </>
   )
 }

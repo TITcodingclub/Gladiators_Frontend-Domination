@@ -10,6 +10,8 @@ import CommunityFeed from './pages/CommunityFeed';
 import LoginPage from './pages/LoginPage';
 import UserProfile from './pages/UserProfile';
 import RegisterProfile from './pages/RegisterProfile'; // ✅ import new page
+import DietPlanner from './components/DietPlanner';
+import SharedDietPlan from './pages/SharedDietPlan';
 
 // ✅ Protected Route Component
 function ProtectedRoute({ user, children }) {
@@ -121,6 +123,18 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/diet-planner"
+            element={
+              <ProtectedRoute user={user}>
+                <RequireCompletedProfile>
+                  <DietPlanner />
+                </RequireCompletedProfile>
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/shared-diet-plan/:id" element={<SharedDietPlan />} />
+          <Route path="/shared-diet-plan" element={<SharedDietPlan />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>

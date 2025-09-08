@@ -6,7 +6,8 @@ import {
   FaTimes,
   FaHome,
   FaUtensils,
-  FaUsers
+  FaUsers,
+  FaAppleAlt
 } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 
