@@ -23,14 +23,9 @@ export default function UserProfile() {
   const [saving, setSaving] = useState(false);
   const [showConfirmLogout, setShowConfirmLogout] = useState(false);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
-  const [showProfileImageSelector, setShowProfileImageSelector] = useState(false);
-  const [unsplashImages, setUnsplashImages] = useState([]);
-  const [loadingImages, setLoadingImages] = useState(false);
-  const [imageSearchQuery, setImageSearchQuery] = useState("profile picture");
   const [showShareModal, setShowShareModal] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState(null);
   const [shareUrl, setShareUrl] = useState("");
-  const [shareSuccess, setShareSuccess] = useState(false);
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
   
   // User statistics
@@ -43,17 +38,6 @@ export default function UserProfile() {
     streakDays: 0
   });
   
-  // Profile completion tracking
-  const [profileCompletion, setProfileCompletion] = useState({
-    percentage: 0,
-    items: [
-      { name: "Profile Picture", completed: false },
-      { name: "Personal Info", completed: false },
-      { name: "Medical History", completed: false },
-      { name: "Favorite Recipes", completed: false },
-      { name: "Notification Settings", completed: false }
-    ]
-  });
 
   // Extended profile details
   const [profile, setProfile] = useState({
@@ -113,22 +97,6 @@ export default function UserProfile() {
           goalStatus: p.goalStatus || "",
         });
         
-        // Calculate profile completion
-        const completionItems = [
-          { name: "Profile Picture", completed: !!u.photo },
-          { name: "Personal Info", completed: !!(p.age && p.gender && p.phone) },
-          { name: "Medical History", completed: !!(p.medicalHistory && p.bloodGroup) },
-          { name: "Favorite Recipes", completed: false }, // Will update when favorites are loaded
-          { name: "Notification Settings", completed: true } // Default to true as it's a toggle
-        ];
-        
-        const completedCount = completionItems.filter(item => item.completed).length;
-        const percentage = Math.round((completedCount / completionItems.length) * 100);
-        
-        setProfileCompletion({
-          percentage,
-          items: completionItems
-        });
 
         setEditForm({
           dob: p.dob || "",
@@ -292,46 +260,6 @@ export default function UserProfile() {
     }
   };
 
-  // Fetch profile images from Unsplash
-  const fetchUnsplashImages = async (query = imageSearchQuery) => {
-    try {
-      setLoadingImages(true);
-      // Using the Unsplash API
-      const response = await axios.get(
-        `https://api.unsplash.com/search/photos?query=${query}&per_page=9&orientation=squarish`,
-        {
-          headers: {
-            Authorization: `Client-ID ${import.meta.env.VITE_UNSPLASH_KEY || '7sDvEbdILJIrn7gP0LMQQi7LZkTNCt8K4_C5-UYnClg'}`
-          }
-        }
-      );
-      setUnsplashImages(response.data.results);
-    } catch (error) {
-      console.error("Failed to fetch images from Unsplash", error);
-    } finally {
-      setLoadingImages(false);
-    }
-  };
-
-  // Update profile image
-  const updateProfileImage = async (imageUrl) => {
-    try {
-      setSaving(true);
-      const { data } = await axiosInstance.put("/api/users/profile", { photo: imageUrl });
-      if (data && data.user) {
-        setUser(prev => ({
-          ...prev,
-          photo: imageUrl
-        }));
-      }
-      setShowProfileImageSelector(false);
-    } catch (error) {
-      console.error("Failed to update profile image", error);
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -359,8 +287,7 @@ export default function UserProfile() {
     );
 
   return (
-    <div className="relative py-24">
-      <ThreadBackground />
+    <div className="relative">
 
       <div className="relative max-w-6xl mx-auto py-10 px-6 flex flex-col gap-8 z-10">
         {/* Profile Header */}
@@ -379,11 +306,9 @@ export default function UserProfile() {
             {/* Avatar */}
             <div className="relative group flex-shrink-0">
               <motion.img
-                whileHover={{ scale: 1.1, rotate: [0, 2, -2, 0] }}
                 src={
                   user.photo ||
-                  user.photoURL ||
-                  `https://ui-avatars.com/api/?name=${user.name || user.displayName}`
+                  user.photoURL
                 }
                 alt="User Avatar"
                 className="w-45 h-45 rounded-full border-4 border-white shadow-xl object-cover transition-all duration-300"

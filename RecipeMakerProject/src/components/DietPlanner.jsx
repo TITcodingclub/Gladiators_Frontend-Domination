@@ -505,7 +505,6 @@ Return the result in JSON format as:
       className="w-full mx-auto my-8 p-6 bg-gray-900 rounded-2xl shadow-lg text-white relative overflow-hidden"
     >
       {/* Animated background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-green-900/20 to-blue-900/20 z-0" />
       
       {/* Header */}
       <div className="relative z-10">

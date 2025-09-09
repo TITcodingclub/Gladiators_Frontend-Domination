@@ -1,14 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Timer, List, Book, Coffee } from 'lucide-react';
+import { Timer, List, Book, Coffee, CheckCircle, Circle } from 'lucide-react';
 import CookStep from './CookStep';
+import IngredientItem from './IngredientItem';
 
 export default function CookModeView({ steps = [], description = '', ingredients = [], cookTime = 'Unknown' }) {
+  // Generate a unique ID for this recipe based on its content
+  const recipeId = React.useMemo(() => {
+    const recipeContent = JSON.stringify({ description, ingredients, steps: steps.map(s => s.text) });
+    return btoa(recipeContent).substring(0, 20).replace(/[^a-zA-Z0-9]/g, '');
+  }, [description, ingredients, steps]);
+  
+  // Utility function to get localStorage key for this recipe
+  const getStorageKey = useCallback((type, index) => {
+    return `recipe-${recipeId}-${type}-${index}`;
+  }, [recipeId]);
+  
   const [checkedStates, setCheckedStates] = useState(() =>
-    steps.map((_, i) => JSON.parse(localStorage.getItem(`cookstep-${i}`)) || false)
+    steps.map((_, i) => JSON.parse(localStorage.getItem(getStorageKey('step', i))) || false)
   );
   const [ingredientChecked, setIngredientChecked] = useState(() =>
-    ingredients.map((_, i) => JSON.parse(localStorage.getItem(`ingredient-${i}`)) || false)
+    ingredients.map((_, i) => JSON.parse(localStorage.getItem(getStorageKey('ingredient', i))) || false)
   );
 
   const [timerActive, setTimerActive] = useState(false);
@@ -23,7 +35,7 @@ export default function CookModeView({ steps = [], description = '', ingredients
     setCheckedStates(prev => {
       const copy = [...prev];
       copy[index] = !copy[index];
-      localStorage.setItem(`cookstep-${index}`, JSON.stringify(copy[index]));
+      localStorage.setItem(getStorageKey('step', index), JSON.stringify(copy[index]));
       return copy;
     });
   };
@@ -32,10 +44,53 @@ export default function CookModeView({ steps = [], description = '', ingredients
     setIngredientChecked(prev => {
       const copy = [...prev];
       copy[index] = !copy[index];
-      localStorage.setItem(`ingredient-${index}`, JSON.stringify(copy[index]));
+      localStorage.setItem(getStorageKey('ingredient', index), JSON.stringify(copy[index]));
       return copy;
     });
   };
+  
+  // Toggle ingredient by name (for CookStep integration)
+  const toggleIngredientByName = (ingredientName) => {
+    const index = ingredients.findIndex(ing => 
+      ing.toLowerCase() === ingredientName.toLowerCase());
+    
+    if (index !== -1) {
+      toggleIngredient(index);
+    }
+  };
+  
+  // Reset all checked states when recipe changes
+  useEffect(() => {
+    // Clear any existing checked states for this recipe
+    for (let i = 0; i < steps.length; i++) {
+      localStorage.removeItem(getStorageKey('step', i));
+    }
+    for (let i = 0; i < ingredients.length; i++) {
+      localStorage.removeItem(getStorageKey('ingredient', i));
+    }
+    
+    // Reset states to all unchecked for new recipe
+    setCheckedStates(steps.map(() => false));
+    setIngredientChecked(ingredients.map(() => false));
+    
+    // Cleanup function to prevent localStorage from getting too cluttered
+    return () => {
+      // Only clean up this recipe's entries when unmounting or changing recipes
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith(`recipe-${recipeId}`)) {
+          keysToRemove.push(key);
+        }
+      }
+      
+      // Remove old keys when component unmounts or recipe changes
+      // We don't remove them immediately to allow for recipe revisiting during the session
+      if (keysToRemove.length > 100) { // Only clean if there are too many entries
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+      }
+    };
+  }, [recipeId, steps, ingredients, getStorageKey]);
 
   const formatTime = (sec) => {
     const m = String(Math.floor(sec / 60)).padStart(2, '0');
@@ -69,14 +124,13 @@ export default function CookModeView({ steps = [], description = '', ingredients
           <h2 className="text-2xl font-bold mb-4 flex items-center gap-2"><Coffee size={24}/> Ingredients</h2>
           <div className="flex flex-col gap-3 max-h-[60vh] overflow-y-auto pr-2">
             {ingredients.map((ing, i) => (
-              <div
+              <IngredientItem
                 key={i}
-                onClick={() => toggleIngredient(i)}
-                className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors duration-300 ${ingredientChecked[i] ? 'bg-gradient-to-r from-blue-900 to-blue-700 text-blue-200 shadow-inner' : 'bg-gray-700 hover:bg-gray-600'}`}
-              >
-                <input type="checkbox" checked={ingredientChecked[i]} readOnly className="accent-blue-400 w-5 h-5"/>
-                <span className={`${ingredientChecked[i] ? 'line-through' : ''} text-base md:text-lg`}>{ing}</span>
-              </div>
+                index={i}
+                ingredient={ing}
+                checked={ingredientChecked[i]}
+                onToggle={() => toggleIngredient(i)}
+              />
             ))}
           </div>
         </div>
@@ -93,6 +147,9 @@ export default function CookModeView({ steps = [], description = '', ingredients
                 step={step}
                 checked={checkedStates[i]}
                 onToggle={() => toggleStep(i)}
+                ingredients={ingredients}
+                onIngredientToggle={toggleIngredientByName}
+                recipeId={recipeId}
               />
             ))}
           </div>

@@ -55,7 +55,7 @@ function GreetingHeader({ user }) {
   return (
     <motion.div 
       ref={headerRef}
-      className="text-center py-6"
+      className="text-center"
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
@@ -109,7 +109,7 @@ export default function RecipePage() {
       <ThreadBackground />
       <motion.div 
         ref={pageRef}
-        className="px-10 pt-25 w-full mx-auto flex flex-col gap-8 max-w-7xl"
+        className="px-10 pt-8 w-full mx-auto flex flex-col gap-8 max-w-7xl"
       >
         <GreetingHeader user={user} />
 

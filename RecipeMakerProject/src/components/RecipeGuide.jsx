@@ -92,42 +92,30 @@ export default function RecipeGuide({ scrollRef }) {
       setLoadingRecentSearches(false)
     }
   }
-  
+  const DEFAULT_RECIPE_IMAGE = '/vite.svg'  // Path relative to public folder
+
   // Function to fetch recipe image from Unsplash
   const fetchRecipeImage = async (searchTerm) => {
-    setLoadingImage(true)
-    try {
-      // Using Unsplash API to get recipe images with key from environment variables
-      const unsplashAccessKey = import.meta.env.VITE_UNSPLASH_KEY
-      const response = await axios.get(`https://api.unsplash.com/search/photos`, {
-        params: {
-          query: searchTerm + ' food',
-          per_page: 1,
-          orientation: 'landscape'
-        },
-        headers: {
-          Authorization: `Client-ID ${unsplashAccessKey}`
-        }
-      })
-      
-      if (response.data.results && response.data.results.length > 0) {
-        const imageUrl = response.data.results[0].urls.regular
-        setRecipeImage(imageUrl)
-        setRecipeDetails(prev => ({ ...prev, image: imageUrl }))
-      } else {
-        // If no image found, use a default food image
-        setRecipeImage('https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=1470&auto=format&fit=crop')
-        setRecipeDetails(prev => ({ ...prev, image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=1470&auto=format&fit=crop' }))
-      }
-    } catch (error) {
-      console.error('Error fetching recipe image:', error)
-      // Use a default image on error
-      setRecipeImage('https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=1470&auto=format&fit=crop')
-      setRecipeDetails(prev => ({ ...prev, image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=1470&auto=format&fit=crop' }))
-    } finally {
-      setLoadingImage(false)
-    }
+  setLoadingImage(true)
+  try {
+    const unsplashAccessKey = import.meta.env.VITE_UNSPLASH_KEY
+    const response = await axios.get(`https://api.unsplash.com/search/photos`, {
+      params: { query: `${searchTerm} food`, per_page: 1, orientation: 'landscape' },
+      headers: { Authorization: `Client-ID ${unsplashAccessKey}` }
+    })
+
+    const imageUrl = response.data.results?.[0]?.urls?.regular || DEFAULT_RECIPE_IMAGE
+    setRecipeImage(imageUrl)
+    setRecipeDetails(prev => ({ ...prev, image: imageUrl }))
+  } catch (error) {
+    console.error('Error fetching recipe image:', error)
+    setRecipeImage(DEFAULT_RECIPE_IMAGE)
+    setRecipeDetails(prev => ({ ...prev, image: DEFAULT_RECIPE_IMAGE }))
+  } finally {
+    setLoadingImage(false)
   }
+}
+
 
   const handleSearch = async () => {
     if (!query.trim() || isLoading) return
@@ -163,7 +151,7 @@ export default function RecipeGuide({ scrollRef }) {
       const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' })
 
       const prompt = `You are a helpful recipe assistant. Provide detailed cooking instructions for the recipe: "${query}".
-1. Begin with a short description of the dish.
+1. Begin with a detailed description of the dish max of 50 words.
 2. List all required ingredients, with quantities.
 3. Mention preparation time and total cook time.
 4. Provide step-by-step instructions, clearly and concisely, numbered.
@@ -755,22 +743,19 @@ export default function RecipeGuide({ scrollRef }) {
               className="relative overflow-hidden rounded-xl bg-black/20 backdrop-blur-md p-6 border border-slate-700/50 shadow-xl"
             > 
               {recipeImage && (
-                <motion.div className="relative w-full h-48 sm:h-64 mb-6 overflow-hidden rounded-lg">
-                  {loadingImage ? (
-                    <motion.div className="absolute inset-0 flex items-center justify-center bg-gray-800/50">
-                      <motion.div className="w-8 h-8 border-3 border-green-400 border-t-transparent rounded-full animate-spin"></motion.div>
-                    </motion.div>
-                  ) : (
-                    <img 
-                      src={recipeImage} 
-                      alt={query} 
-                      className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
-                    />
-                  )}
-                  <motion.div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
-                    <p className="text-white text-sm">Image via Unsplash</p>
-                  </motion.div>
-                </motion.div>
+           <motion.div className="relative w-full h-48 sm:h-64 mb-6 overflow-hidden rounded-lg">
+                {loadingImage ? (
+                  <div className="absolute inset-0 flex items-center justify-center bg-gray-800/50">
+                    <div className="w-8 h-8 border-3 border-green-400 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                ) : (
+                  <img 
+                    src={recipeImage || DEFAULT_RECIPE_IMAGE} 
+                    alt={query} 
+                    className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                  />
+                )}
+              </motion.div>
               )}
               <CookModeView
                 steps={steps}
