@@ -9,6 +9,7 @@ import RecipeGuide from './components/RecipeGuide';
 import CommunityFeed from './pages/CommunityFeed';
 import LoginPage from './pages/LoginPage';
 import UserProfile from './pages/UserProfile';
+import UserProfilePage from './pages/UserProfilePage';
 import RegisterProfile from './pages/RegisterProfile';
 import DietPlanner from './components/DietPlanner';
 import SharedDietPlan from './pages/SharedDietPlan';
@@ -140,6 +141,16 @@ function App() {
             />
             <Route path="/shared-diet-plan/:id" element={<SharedDietPlan />} />
             <Route path="/shared-diet-plan" element={<SharedDietPlan />} />
+            <Route
+              path="/user/:userId"
+              element={
+                <ProtectedRoute user={user}>
+                  <RequireCompletedProfile>
+                    <UserProfilePage />
+                  </RequireCompletedProfile>
+                </ProtectedRoute>
+              }
+            />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>

@@ -1,12 +1,14 @@
 import { useContext, useEffect, useState, useRef } from 'react'
 import { useAuth } from '../hooks/useAuth'
-import DragDropBoard, { BoardContext } from '../components/DragDropBoard'
+
+import DragDropBoard, { BoardContext } from '../components/DragDrop/DragDropBoard'
 import VoiceInput from '../components/VoiceInput'
 import ThreadBackground from '../components/ThreadBackground'
 import VideoCallMock from '../components/VideoCallMock'
+import DietPlanner from '../components/DietPlanner'
 // import TagAnimator from '../components/TagAnimator'
 // import EmojiReactions from '../components/EmojiReactions'
-import DietPlanner from '../components/DietPlanner'
+
 import { motion } from 'framer-motion'
 import { gsap } from 'gsap'
 import { FiClock, FiHeart } from 'react-icons/fi'

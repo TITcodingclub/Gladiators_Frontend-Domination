@@ -77,7 +77,7 @@ export default function TagAnimator({ tags }) {
         {[...Array(3)].map((_, i) => (
           <motion.div
             key={i}
-            className="absolute rounded-full bg-gradient-to-r from-green-400/20 to-blue-500/20"
+            className="absolute rounded-full bg-gradient-to-r from-green-400/20 to-blue-500/20 py-15"
             style={{
               width: Math.random() * 100 + 50,
               height: Math.random() * 100 + 50,

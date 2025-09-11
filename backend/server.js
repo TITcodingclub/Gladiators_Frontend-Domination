@@ -10,7 +10,9 @@ const recipeRoutes = require("./routes/recipeRoutes");
 const roomRoutes = require("./routes/roomRoutes");
 const userRoutes = require("./routes/userRoutes");
 const userRegistrationRoute = require("./routes/userRegistrationRoute");
+const userProfileRoutes = require("./routes/userRoutes");
 const dietPlanRoutes = require("./routes/dietPlanRoutes");
+const communityRoutes = require("./routes/communityRoutes");
 const socketHandler = require("./socket/socketHandler");
 
 const app = express();
@@ -41,10 +43,12 @@ connectDB();
 app.use("/api/recipes", recipeRoutes);
 app.use("/api/rooms", roomRoutes);
 app.use("/api/diet-plans", dietPlanRoutes);
+app.use("/api/community", communityRoutes);
 
 // ✅ Users routes
 app.use("/api/users", userRoutes); // existing user operations (login, profile, etc.)
 app.use("/api/users", userRegistrationRoute); // registration route
+app.use("/api/users", userProfileRoutes); // user profile routes
 
 // WebSocket
 const io = new Server(server, {

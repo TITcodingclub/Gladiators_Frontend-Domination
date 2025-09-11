@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import { GoogleGenerativeAI } from '@google/generative-ai'
-import CookModeView from './CookModeView'
+import CookModeView from './CookMode/CookModeView'
 import TagAnimator from './TagAnimator'
 import ThreadBackground from './ThreadBackground'
+import ShareRecipeModal from './ShareRecipeModal'
 import axiosInstance from '../utils/axiosInstance'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
-import { MdFavorite, MdFavoriteBorder, MdAccessTime } from 'react-icons/md'
+import { MdFavorite, MdFavoriteBorder, MdAccessTime, MdShare } from 'react-icons/md'
 
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY)
 
@@ -27,6 +28,8 @@ export default function RecipeGuide({ scrollRef }) {
   const [loadingImage, setLoadingImage] = useState(false)
   const [recentSearches, setRecentSearches] = useState([])
   const [loadingRecentSearches, setLoadingRecentSearches] = useState(false)
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [currentRecipe, setCurrentRecipe] = useState(null)
 
   useEffect(() => {
     if (scrollRef?.current) {
@@ -757,6 +760,29 @@ export default function RecipeGuide({ scrollRef }) {
                 )}
               </motion.div>
               )}
+                      <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold text-white">{query}</h2>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    setCurrentRecipe({
+                      id: `recipe-${Date.now()}`,
+                      title: query,
+                      description: recipeDetails.description,
+                      image: recipeImage,
+                      cookTime: recipeDetails.cookTime,
+                      ingredients: recipeDetails.ingredients,
+                      steps: steps.map(step => step.text),
+                      sourceUrl: window.location.href
+                    });
+                    setShowShareModal(true);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-lg shadow-lg hover:shadow-green-500/20 transition-all"
+                >
+                  <MdShare /> Share to Community
+                </motion.button>
+              </div>
               <CookModeView
                 steps={steps}
                 description={recipeDetails.description}
@@ -783,6 +809,23 @@ export default function RecipeGuide({ scrollRef }) {
               </motion.button>
           </motion.div>
         )}
+
+        {/* Share Recipe Modal */}
+        <AnimatePresence>
+          {showShareModal && currentRecipe && (
+            <ShareRecipeModal
+              recipe={currentRecipe}
+              isOpen={showShareModal}
+              onClose={() => setShowShareModal(false)}
+              onShare={(newPost) => {
+                // Here we would typically add the post to the community feed
+                // For now, just show a success message
+                setShowShareModal(false);
+                setAlert('Recipe shared to community successfully!');
+              }}
+            />
+          )}
+        </AnimatePresence>
 
         <AnimatePresence>
           {!!alert && (

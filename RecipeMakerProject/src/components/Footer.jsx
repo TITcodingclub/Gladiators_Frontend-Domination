@@ -1,9 +1,9 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { gsap } from "gsap";
 import { FiMail, FiUsers, FiExternalLink, FiHeart, FiX } from "react-icons/fi";
-import { FaGithub, FaLinkedin, FaTwitter } from "react-icons/fa";
-import { Link } from "react-router-dom";
+import { FaGithub, FaLinkedin, FaTwitter, FaFacebook, FaInstagram, FaYoutube, FaEnvelope, FaArrowRight, FaHeart } from "react-icons/fa";
+import { Link, useNavigate } from "react-router-dom";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 // Register GSAP plugin
@@ -16,6 +16,8 @@ const Footer = () => {
   const [showDevelopers, setShowDevelopers] = useState(false);
   const [newsletterEmail, setNewsletterEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
+  const [hovered, setHovered] = useState(null);
+  const navigate = useNavigate();
 
   // Entrance and particle animations
   useEffect(() => {
@@ -82,18 +84,47 @@ const Footer = () => {
       setTimeout(() => setSubscribed(false), 5000);
     }
   };
+  
+  // Animation variants for staggered animations
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.2
+      }
+    }
+  };
+  
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: { type: "spring", stiffness: 100 }
+    }
+  };
 
+  // Social media links with color highlights
+  const socialLinks = [
+    { name: 'Facebook', icon: <FaFacebook />, href: 'https://facebook.com', color: '#1877F2' },
+    { name: 'Twitter', icon: <FaTwitter />, href: 'https://twitter.com', color: '#1DA1F2' },
+    { name: 'Instagram', icon: <FaInstagram />, href: 'https://instagram.com', color: '#E4405F' },
+    { name: 'YouTube', icon: <FaYoutube />, href: 'https://youtube.com', color: '#FF0000' },
+  ];
+  
   return (
     <footer
       ref={footerRef}
       className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white py-12 mt-12 border-t border-gray-700/30 relative overflow-hidden"
     >
       {/* Top gradient line */}
-      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-400 via-green-500 to-[#FF742C] opacity-80"></div>
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-400 via-[#22c55e] to-[#FF742C] opacity-80"></div>
 
       {/* Glow elements */}
-      <div className="absolute -top-20 -left-20 w-40 h-40 rounded-full bg-green-500/10 blur-3xl"></div>
-      <div className="absolute -bottom-20 -right-20 w-60 h-60 rounded-full bg-[#FF742C]/10 blur-3xl"></div>
+      <div className="absolute top-10 left-10 w-64 h-64 bg-green-500/5 rounded-full blur-3xl"></div>
+      <div className="absolute bottom-10 right-10 w-80 h-80 bg-[#FF742C]/5 rounded-full blur-3xl"></div>
 
       <div className="container mx-auto px-6 lg:px-12 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
@@ -128,9 +159,7 @@ const Footer = () => {
             {/* Meet Our Developers Button */}
             <motion.button
               onClick={() => setShowDevelopers(!showDevelopers)}
-              className="flex items-center gap-2 text-sm bg-gray-800/50 hover:bg-gray-700/50 text-gray-300 py-2 px-3 rounded-lg transition-all duration-300 border border-gray-700/30"
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.98 }}
+              className="flex items-center gap-2 text-sm bg-gray-800/50 hover:bg-gray-700/50 text-gray-300 py-2 px-3 rounded-lg transition-all duration-300 border border-gray-700/30 hover:border-green-400/50 hover:shadow-md hover:shadow-green-400/20"
             >
               <FiUsers className="text-green-400" />
               {showDevelopers ? "Hide Developer Info" : "Meet Our Developers"}
@@ -161,7 +190,7 @@ const Footer = () => {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.4 + index * 0.1 }}
-                  whileHover={{ x: 5 }}
+                  whileHover={{ x: 3 }}
                 >
                   <Link
                     to={link.path}
@@ -210,14 +239,14 @@ const Footer = () => {
                     value={newsletterEmail}
                     onChange={(e) => setNewsletterEmail(e.target.value)}
                     placeholder="Your email address"
-                    className="flex-1 bg-gray-800/50 border border-gray-700/30 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-400/50"
+                    className="flex-1 bg-gray-800/50 border border-gray-700/30 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-400/50 transition-all duration-300 shadow-inner"
                     required
                   />
                   <motion.button
                     type="submit"
-                    className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-2 px-6 rounded-lg transition-all duration-300"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+                    className="bg-gradient-to-r from-green-500 to-[#FF742C] hover:from-green-600 hover:to-orange-600 text-white py-2 px-6 rounded-lg transition-all duration-300 hover:shadow-md hover:shadow-orange-500/20"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                   >
                     Subscribe
                   </motion.button>
@@ -296,9 +325,15 @@ const Footer = () => {
                     <p className="text-gray-300 text-sm leading-relaxed mb-3">{dev.desc}</p>
                     <div className="flex gap-3 text-gray-400">
                       {dev.socials.map((s, idx) => (
-                        <a key={idx} href={s.link} className="hover:text-green-400 transition-colors">
+                        <motion.a 
+                          key={idx} 
+                          href={s.link} 
+                          className="w-8 h-8 rounded-full flex items-center justify-center bg-gray-800/50 backdrop-blur-sm border border-gray-700/30 text-white/60 hover:text-green-400 transition-all duration-300"
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                        >
                           {s.icon}
-                        </a>
+                        </motion.a>
                       ))}
                     </div>
                   </motion.div>
@@ -315,28 +350,31 @@ const Footer = () => {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.8 }}
         >
-          <span>© {new Date().getFullYear()} Nutrithy. All rights reserved.</span>
+          <span className="flex items-center">© {new Date().getFullYear()} Nutrithy. All rights reserved. 
+            <span className="ml-2 flex items-center">
+              Made with <FaHeart className="mx-1 text-[#FF742C] animate-pulse" size={12} /> for healthy living
+            </span>
+          </span>
           <span className="hidden md:block">|</span>
           <motion.a
             href="#"
-            className="hover:text-green-400 transition-colors duration-300"
-            whileHover={{ scale: 1.05 }}
+            className="hover:text-green-400 transition-all duration-300 relative after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-green-400 after:transition-all after:duration-300 hover:after:w-full"
+            whileHover={{ y: -1 }}
           >
             Privacy Policy
           </motion.a>
           <span className="hidden md:block">|</span>
           <motion.a
             href="#"
-            className="hover:text-green-400 transition-colors duration-300"
-            whileHover={{ scale: 1.05 }}
+            className="hover:text-green-400 transition-all duration-300 relative after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-green-400 after:transition-all after:duration-300 hover:after:w-full"
+            whileHover={{ y: -1 }}
           >
             Terms of Service
           </motion.a>
           <span className="hidden md:block">|</span>
           <motion.button
             onClick={() => setShowDevelopers(!showDevelopers)}
-            className="hover:text-green-400 transition-colors duration-300"
-            whileHover={{ scale: 1.05 }}
+            className="hover:text-green-400 transition-all duration-300 relative after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-green-400 after:transition-all after:duration-300 hover:after:w-full"
           >
             {showDevelopers ? "Hide Developers" : "Developers"}
           </motion.button>
