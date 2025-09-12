@@ -15,8 +15,13 @@ export const getCurrentUserProfile = async () => {
  * @returns {Promise<Object>} User profile data
  */
 export const getUserProfile = async (userId) => {
-  const response = await axiosInstance.get(`/api/users/${userId}`);
-  return response.data;
+  try {
+    const response = await axiosInstance.get(`/api/users/${userId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    throw error;
+  }
 };
 
 /**

@@ -5,8 +5,9 @@ const verifyFirebaseToken = require('../auth/verifyFirebaseToken');
 
 // Public routes (no authentication required)
 router.get('/', communityController.getAllPosts);
-router.get('/:id', communityController.getPostById);
 router.get('/search', communityController.searchPosts);
+router.get('/user/:uid', communityController.getUserPosts);
+router.get('/:id', communityController.getPostById);
 
 // Protected routes (require authentication)
 router.post('/', verifyFirebaseToken, communityController.createPost);
@@ -23,8 +24,5 @@ router.get('/:id/comments', communityController.getPostComments);
 router.get('/comments/:commentId/replies', communityController.getCommentReplies);
 router.post('/comments/:commentId/like', verifyFirebaseToken, communityController.likeComment);
 router.delete('/comments/:commentId', verifyFirebaseToken, communityController.deleteComment);
-
-// User-specific routes
-router.get('/user/:uid', communityController.getUserPosts);
 
 module.exports = router;

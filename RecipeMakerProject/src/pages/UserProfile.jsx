@@ -8,6 +8,7 @@ import { getAuth, signOut } from "firebase/auth";
 import axios from "axios";
 import PreferencesPanel from "../components/UserProfile/PreferencesPanel"
 import WeeklyActivity from "../components/UserProfile/WeeklyActivity"
+import UserProfilePage from "../pages/UserProfilePage";
 import { Utensils, Flame, Target, Plus, UserCircle, Stethoscope, Search } from "lucide-react";
 
 
@@ -366,127 +367,7 @@ export default function UserProfile() {
               )}
             </div>
           </div>
-                
-          {/* Profile completion progress */}
-          {/* <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="w-full bg-white/5 p-4 rounded-xl backdrop-blur-sm"
-          >
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="text-white font-medium">Profile Completion</h3>
-              <span className="text-white font-bold text-lg">{profileCompletion.percentage}%</span>
-            </div>
-            
-            <div className="w-full h-3 bg-white/10 rounded-full overflow-hidden">
-              <motion.div 
-                initial={{ width: 0 }}
-                animate={{ width: `${profileCompletion.percentage}%` }}
-                transition={{ delay: 0.5, duration: 1 }}
-                className="h-full rounded-full bg-gradient-to-r from-green-400 to-blue-500"
-              />
-            </div>
-            
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-              {profileCompletion.items.map((item) => (
-                <div key={item.name} className="flex items-center gap-2">
-                  {item.completed ? (
-                    <div className="text-green-400"><MdCheckCircle size={18} /></div>
-                  ) : (
-                    <div className="text-white/30"><MdRadioButtonUnchecked size={18} /></div>
-                  )}
-                  <span className={`text-sm ${item.completed ? 'text-white' : 'text-white/50'}`}>
-                    {item.name}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </motion.div> */}
         </motion.div>
-
-        {/* Profile Image Selector Modal */}
-        {/* <AnimatePresence>
-          {showProfileImageSelector && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-              onClick={() => setShowProfileImageSelector(false)}
-            >
-              <motion.div 
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                className="bg-[#1d1f31] rounded-xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-bold text-white">Choose Profile Picture</h2>
-                  <button 
-                    onClick={() => setShowProfileImageSelector(false)}
-                    className="text-white/70 hover:text-white"
-                  >
-                    ✕
-                  </button>
-                </div>
-
-                <div className="flex gap-2 mb-6">
-                  <input
-                    type="text"
-                    value={imageSearchQuery}
-                    onChange={(e) => setImageSearchQuery(e.target.value)}
-                    placeholder="Search for images..."
-                    className="flex-1 bg-[#161825] border border-gray-700 rounded-lg px-4 py-2 text-white"
-                  />
-                  <button
-                    onClick={() => fetchUnsplashImages()}
-                    disabled={loadingImages}
-                    className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 disabled:opacity-50"
-                  >
-                    {loadingImages ? (
-                      <RefreshCw className="animate-spin" size={18} />
-                    ) : (
-                      <Image size={18} />
-                    )}
-                    Search
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {loadingImages ? (
-                    <div className="col-span-full flex justify-center py-12">
-                      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
-                    </div>
-                  ) : unsplashImages.length > 0 ? (
-                    unsplashImages.map((image) => (
-                      <div 
-                        key={image.id} 
-                        className="aspect-square rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-green-500 transition-all"
-                        onClick={() => updateProfileImage(image.urls.regular)}
-                      >
-                        <img 
-                          src={image.urls.small} 
-                          alt={image.alt_description || "Unsplash image"}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    ))
-                  ) : (
-                    <p className="col-span-full text-center text-white/70 py-8">
-                      No images found. Try a different search term.
-                    </p>
-                  )}
-                </div>
-
-                <div className="mt-4 text-xs text-white/50 text-center">
-                  Images provided by <a href="https://unsplash.com" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline">Unsplash</a>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence> */}
 
         {/* Recipe Activity Stats Dashboard */}
         <motion.div
@@ -551,6 +432,10 @@ export default function UserProfile() {
             <WeeklyActivity />
           </div>
         </motion.div>
+        
+        <div>
+          <UserProfilePage />
+        </div>
         
           {/* Favorite Recipes */}
         <motion.div>
