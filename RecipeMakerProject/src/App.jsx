@@ -146,11 +146,11 @@ function App() {
               element={
                 <ProtectedRoute user={user}>
                   <RequireCompletedProfile>
-                    <UserProfilePage />
+                    <UserProfile />
                   </RequireCompletedProfile>
                 </ProtectedRoute>
               }
-            />
+            />          
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>

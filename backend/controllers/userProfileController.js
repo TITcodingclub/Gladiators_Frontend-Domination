@@ -11,33 +11,31 @@ exports.getUserProfile = async (req, res) => {
     const { userId } = req.params;
     
     // Find user and populate profile
-    const user = await User.findById(userId).populate('profile');
-    
+    const user = await User.findOne({ uid: userId }).populate('profile');
+
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
     
     // Get profile data
-    const profile = user.profile;
+    const profile = user.profile || {};
     
     // Format response
     const userProfile = {
-      uid: user._id,
-      displayName: user.displayName,
+      uid: user.uid,
+      displayName: user.name,
       email: user.email,
-      photoURL: user.photoURL,
-      createdAt: user.createdAt,
-      followers: user.followers || [],
-      following: user.following || [],
-      recipes: user.recipes || [],
+      photoURL: user.photo,
+      createdAt: user.createdAt || new Date(),
+      followers: [],
+      following: [],
+      recipes: [],
       // Add profile fields if they exist
-      ...(profile && {
-        bio: profile.bio,
-        location: profile.location,
-        website: profile.website,
-        interests: profile.interests,
-        coverPhoto: profile.coverPhoto
-      })
+      bio: profile.bio || '',
+      location: profile.location || '',
+      website: profile.website || '',
+      interests: profile.interests || [],
+      coverPhoto: profile.coverPhoto || ''
     };
     
     res.status(200).json(userProfile);
@@ -57,7 +55,7 @@ exports.getCurrentUserProfile = async (req, res) => {
     const userId = req.user.uid;
     
     // Find user and populate profile
-    const user = await User.findById(userId).populate('profile');
+    const user = await User.findOne({ uid: userId }).populate('profile');
     
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -104,7 +102,7 @@ exports.updateUserProfile = async (req, res) => {
     const { displayName, photoURL, bio, location, website, interests, coverPhoto } = req.body;
     
     // Find user
-    const user = await User.findById(userId);
+    const user = await User.findOne({ uid: userId });
     
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -182,8 +180,8 @@ exports.followUser = async (req, res) => {
     
     // Find both users
     const [currentUser, userToFollow] = await Promise.all([
-      User.findById(currentUserId),
-      User.findById(userId)
+      User.findOne({ uid: currentUserId }),
+      User.findOne({ uid: userId })
     ]);
     
     if (!currentUser || !userToFollow) {
@@ -224,8 +222,8 @@ exports.unfollowUser = async (req, res) => {
     
     // Find both users
     const [currentUser, userToUnfollow] = await Promise.all([
-      User.findById(currentUserId),
-      User.findById(userId)
+      User.findOne({ uid: currentUserId }),
+      User.findOne({ uid: userId })
     ]);
     
     if (!currentUser || !userToUnfollow) {
@@ -261,7 +259,7 @@ exports.getUserFollowers = async (req, res) => {
     const { userId } = req.params;
     
     // Find user and populate followers
-    const user = await User.findById(userId).populate('followers', 'displayName photoURL');
+    const user = await User.findOne({ uid: userId }).populate('followers', 'displayName photoURL');
     
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -284,7 +282,7 @@ exports.getUserFollowing = async (req, res) => {
     const { userId } = req.params;
     
     // Find user and populate following
-    const user = await User.findById(userId).populate('following', 'displayName photoURL');
+    const user = await User.findOne({ uid: userId }).populate('following', 'displayName photoURL');
     
     if (!user) {
       return res.status(404).json({ message: 'User not found' });

@@ -104,7 +104,7 @@ export default function WeeklyActivity() {
         </div>
       </div>
 
-      <style jsx>{`
+      <style>{`
         .recharts-bar-rectangle path {
           filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.6));
           transition: filter 0.3s ease, opacity 0.3s ease;

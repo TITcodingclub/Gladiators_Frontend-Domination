@@ -16,7 +16,8 @@ const userSchema = new mongoose.Schema({
   dailyCalories: String,
   goalStatus: String,
   profileCompleted: { type: Boolean, default: false },
-});
+  profile: { type: mongoose.Schema.Types.ObjectId, ref: 'Profile' },
+}, { timestamps: true });
 
 const User = mongoose.model("User", userSchema);
 
