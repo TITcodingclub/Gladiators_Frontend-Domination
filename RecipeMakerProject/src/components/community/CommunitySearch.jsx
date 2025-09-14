@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { FaSearch, FaSpinner, FaTimes } from 'react-icons/fa';
-import * as communityService from '../services/communityService';
+import * as communityService from '../../services/communityService';
 
 export default function CommunitySearch({ onSearchResults }) {
   const [query, setQuery] = useState('');

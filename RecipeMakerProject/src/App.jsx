@@ -1,20 +1,20 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
-import Navbar from './components/Navbar';
+import Navbar from './components/common/Navbar';
 import { useEffect, useState } from 'react';
 import axiosInstance from './utils/axiosInstance';
 
 import RecipePage from './pages/RecipePage';
-import RecipeGuide from './components/RecipeGuide';
+import RecipeGuide from './components/recipe/RecipeGuide';
 import CommunityFeed from './pages/CommunityFeed';
 import LoginPage from './pages/LoginPage';
 import UserProfile from './pages/UserProfile';
 import UserProfilePage from './pages/UserProfilePage';
 import RegisterProfile from './pages/RegisterProfile';
-import DietPlanner from './components/DietPlanner';
+import DietPlanner from './components/diet/DietPlanner';
 import SharedDietPlan from './pages/SharedDietPlan';
-import Footer from './components/Footer';
-import ThreadBackground from './components/ThreadBackground';
+import Footer from './components/common/Footer';
+import ThreadBackground from './components/common/ThreadBackground';
 
 // ✅ Protected Route Component
 function ProtectedRoute({ user, children }) {

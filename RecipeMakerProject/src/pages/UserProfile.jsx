@@ -1,17 +1,18 @@
 import React, { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../utils/axiosInstance";
 import { getAuth, signOut } from "firebase/auth";
 import axios from "axios";
 
-import ProfileHeader from "../components/UserProfile/ProfileHeader";
-import RecipeStats from "../components/UserProfile/RecipeStats";
-import FavoriteRecipes from "../components/UserProfile/FavoriteRecipes";
-import NutritionTracking from "../components/UserProfile/NutritionTracking";
-import PersonalInfo from "../components/UserProfile/PersonalInfo";
-import AccountSettings from "../components/UserProfile/AccountSettings";
-import PreferencesPanel from "../components/UserProfile/PreferencesPanel";
+import ProfileHeader from "../components/user/ProfileHeader";
+import RecipeStats from "../components/user/RecipeStats";
+import FavoriteRecipes from "../components/user/FavoriteRecipes";
+import NutritionTracking from "../components/user/NutritionTracking";
+import PersonalInfo from "../components/user/PersonalInfo";
+import AccountSettings from "../components/user/AccountSettings";
+import PreferencesPanel from "../components/user/PreferencesPanel";
 
 
 export default function UserProfile() {
@@ -21,11 +22,11 @@ export default function UserProfile() {
 
   const [user, setUser] = useState(firebaseUser || null);
   const [favorites, setFavorites] = useState([]);
-  const [showAccountManagement, setShowAccountManagement] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showConfirmLogout, setShowConfirmLogout] = useState(false);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [showAccountManagement, setShowAccountManagement] = useState(false);
   
   // User statistics
   const [userStats, setUserStats] = useState({
@@ -304,5 +305,3 @@ export default function UserProfile() {
     </div>
   );
 }
-
-// ...existing code...

@@ -4,8 +4,8 @@ import { Calendar, Activity, Target, Clock, Droplet, RefreshCw, Coffee, Utensils
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import axiosInstance from "../utils/axiosInstance";
-import { useAuth } from "../hooks/useAuth";
+import axiosInstance from "../../utils/axiosInstance";
+import { useAuth } from "../../hooks/useAuth";
 
 // Register GSAP plugins
 gsap.registerPlugin(ScrollTrigger);

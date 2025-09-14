@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { FaUserCircle } from "react-icons/fa";
 import { motion } from "framer-motion";
+
 import gsap from "gsap";
 import axiosInstance from "../utils/axiosInstance";
 
@@ -48,9 +49,11 @@ export default function RegisterProfile() {
         if (data.profileCompleted) {
           navigate("/profile", { replace: true });
         }
-      } catch {}
+      } catch (error) {
+        console.error("Error checking profile:", error);
+      }
     })();
-  }, []);
+  }, [navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;

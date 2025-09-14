@@ -2,13 +2,14 @@ const express = require('express');
 const router = express.Router();
 const userProfileController = require('../controllers/userProfileController');
 const verifyFirebaseToken = require('../auth/verifyFirebaseToken');
+const uploadProfileImage = require('../middleware/uploadProfileImage');
 
 // Public routes
 router.get('/:userId', userProfileController.getUserProfile);
 
 // Protected routes (require authentication)
 router.get('/me', verifyFirebaseToken, userProfileController.getCurrentUserProfile);
-router.put('/profile', verifyFirebaseToken, userProfileController.updateUserProfile);
+
 
 // Follow/unfollow routes
 router.post('/:userId/follow', verifyFirebaseToken, userProfileController.followUser);

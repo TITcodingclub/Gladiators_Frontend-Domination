@@ -35,39 +35,38 @@ exports.loginUser = async (req, res) => {
 exports.getCurrentUser = async (req, res) => {
   try {
     const { uid } = req.user;
-    
-    const user = await User.findOne({ uid });
+
+    const user = await User.findOne({ uid }).lean();
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
-    
-    const profile = await Profile.findOne({ uid });
-    const profileCompleted = !!profile;
-    
-    // Calculate age if profile exists and has DOB
-    let profileWithAge = null;
+
+    const profile = await Profile.findOne({ uid }).lean();
+
+    // Combine user and profile data into a single object
+    const fullProfile = { ...user, ...profile };
+
+    // If there's a profile, calculate age from DOB
     if (profile && profile.dob) {
       const dob = new Date(profile.dob);
       const today = new Date();
       let age = today.getFullYear() - dob.getFullYear();
       const monthDiff = today.getMonth() - dob.getMonth();
-      
       if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
         age--;
       }
-      
-      profileWithAge = profile.toObject();
-      profileWithAge.age = age;
+      fullProfile.age = age;
     }
     
-    res.json({
-      user,
-      profile: profileWithAge || profile,
-      profileCompleted
-    });
+    // Ensure displayName and photoURL are consistent
+    fullProfile.displayName = fullProfile.displayName || user.name;
+    fullProfile.photoURL = fullProfile.photoURL || user.photo;
+
+
+    res.status(200).json(fullProfile);
   } catch (error) {
-    console.error('Get current user error:', error);
-    res.status(500).json({ error: 'Server error' });
+    console.error("Get current user error:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 

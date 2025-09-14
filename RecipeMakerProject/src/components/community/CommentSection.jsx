@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaUserCircle, FaPaperPlane, FaSpinner, FaTrash, FaEllipsisV, FaReply, FaHeart, FaTimes } from 'react-icons/fa';
-import { useAuth } from '../hooks/useAuth';
-import * as communityService from '../services/communityService';
+import { useAuth } from '../../hooks/useAuth';
+import * as communityService from '../../services/communityService';
 
 export default function CommentSection({ postId, initialComments = [], onCommentAdded }) {
   const [comments, setComments] = useState(initialComments);

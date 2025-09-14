@@ -24,11 +24,12 @@ router.delete("/searches/:id/favorite", verifyFirebaseToken, userController.remo
 // ✅ GET /api/users/searches/favorites
 router.get("/searches/favorites", verifyFirebaseToken, userController.getFavoriteSearches);
 
-// Import profile controller
+// Import profile controller and multer upload middleware
 const profileController = require("../controllers/profileController");
+const uploadProfileImage = require("../middleware/uploadProfileImage");
 
-// ✅ PUT /api/users/profile
-router.put("/profile", verifyFirebaseToken, profileController.updateProfile);
+// ✅ PUT /api/users/profile (with image upload support)
+router.put("/profile", verifyFirebaseToken, uploadProfileImage.single('profileImage'), profileController.updateProfile);
 
 // ✅ DELETE /api/users/account
 router.delete("/account", verifyFirebaseToken, profileController.deleteAccount);

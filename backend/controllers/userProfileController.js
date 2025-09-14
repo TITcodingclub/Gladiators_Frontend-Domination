@@ -96,70 +96,77 @@ exports.getCurrentUserProfile = async (req, res) => {
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
  */
+const fs = require('fs');
+const path = require('path');
+
 exports.updateUserProfile = async (req, res) => {
   try {
     const userId = req.user.uid;
-    const { displayName, photoURL, bio, location, website, interests, coverPhoto } = req.body;
-    
-    // Find user
-    const user = await User.findOne({ uid: userId });
-    
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    
-    // Update user fields
-    if (displayName) user.displayName = displayName;
-    if (photoURL) user.photoURL = photoURL;
-    
-    // Find or create profile
-    let profile = await Profile.findOne({ user: userId });
-    
-    if (!profile) {
-      profile = new Profile({
-        user: userId,
-        bio,
-        location,
-        website,
-        interests,
-        coverPhoto
-      });
-      
-      // Link profile to user
-      user.profile = profile._id;
-    } else {
-      // Update profile fields
-      if (bio !== undefined) profile.bio = bio;
-      if (location !== undefined) profile.location = location;
-      if (website !== undefined) profile.website = website;
-      if (interests !== undefined) profile.interests = interests;
-      if (coverPhoto !== undefined) profile.coverPhoto = coverPhoto;
-    }
-    
-    // Save both documents
-    await Promise.all([user.save(), profile.save()]);
-    
-    // Format response
-    const updatedProfile = {
-      uid: user._id,
-      displayName: user.displayName,
-      email: user.email,
-      photoURL: user.photoURL,
-      createdAt: user.createdAt,
-      followers: user.followers || [],
-      following: user.following || [],
-      recipes: user.recipes || [],
-      bio: profile.bio,
-      location: profile.location,
-      website: profile.website,
-      interests: profile.interests,
-      coverPhoto: profile.coverPhoto
+
+    // --- Data Sanitization and Parsing ---
+    const {
+      displayName,
+      bio,
+      location,
+      website,
+      interests,
+      dietaryPreferences,
+      allergies,
+      cookingExperience,
+      favoriteIngredients,
+    } = req.body;
+
+    const safeParse = (jsonString) => {
+      try {
+        return JSON.parse(jsonString) || [];
+      } catch {
+        return [];
+      }
     };
-    
-    res.status(200).json(updatedProfile);
+
+    const userUpdate = {};
+    if (displayName) userUpdate.displayName = displayName;
+    if (req.file) userUpdate.photoURL = `/uploads/profile/${req.file.filename}`;
+
+    const profileUpdate = {
+      bio,
+      location,
+      website,
+      cookingExperience,
+      interests: safeParse(interests),
+      dietaryPreferences: safeParse(dietaryPreferences),
+      allergies: safeParse(allergies),
+      favoriteIngredients: safeParse(favoriteIngredients),
+    };
+
+    // --- Database Operations ---
+    const user = await User.findOne({ uid: userId });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    let profile = await Profile.findOne({ uid: userId });
+    if (!profile) {
+      profile = new Profile({ uid: userId });
+      user.profile = profile._id;
+    }
+
+    // Apply updates
+    Object.assign(user, userUpdate);
+    Object.assign(profile, profileUpdate);
+
+    await Promise.all([user.save(), profile.save()]);
+
+    // --- Response ---
+    const updatedProfileData = {
+      ...user.toObject(),
+      ...profile.toObject(),
+    };
+
+    res.status(200).json(updatedProfileData);
   } catch (error) {
-    console.error('Error updating user profile:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error("Error updating user profile:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 

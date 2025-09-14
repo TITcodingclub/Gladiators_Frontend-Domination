@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle, Circle, Utensils, Sparkles } from "lucide-react";
-import EmojiReactions from "../EmojiReactions";
+import EmojiReactions from "../community/EmojiReactions";
 
 export default function CookStep({ index, step, ingredients, onIngredientToggle, recipeId, checked, onToggle }) {
   // Generate a unique ID for this step based on its content and recipe ID

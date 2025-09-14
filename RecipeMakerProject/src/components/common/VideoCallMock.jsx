@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import SimplePeer from "simple-peer";
 import io from "socket.io-client";
-import { useAuth } from "../hooks/useAuth";
+import { useAuth } from "../../hooks/useAuth";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FiMic, FiMicOff, FiVideo, FiVideoOff, FiRepeat, FiMaximize, FiExternalLink,

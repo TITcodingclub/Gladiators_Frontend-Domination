@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { FcGoogle } from 'react-icons/fc'
 import { motion } from 'framer-motion'
-import ThreadBackground from '../components/ThreadBackground'
+import ThreadBackground from '../components/common/ThreadBackground'
 import axiosInstance from '../utils/axiosInstance'
 
 export default function LoginPage() {
