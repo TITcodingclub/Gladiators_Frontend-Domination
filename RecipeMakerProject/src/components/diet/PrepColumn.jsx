@@ -155,7 +155,7 @@ export default function PrepColumn({
       </div>
 
       {/* Custom scrollbar */}
-      <style jsx>{`
+      <style>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 4px; /* slim scrollbar */
         }

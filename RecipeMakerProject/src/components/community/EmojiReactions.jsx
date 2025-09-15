@@ -1,8 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Badge } from '@mui/material';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { gsap } from 'gsap';
-import { FiHeart, FiSmile, FiThumbsUp, FiStar } from 'react-icons/fi';
+import { FaHeart, FaSmile, FaThumbsUp, FaStar } from 'react-icons/fa';
 
 // Floating animation variants with rotation + scale
 const floatVariants = {
@@ -24,23 +22,14 @@ export default function EmojiReactions() {
   const containerRef = useRef(null);
 
   const emojiIcons = {
-    '👍': <FiThumbsUp />,
-    '❤️': <FiHeart />,
-    '😄': <FiSmile />,
-    '🌟': <FiStar />,
+    '👍': <FaThumbsUp />,
+    '❤️': <FaHeart />,
+    '😄': <FaSmile />,
+    '🌟': <FaStar />,
     '😋': '😋'
   };
 
-  // Entrance animation
-  useEffect(() => {
-    if (containerRef.current) {
-      gsap.fromTo(
-        containerRef.current,
-        { y: 20, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.8, ease: 'power3.out' }
-      );
-    }
-  }, []);
+  // Simple entrance animation using Framer Motion
 
   const handleReact = (emoji) => {
     const newCounts = { ...counts };
@@ -50,11 +39,7 @@ export default function EmojiReactions() {
       newCounts[emoji]--;
       newSelected = null;
 
-      gsap.to(containerRef.current, {
-        x: [-5, 5, -3, 3, 0],
-        duration: 0.4,
-        ease: 'power2.out'
-      });
+      // Simple shake animation using CSS
     } else {
       if (selectedEmoji) newCounts[selectedEmoji]--;
       newCounts[emoji]++;
@@ -73,11 +58,7 @@ export default function EmojiReactions() {
         }, 1600);
       }
 
-      gsap.fromTo(
-        containerRef.current,
-        { scale: 0.95 },
-        { scale: 1, duration: 0.4, ease: 'elastic.out(1, 0.3)' }
-      );
+      // Simple scale animation
     }
 
     setCounts(newCounts);
@@ -122,17 +103,12 @@ export default function EmojiReactions() {
             whileHover={{ scale: 1.15 }}
             whileTap={{ scale: 0.9 }}
           >
-            <Badge
-              badgeContent={counts[emoji] > 0 ? counts[emoji] : null}
-              sx={{
-                '& .MuiBadge-badge': {
-                  background: 'linear-gradient(135deg,#6366f1,#a855f7)',
-                  color: '#fff',
-                  fontWeight: 'bold',
-                  boxShadow: '0 0 10px rgba(99,102,241,0.6)'
-                }
-              }}
-            >
+            <div className="relative">
+              {counts[emoji] > 0 && (
+                <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg">
+                  {counts[emoji]}
+                </div>
+              )}
               <motion.button
                 onClick={() => handleReact(emoji)}
                 aria-label={`react with ${emoji}`}
@@ -141,10 +117,12 @@ export default function EmojiReactions() {
                     ? 'bg-gradient-to-r from-blue-500/40 to-purple-500/40 border-blue-400 text-blue-200'
                     : 'bg-gray-800/40 border-gray-600 text-gray-300'
                 }`}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
               >
                 {emojiIcons[emoji]}
               </motion.button>
-            </Badge>
+            </div>
 
             {/* Tooltip bubble */}
             <motion.div

@@ -5,16 +5,20 @@ import { MdFavorite } from "react-icons/md";
 import { Share2, Clock, Flame } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-export default function FavoriteRecipes({ favorites, setFavorites, setRecentSearches, setShowShareModal, setSelectedRecipe, setShareUrl }) {
+export default function FavoriteRecipes({ favorites = [], setFavorites, setRecentSearches, setShowShareModal, setSelectedRecipe, setShareUrl, profile }) {
   const navigate = useNavigate();
+  
+  // Ensure favorites is always an array
+  const safeFavorites = Array.isArray(favorites) ? favorites : [];
+  
   return (
     <motion.div>
       <h3 className="text-2xl font-bold mb-4 flex items-center gap-2 text-white">
         <Heart size={24} className="text-red-500" /> Favorite Recipes
       </h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {favorites.length > 0 ? (
-          favorites.map((recipe) => (
+        {safeFavorites.length > 0 ? (
+          safeFavorites.map((recipe) => (
             <motion.div
               key={recipe._id}
               whileHover={{ scale: 1.02, y: -5 }}

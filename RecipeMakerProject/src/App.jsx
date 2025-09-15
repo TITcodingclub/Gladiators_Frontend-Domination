@@ -1,194 +1,376 @@
+import React, { Suspense, useCallback, useEffect, useState, useMemo } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from './hooks/useAuth';
-import Navbar from './components/common/Navbar';
-import { useEffect, useState } from 'react';
-import axiosInstance from './utils/axiosInstance';
 import { AnimatePresence } from 'framer-motion';
-import LoadingSpinner from './components/common/LoadingSpinner';
-import PageTransition from './components/common/PageTransition';
+import { Toaster } from 'react-hot-toast';
+import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 
-import RecipePage from './pages/RecipePage';
-import RecipeGuide from './components/recipe/RecipeGuide';
-import CommunityFeed from './pages/CommunityFeed';
-import LoginPage from './pages/LoginPage';
-import UserProfile from './pages/UserProfile';
-import UserProfilePage from './pages/UserProfilePage';
-import RegisterProfile from './pages/RegisterProfile';
-import DietPlanner from './components/diet/DietPlanner';
-import SharedDietPlan from './pages/SharedDietPlan';
+// Core hooks and utilities
+import { useAuth } from './hooks/useAuth';
+import axiosInstance from './utils/axiosInstance';
+import { navigationFix } from './utils/navigationFix';
+import healthDataService from './services/healthDataService';
+
+// Components
+import ErrorBoundary from './components/common/ErrorBoundary';
+import LoadingFallback, { SuspenseBoundary } from './components/common/LoadingFallback';
+import Navbar from './components/common/Navbar';
 import Footer from './components/common/Footer';
 import ThreadBackground from './components/common/ThreadBackground';
+import PageTransition from './components/common/PageTransition';
 
-// ✅ Protected Route Component
-function ProtectedRoute({ user, children }) {
-  return user ? children : <Navigate to="/login" replace />;
-}
+// Route configuration
+import { routeConfig, getRouteConfig, updatePageMeta } from './config/routes';
 
-// ✅ Ensures a profile exists; otherwise redirects to register-profile
+/**
+ * Enhanced Protected Route Component with accessibility and error handling
+ */
+const ProtectedRoute = React.memo(({ user, children }) => {
+  const location = useLocation();
+  
+  if (!user) {
+    return (
+      <Navigate 
+        to="/login" 
+        replace 
+        state={{ from: location.pathname }}
+        aria-label="Redirecting to login page"
+      />
+    );
+  }
+  return children;
+});
+
+/**
+ * Profile completion checker with improved error handling and caching
+ */
 function RequireCompletedProfile({ children }) {
-  const [checking, setChecking] = useState(true);
-  const [completed, setCompleted] = useState(false);
+  const [state, setState] = useState({
+    checking: true,
+    completed: false,
+    error: null,
+    retryCount: 0
+  });
+
+  const checkProfileCompletion = useCallback(async () => {
+    try {
+      const { data } = await axiosInstance.get('/api/users/me');
+      setState(prev => ({
+        ...prev,
+        checking: false,
+        completed: !!data.profileCompleted,
+        error: null
+      }));
+    } catch (error) {
+      console.error('Profile completion check failed:', error);
+      setState(prev => ({
+        ...prev,
+        checking: false,
+        completed: false,
+        error: error.message,
+        retryCount: prev.retryCount + 1
+      }));
+    }
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
-    const check = async () => {
+    
+    const performCheck = async () => {
+      if (!isMounted) return;
+      await checkProfileCompletion();
+    };
+    
+    performCheck();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [checkProfileCompletion]);
+
+  if (state.checking) {
+    return (
+      <LoadingFallback 
+        message="Verifying profile..." 
+        size="default"
+      />
+    );
+  }
+
+  if (state.error && state.retryCount < 3) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">Profile check failed</p>
+          <button 
+            onClick={checkProfileCompletion}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            aria-label="Retry profile verification"
+          >
+            Retry ({state.retryCount}/3)
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!state.completed) {
+    return (
+      <Navigate 
+        to="/register-profile" 
+        replace 
+        aria-label="Redirecting to profile completion"
+      />
+    );
+  }
+
+  return children;
+}
+
+/**
+ * Dynamic Route Component with lazy loading and error boundaries
+ */
+const DynamicRoute = React.memo(({ route, user }) => {
+  const Component = route.element;
+  const routeName = route.path.split('/')[1] || 'home';
+
+  let element = (
+    <SuspenseBoundary routeName={routeName}>
+      <PageTransition>
+        <Component />
+      </PageTransition>
+    </SuspenseBoundary>
+  );
+
+  // Apply profile requirement wrapper
+  if (route.requiresProfile) {
+    element = (
+      <RequireCompletedProfile>
+        {element}
+      </RequireCompletedProfile>
+    );
+  }
+
+  // Apply authentication wrapper
+  if (route.requiresAuth) {
+    element = (
+      <ProtectedRoute user={user}>
+        {element}
+      </ProtectedRoute>
+    );
+  }
+
+  // Handle redirect for authenticated users
+  if (route.redirectIfAuthenticated && user) {
+    return <Navigate to={route.redirectIfAuthenticated} replace />;
+  }
+
+  return element;
+});
+
+/**
+ * Main App Component with enhanced architecture
+ */
+/**
+ * Router-level Error Boundary that doesn't use Router hooks
+ */
+class RouterErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('Router-level error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-gray-800/60 backdrop-blur-xl rounded-3xl p-8 text-center border border-gray-700/50 shadow-2xl">
+            <div className="w-20 h-20 bg-red-500/10 rounded-3xl flex items-center justify-center mx-auto mb-6">
+              <AlertTriangle className="w-10 h-10 text-red-400" />
+            </div>
+            
+            <h2 className="text-2xl font-bold text-white mb-3">
+              Application Error
+            </h2>
+            
+            <p className="text-gray-300 mb-6 leading-relaxed">
+              The application encountered a critical error. Please reload the page to continue.
+            </p>
+            
+            <div className="space-y-3">
+              <button
+                onClick={() => window.location.reload()}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 px-4 rounded-2xl font-medium transition-all duration-200 flex items-center justify-center gap-2 shadow-lg"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Reload Application
+              </button>
+              
+              <button
+                onClick={() => window.location.href = '/'}
+                className="w-full bg-gray-700 hover:bg-gray-600 text-white py-3 px-4 rounded-2xl font-medium transition-all duration-200 flex items-center justify-center gap-2"
+              >
+                <Home className="w-4 h-4" />
+                Go Home
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+function App() {
+  return (
+    <RouterErrorBoundary>
+      <Router>
+        <ErrorBoundary>
+          <AppContent />
+          <Toaster 
+            position="top-right"
+            toastOptions={{
+              duration: 4000,
+              style: {
+                background: '#363636',
+                color: '#fff',
+              },
+            }}
+          />
+        </ErrorBoundary>
+      </Router>
+    </RouterErrorBoundary>
+  );
+}
+
+/**
+ * App Content with routing logic
+ */
+function AppContent() {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+  
+  // Initialize health service and check for redirect results
+  useEffect(() => {
+    let isMounted = true;
+    
+    const initializeHealthService = async () => {
+      if (!isMounted) return;
+      
       try {
-        const { data } = await axiosInstance.get('/api/users/me');
-        if (!isMounted) return;
-        setCompleted(!!data.profileCompleted);
-      } catch {
-        setCompleted(false);
-      } finally {
-        if (isMounted) setChecking(false);
+        // Check for Google OAuth redirect result
+        const result = await healthDataService.checkRedirectResult();
+        if (result) {
+          console.log('Google Fit connected successfully after redirect');
+        }
+      } catch (error) {
+        console.error('Error initializing health service:', error);
       }
     };
-    check();
+    
+    initializeHealthService();
+    
     return () => {
       isMounted = false;
     };
   }, []);
+  
+  // Initialize navigation fix
+  useEffect(() => {
+    navigationFix.debugNavigation();
+  }, [location]);
 
-  if (checking) {
-    return <LoadingSpinner />;
-  }
+  // Update page metadata when route changes
+  useEffect(() => {
+    const currentRoute = getRouteConfig(location.pathname);
+    if (currentRoute) {
+      updatePageMeta(currentRoute);
+    }
+  }, [location.pathname]);
 
-  if (!completed) return <Navigate to="/register-profile" replace />;
-  return children;
-}
-
-function App() {
-  const { user, loading } = useAuth();
+  // Memoize routes to prevent unnecessary re-renders
+  const routes = useMemo(() => {
+    return routeConfig.map((route) => (
+      <Route
+        key={route.path}
+        path={route.path}
+        element={<DynamicRoute route={route} user={user} />}
+      />
+    ));
+  }, [user]);
 
   if (loading) {
-    return <LoadingSpinner />;
+    return (
+      <LoadingFallback 
+        message="Initializing Nutrithy..." 
+      />
+    );
   }
 
   return (
-    <Router>
-      <AnimatedRoutes user={user} />
-    </Router>
+    <div className="min-h-screen w-full flex flex-col relative">
+      {/* Skip to main content link for accessibility */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-blue-600 text-white px-4 py-2 rounded-lg z-50 transition-all"
+      >
+        Skip to main content
+      </a>
+      
+      {user && (
+        <header role="banner">
+          <Navbar />
+        </header>
+      )}
+      
+      <main 
+        id="main-content"
+        className={`flex-1 relative ${user ? 'pt-20' : ''}`}
+        role="main"
+        tabIndex={-1}
+      >
+        <ThreadBackground />
+        <div className="relative z-10">
+          <AnimatePresence mode="wait" initial={false}>
+            <Routes location={location} key={location.pathname}>
+              {routes}
+              <Route 
+                path="*" 
+                element={
+                  <Navigate 
+                    to="/" 
+                    replace 
+                    aria-label="Redirecting to home page"
+                  />
+                } 
+              />
+            </Routes>
+          </AnimatePresence>
+        </div>
+      </main>
+      
+      {user && (
+        <footer role="contentinfo">
+          <Footer />
+        </footer>
+      )}
+      
+    </div>
   );
 }
 
-function AnimatedRoutes({ user }) {
-  const location = useLocation();
-
-  return (
-    <div className="min-h-screen w-full flex flex-col">
-      {user && <Navbar />}
-      <main className="flex-1 pt-20">
-        <ThreadBackground />
-        <AnimatePresence mode="wait">
-          <Routes location={location} key={location.pathname}>
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute user={user}>
-                  <RequireCompletedProfile>
-                    <PageTransition>
-                      <RecipePage />
-                    </PageTransition>
-                  </RequireCompletedProfile>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/login"
-              element={!user ? <LoginPage /> : <Navigate to="/" replace />}
-            />
-            <Route
-              path="/recipes"
-              element={
-                <ProtectedRoute user={user}>
-                  <RequireCompletedProfile>
-                    <PageTransition>
-                      <RecipeGuide />
-                    </PageTransition>
-                  </RequireCompletedProfile>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/community"
-              element={
-                <ProtectedRoute user={user}>
-                  <RequireCompletedProfile>
-                    <PageTransition>
-                      <CommunityFeed />
-                    </PageTransition>
-                  </RequireCompletedProfile>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/profile"
-              element={
-                <ProtectedRoute user={user}>
-                  <RequireCompletedProfile>
-                    <PageTransition>
-                      <UserProfile />
-                    </PageTransition>
-                  </RequireCompletedProfile>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/register-profile"
-              element={
-                <ProtectedRoute user={user}>
-                  <PageTransition>
-                    <RegisterProfile />
-                  </PageTransition>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/diet-planner"
-              element={
-                <ProtectedRoute user={user}>
-                  <RequireCompletedProfile>
-                    <PageTransition>
-                      <DietPlanner />
-                    </PageTransition>
-                  </RequireCompletedProfile>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/shared-diet-plan/:id"
-              element={
-                <PageTransition>
-                  <SharedDietPlan />
-                </PageTransition>
-              }
-            />
-            <Route
-              path="/shared-diet-plan"
-              element={
-                <PageTransition>
-                  <SharedDietPlan />
-                </PageTransition>
-              }
-            />
-            <Route
-              path="/user/:userId"
-              element={
-                <ProtectedRoute user={user}>
-                  <RequireCompletedProfile>
-                    <PageTransition>
-                      <UserProfile />
-                    </PageTransition>
-                  </RequireCompletedProfile>
-                </ProtectedRoute>
-              }
-            />          
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </AnimatePresence>
-        </main>
-        {user && <Footer />}
-      </div>
-    );
-}
+// Performance optimization: prevent unnecessary re-renders
+AppContent.displayName = 'AppContent';
+ProtectedRoute.displayName = 'ProtectedRoute';
+DynamicRoute.displayName = 'DynamicRoute';
 
 export default App;

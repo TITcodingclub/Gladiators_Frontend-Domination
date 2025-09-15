@@ -7,6 +7,7 @@ import {
   FaHome,
   FaUtensils,
   FaUsers,
+  FaCalendarAlt,
 } from 'react-icons/fa';
 import { FcGoogle } from 'react-icons/fc';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -60,7 +61,15 @@ export default function Navbar() {
     { name: 'Home', icon: <FaHome className="inline" />, path: '/' },
     { name: 'Recipes', icon: <FaUtensils className="inline" />, path: '/recipes' },
     { name: 'Community', icon: <FaUsers className="inline" />, path: '/community' },
+    { name: 'Diet Planner', icon: <FaCalendarAlt className="inline" />, path: '/diet-planner' },
   ];
+
+  // Handle navigation with proper state management
+  const handleNavigation = (path) => {
+    setActiveLink(path);
+    navigate(path);
+    setMobileMenu(false);
+  };
 
   return (
     <motion.nav 
@@ -129,7 +138,10 @@ export default function Navbar() {
                     ${isActive 
                       ? 'text-black font-bold italic bg-green-500 shadow-md'  // mono color background
                       : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100/80 dark:hover:bg-gray-800/30'}`}
-                  onClick={() => setActiveLink(path)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleNavigation(path);
+                  }}
                 >
                   <span className={`${isActive ? 'text-black font-bold' : 'text-green-500'} transition-colors duration-300`}>
                     {icon}
@@ -284,9 +296,9 @@ export default function Navbar() {
                     >
                       <Link
                         to={path}
-                        onClick={() => {
-                          setMobileMenu(false);
-                          setActiveLink(path);
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleNavigation(path);
                         }}
                         className={`flex items-center text-base font-medium p-3 rounded-2xl transition-all duration-300 ${
                           isActive 

@@ -1,16 +1,19 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Calendar, Activity, Target, Clock, Droplet, RefreshCw, Coffee, Utensils, ChevronDown, ChevronUp, Heart, Flame, Zap, Bookmark, Share2, X } from "lucide-react";
+import { Calendar, Activity, Target, Clock, Droplet, RefreshCw, Coffee, Utensils, ChevronDown, ChevronUp, Heart, Flame, Zap, Bookmark, Share2, X, ShoppingCart, TrendingUp, ChefHat } from "lucide-react";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import axiosInstance from "../../utils/axiosInstance";
 import { useAuth } from "../../hooks/useAuth";
+import GroceryListGenerator from "./GroceryListGenerator";
+import NutritionAnalytics from "./NutritionAnalytics";
+import SmartRecipeSuggestions from "./SmartRecipeSuggestions";
 
 // Register GSAP plugins
 gsap.registerPlugin(ScrollTrigger);
 
-const MODEL_NAME = "gemini-1.5-pro";
+const MODEL_NAME = "gemini-1.5-flash"; // Use Flash model for better rate limits
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "";
 
 export default function DietPlanner() {
@@ -39,8 +42,14 @@ export default function DietPlanner() {
   const [error, setError] = useState("");
   const [savingToBackend, setSavingToBackend] = useState(false);
   const [sharingPlan, setSharingPlan] = useState(false);
+  const [generationStatus, setGenerationStatus] = useState("");
   const [shareUrl, setShareUrl] = useState("");
   const [showShareModal, setShowShareModal] = useState(false);
+  const [mealProgress, setMealProgress] = useState({});
+  const [dailyProgress, setDailyProgress] = useState(0);
+  const [showGroceryList, setShowGroceryList] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  const [showRecipes, setShowRecipes] = useState(false);
   const dietPlanRef = useRef(null);
 
   const handleChange = (e) => {
@@ -83,6 +92,49 @@ export default function DietPlanner() {
     }
   }, [savedPlans, currentUser]);
   
+  // Load meal progress from localStorage
+  useEffect(() => {
+    const today = new Date().toDateString();
+    const savedProgress = localStorage.getItem(`mealProgress_${today}`);
+    if (savedProgress) {
+      setMealProgress(JSON.parse(savedProgress));
+    }
+  }, []);
+  
+  // Calculate daily progress
+  useEffect(() => {
+    if (dietPlan) {
+      const totalMealItems = Object.values(dietPlan.meals).flat().length;
+      const completedItems = Object.values(mealProgress).flat().filter(Boolean).length;
+      setDailyProgress(totalMealItems > 0 ? (completedItems / totalMealItems) * 100 : 0);
+    }
+  }, [mealProgress, dietPlan]);
+  
+  // Save meal progress to localStorage and database
+  useEffect(() => {
+    const today = new Date().toDateString();
+    localStorage.setItem(`mealProgress_${today}`, JSON.stringify(mealProgress));
+    
+    // Also save to database if user is logged in
+    if (currentUser && Object.keys(mealProgress).length > 0) {
+      saveMealProgressToDatabase(mealProgress);
+    }
+  }, [mealProgress, currentUser]);
+  
+  // Save meal progress to database
+  const saveMealProgressToDatabase = async (progressData) => {
+    try {
+      await axiosInstance.post('/api/meal-progress', {
+        userId: currentUser.uid,
+        date: new Date().toDateString(),
+        progress: progressData,
+        completionPercentage: dailyProgress
+      });
+    } catch (error) {
+      console.error('Error saving meal progress to database:', error);
+    }
+  };
+  
   // Fetch saved plans from backend for logged in users
   useEffect(() => {
     if (currentUser) {
@@ -111,117 +163,171 @@ export default function DietPlanner() {
   const generateDietPlan = async () => {
     setLoading(true);
     setError("");
+    setGenerationStatus("Initializing AI diet plan generation...");
     
-    // Maximum number of retry attempts
-    const MAX_RETRIES = 2;
+    // Validate required form data
+    if (!formData.age || !formData.weight || !formData.height) {
+      setError("Please fill in your age, weight, and height to generate a personalized diet plan.");
+      setLoading(false);
+      return;
+    }
+    
+    // Maximum number of retry attempts for rate limiting
+    const MAX_RETRIES = 1; // Reduce retries to avoid quota exhaustion
     let retryCount = 0;
-    let retryDelay = 2000; // Start with 2 seconds
+    let retryDelay = 60000; // Start with 60 seconds for rate limits
     
     const attemptGeneration = async () => {
       try {
         if (!API_KEY) {
-          setTimeout(() => {
-            const enhancedMockPlan = {
-              ...mockDietPlan,
-              weeklyPlan: generateMockWeeklyPlan(),
-              nutritionAnalysis: generateMockNutritionAnalysis(),
-              exerciseRecommendations: generateMockExerciseRecommendations(formData.goal, formData.fitnessLevel)
-            };
-            setDietPlan(enhancedMockPlan);
-            setLoading(false);
-          }, 1500);
-          return true;
+          throw new Error('AI service is not configured. Please contact support to enable AI diet plan generation.');
         }
 
+        setGenerationStatus("Connecting to AI nutrition expert...");
         const genAI = new GoogleGenerativeAI(API_KEY);
         const model = genAI.getGenerativeModel({ model: MODEL_NAME });
+        
+        setGenerationStatus("Calculating your metabolic requirements...");
 
-        const prompt = `
-Generate a highly detailed personalized diet plan including:
-- Age: ${formData.age}
-- Weight: ${formData.weight} kg
-- Height: ${formData.height} cm
-- Activity Level: ${formData.activityLevel}
-- Goal: ${formData.goal}
-- Dietary Preference: ${formData.dietaryPreference} (vegan/vegetarian/omnivore/mix)
-- Meal Preference: ${formData.mealPreference || 'None'}
-${formData.allergies ? `- Allergies: ${formData.allergies}` : ''}
-${formData.medicalConditions ? `- Medical Conditions: ${formData.medicalConditions}` : ''}
-${formData.fitnessLevel ? `- Fitness Level: ${formData.fitnessLevel}` : ''}
+        // Calculate BMR and TDEE for more accurate calorie requirements
+        const bmr = calculateBMR(parseInt(formData.age), parseFloat(formData.weight), parseFloat(formData.height));
+        const tdee = calculateTDEE(bmr, formData.activityLevel);
+        
+        // Calculate goal-specific calories
+        const goalCalories = formData.goal === 'lose' ? Math.round(tdee * 0.8) : 
+                            formData.goal === 'gain' ? Math.round(tdee * 1.15) : 
+                            Math.round(tdee);
+        
+        const prompt = `Create personalized diet plan for:
+Age: ${formData.age}, Weight: ${formData.weight}kg, Height: ${formData.height}cm
+TDEE: ${Math.round(tdee)} cal, Goal: ${formData.goal}, Diet: ${formData.dietaryPreference}
+Allergies: ${formData.allergies || 'none'}, Activity: ${formData.activityLevel}
 
-Please include:
-1. Daily calorie target
-2. Macronutrient breakdown (protein, carbs, fats)
-3. Hydration recommendation
-4. Detailed meal plan for one day (Breakfast, Lunch, Dinner, Snacks)
-5. 5 Nutrition Tips based on goals
-6. Include alternatives for dietary restrictions
-7. Weekly meal plan overview
-8. Exercise recommendations based on goals
-
-Return the result in JSON format as:
+Return JSON:
 {
-  "calories": number,
-  "macros": { "protein": number, "carbs": number, "fats": number },
-  "hydration": string,
-  "meals": { "Breakfast": [string], "Lunch": [string], "Snack": [string], "Dinner": [string] },
-  "tips": [string],
-  "weeklyPlan": { "Monday": string, "Tuesday": string, "Wednesday": string, "Thursday": string, "Friday": string, "Saturday": string, "Sunday": string },
-  "exerciseRecommendations": [string],
-  "nutritionAnalysis": { "strengths": [string], "considerations": [string] }
+  "calories": ${goalCalories},
+  "macros": {"protein": number, "carbs": number, "fats": number},
+  "hydration": "water intake recommendation",
+  "meals": {
+    "Breakfast": ["food with quantity", "food with quantity", "food with quantity"],
+    "Lunch": ["food with quantity", "food with quantity", "food with quantity"],
+    "Dinner": ["food with quantity", "food with quantity", "food with quantity"],
+    "Snack": ["healthy snack with quantity", "alternative snack"]
+  },
+  "weeklyPlan": {
+    "Monday": "daily focus", "Tuesday": "daily focus", "Wednesday": "daily focus",
+    "Thursday": "daily focus", "Friday": "daily focus", "Saturday": "daily focus", "Sunday": "daily focus"
+  },
+  "exerciseRecommendations": ["exercise with duration", "exercise with duration", "rest day guidance"],
+  "nutritionAnalysis": {
+    "strengths": ["strength 1", "strength 2", "strength 3"],
+    "considerations": ["consideration 1", "consideration 2", "consideration 3"]
+  },
+  "tips": ["tip 1", "tip 2", "tip 3", "tip 4", "tip 5"]
 }
-`;
-
+        `;
+        
+        setGenerationStatus("Generating your personalized diet plan...");
         const result = await model.generateContent(prompt);
         const response = await result.response;
-        const text = await response.text();
+        let text = await response.text();
+        
+        // Clean up the response text to extract JSON
+        text = text.trim();
+        if (text.includes('```json')) {
+          text = text.split('```json')[1].split('```')[0].trim();
+        } else if (text.includes('```')) {
+          text = text.split('```')[1].split('```')[0].trim();
+        }
+        
+        // Remove any markdown formatting or extra text
+        const jsonStartIndex = text.indexOf('{');
+        const jsonEndIndex = text.lastIndexOf('}') + 1;
+        if (jsonStartIndex !== -1 && jsonEndIndex > jsonStartIndex) {
+          text = text.substring(jsonStartIndex, jsonEndIndex);
+        }
 
-        // parse JSON safely
-        const parsed = JSON.parse(text);
+        let parsed;
+        try {
+          parsed = JSON.parse(text);
+        } catch (parseError) {
+          console.error('JSON Parse Error:', parseError);
+          console.error('Raw AI Response:', text);
+          throw new Error('Failed to parse AI response as JSON. Please try again.');
+        }
         
-        // Add missing fields if API doesn't return them
-        if (!parsed.weeklyPlan) parsed.weeklyPlan = generateMockWeeklyPlan();
-        if (!parsed.nutritionAnalysis) parsed.nutritionAnalysis = generateMockNutritionAnalysis();
-        if (!parsed.exerciseRecommendations) parsed.exerciseRecommendations = generateMockExerciseRecommendations(formData.goal, formData.fitnessLevel);
+        // Validate that all required fields are present
+        const requiredFields = ['calories', 'macros', 'hydration', 'meals', 'weeklyPlan', 'exerciseRecommendations', 'nutritionAnalysis', 'tips'];
+        const missingFields = requiredFields.filter(field => !parsed[field]);
         
+        if (missingFields.length > 0) {
+          throw new Error(`AI response missing required fields: ${missingFields.join(', ')}. Please try again.`);
+        }
+        
+        // Validate macros structure
+        if (!parsed.macros.protein || !parsed.macros.carbs || !parsed.macros.fats) {
+          throw new Error('AI response missing macro breakdown. Please try again.');
+        }
+        
+        // Validate meals structure
+        const requiredMeals = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
+        const missingMeals = requiredMeals.filter(meal => !parsed.meals[meal] || !Array.isArray(parsed.meals[meal]));
+        
+        if (missingMeals.length > 0) {
+          throw new Error(`AI response missing meal plans for: ${missingMeals.join(', ')}. Please try again.`);
+        }
+        
+        setGenerationStatus("Validating nutrition plan...");
+        
+        // Save the AI-generated plan with user data to database
+        setGenerationStatus("Saving your personalized plan...");
+        await saveDietPlanToDatabase(parsed);
+        
+        setGenerationStatus("Complete! Your AI diet plan is ready.");
         setDietPlan(parsed);
         setActiveSection("results");
+        
+        // Clear status after a short delay
+        setTimeout(() => setGenerationStatus(""), 2000);
         return true; // Success
       } catch (err) {
         console.error("API Error:", err);
         
         // Check if it's a rate limit error (429)
-        if (err.message && err.message.includes("429") && retryCount < MAX_RETRIES) {
-          retryCount++;
-          console.log(`Rate limit exceeded. Retrying in ${retryDelay/1000} seconds... (Attempt ${retryCount} of ${MAX_RETRIES})`);
-          setError(`Rate limit exceeded. Retrying in ${retryDelay/1000} seconds... (Attempt ${retryCount} of ${MAX_RETRIES})`);
+        if (err.message && (err.message.includes("429") || err.message.includes("quota") || err.message.includes("rate limit"))) {
+          // Extract retry delay from Google's response if available
+          let suggestedDelay = 60; // Default 60 seconds
+          if (err.message.includes('retryDelay')) {
+            const retryMatch = err.message.match(/"retryDelay":"(\d+)s"/);
+            if (retryMatch) {
+              suggestedDelay = parseInt(retryMatch[1]);
+            }
+          }
           
-          // Wait for the retry delay
-          await new Promise(resolve => setTimeout(resolve, retryDelay));
+          // For quota exceeded, don't retry - inform user immediately
+          if (err.message.includes("quota") || err.message.includes("exceeded your current quota")) {
+            throw new Error(`⚠️ Daily AI quota exceeded. The free tier has limited requests per day. Please try again tomorrow or consider upgrading your Google AI API plan.\n\n🕐 Service will reset at midnight Pacific time.\n\n💡 Tip: You can still use other features like progress tracking, grocery lists, and analytics!`);
+          }
           
-          // Exponential backoff
-          retryDelay *= 2;
-          
-          // Try again
-          return await attemptGeneration();
+          // For regular rate limits, attempt retry if under limit
+          if (retryCount < MAX_RETRIES) {
+            retryCount++;
+            const waitTime = Math.max(suggestedDelay, retryDelay / 1000);
+            console.log(`Rate limit hit. Waiting ${waitTime} seconds before retry ${retryCount}/${MAX_RETRIES}`);
+            setGenerationStatus(`⏱️ Rate limit hit. Waiting ${waitTime} seconds before retry...`);
+            
+            // Wait for the suggested delay
+            await new Promise(resolve => setTimeout(resolve, waitTime * 1000));
+            
+            setGenerationStatus("Retrying AI generation...");
+            return await attemptGeneration();
+          } else {
+            throw new Error(`⚠️ AI service rate limits exceeded. Please wait a few minutes before trying again.\n\n🕐 Free tier limits: 15 requests/minute, 1M tokens/day\n\n💡 Try again in 5-10 minutes when limits reset.`);
+          }
         }
         
-        // If we've exhausted retries or it's not a rate limit error, use fallback
-        if (err.message && err.message.includes("429")) {
-          setError("API rate limit exceeded. Using fallback diet plan instead.");
-        } else {
-          setError("Unable to generate diet plan. Using fallback plan instead.");
-        }
-        
-        const enhancedMockPlan = {
-          ...mockDietPlan,
-          weeklyPlan: generateMockWeeklyPlan(),
-          nutritionAnalysis: generateMockNutritionAnalysis(),
-          exerciseRecommendations: generateMockExerciseRecommendations(formData.goal, formData.fitnessLevel)
-        };
-        setDietPlan(enhancedMockPlan);
-        setActiveSection("results");
-        return false; // Failed
+        // Handle other errors
+        throw new Error("Failed to generate AI diet plan: " + err.message + ". Please check your information and try again.");
       }
     };
     
@@ -230,64 +336,6 @@ Return the result in JSON format as:
     } finally {
       setLoading(false);
     }
-  };
-  
-  // Helper functions for mock data
-  const generateMockWeeklyPlan = () => ({
-    "Monday": "Protein focus: Higher protein meals with lean meats and legumes",
-    "Tuesday": "Complex carbs: Whole grains and starchy vegetables",
-    "Wednesday": "Healthy fats: Avocado, nuts, and olive oil",
-    "Thursday": "Fiber focus: Beans, lentils, and high-fiber fruits",
-    "Friday": "Antioxidant boost: Berries, leafy greens, and colorful vegetables",
-    "Saturday": "Flexible day: Moderate treat meal allowed",
-    "Sunday": "Prep day: Prepare meals for the upcoming week"
-  });
-  
-  const generateMockNutritionAnalysis = () => ({
-    "strengths": [
-      "Balanced macronutrient profile",
-      "Adequate protein for muscle maintenance",
-      "Good variety of food groups",
-      "Includes essential micronutrients"
-    ],
-    "considerations": [
-      "Consider timing carbohydrates around workouts",
-      "May need to adjust calories based on progress",
-      "Monitor hydration levels throughout the day",
-      "Consider supplementing vitamin D and omega-3s"
-    ]
-  });
-  
-  const generateMockExerciseRecommendations = (goal, fitnessLevel) => {
-    const recommendations = [];
-    
-    if (goal === "lose") {
-      recommendations.push(
-        "Incorporate 3-4 days of moderate-intensity cardio (30-45 minutes)",
-        "Add 2-3 days of full-body resistance training",
-        "Include HIIT workouts 1-2 times per week for metabolic boost"
-      );
-    } else if (goal === "gain" || goal === "muscle") {
-      recommendations.push(
-        "Focus on progressive overload with 4-5 days of resistance training",
-        "Limit cardio to 1-2 sessions of 20-30 minutes per week",
-        "Ensure adequate post-workout nutrition with protein and carbs"
-      );
-    } else { // maintain
-      recommendations.push(
-        "Balance 2-3 days of resistance training with 2-3 days of cardio",
-        "Include flexibility and mobility work 2 times per week",
-        "Consider active recovery activities like walking or yoga"
-      );
-    }
-    
-    if (fitnessLevel === "beginner") {
-      recommendations.push("Start with bodyweight exercises before progressing to weights");
-    } else if (fitnessLevel === "advanced") {
-      recommendations.push("Consider periodization in your training program for continued progress");
-    }
-    
-    return recommendations;
   };
 
   const resetForm = () => {
@@ -407,6 +455,74 @@ Return the result in JSON format as:
   
   const toggleAdvancedOptions = () => {
     setShowAdvancedOptions(!showAdvancedOptions);
+  };
+  
+  const toggleMealItem = (mealName, itemIndex) => {
+    setMealProgress(prev => {
+      const mealItems = prev[mealName] || [];
+      const newMealItems = [...mealItems];
+      newMealItems[itemIndex] = !newMealItems[itemIndex];
+      return {
+        ...prev,
+        [mealName]: newMealItems
+      };
+    });
+  };
+  
+  // Save diet plan to database with user data
+  const saveDietPlanToDatabase = async (aiGeneratedPlan) => {
+    if (!currentUser) {
+      console.log('User not logged in, skipping database save');
+      return;
+    }
+    
+    try {
+      const planData = {
+        name: `AI Diet Plan - ${formData.goal} (${new Date().toLocaleDateString()})`,
+        formData: {
+          ...formData,
+          generatedAt: new Date().toISOString(),
+          bmr: Math.round(calculateBMR(parseInt(formData.age), parseFloat(formData.weight), parseFloat(formData.height))),
+          tdee: Math.round(calculateTDEE(
+            calculateBMR(parseInt(formData.age), parseFloat(formData.weight), parseFloat(formData.height)), 
+            formData.activityLevel
+          ))
+        },
+        plan: aiGeneratedPlan,
+        generatedBy: 'AI',
+        userId: currentUser.uid
+      };
+      
+      const response = await axiosInstance.post('/api/diet-plans', planData);
+      
+      if (response.data.success) {
+        console.log('Diet plan saved to database successfully');
+        // Refresh saved plans list
+        fetchSavedPlans();
+      } else {
+        console.error('Failed to save diet plan to database:', response.data.message);
+      }
+    } catch (error) {
+      console.error('Error saving diet plan to database:', error);
+      // Don't throw error here to avoid disrupting the user flow
+    }
+  };
+  
+  // Helper functions for BMR/TDEE calculation (moved outside AI function for reuse)
+  const calculateBMR = (age, weight, height, gender = 'mixed') => {
+    const baseBMR = 10 * weight + 6.25 * height - 5 * age;
+    return gender === 'male' ? baseBMR + 5 : baseBMR - 161;
+  };
+  
+  const calculateTDEE = (bmr, activityLevel) => {
+    const multipliers = {
+      sedentary: 1.2,
+      light: 1.375,
+      moderate: 1.55,
+      active: 1.725,
+      extreme: 1.9
+    };
+    return bmr * (multipliers[activityLevel] || 1.55);
   };
   
 
@@ -720,16 +836,39 @@ Return the result in JSON format as:
                 {/* Error message */}
               {error && (
                 <motion.div 
-                  className="md:col-span-2 p-3 bg-red-900/30 border border-red-700/50 text-red-300 rounded-lg text-sm flex items-center justify-between mt-2"
+                  className="md:col-span-2 p-4 bg-red-900/30 border border-red-700/50 text-red-300 rounded-lg text-sm mt-4"
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                 >
-                  <span>{error}</span>
-                  <button onClick={() => setError("")} className="text-red-300 hover:text-red-100">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-lg">⚠️</span>
+                        <span className="font-medium">Generation Error</span>
+                      </div>
+                      <div className="whitespace-pre-line text-red-200 leading-relaxed">
+                        {error}
+                      </div>
+                      {error.includes('quota') && (
+                        <div className="mt-3 p-2 bg-blue-900/30 border border-blue-700/30 rounded text-blue-200 text-xs">
+                          <strong>💡 What you can do:</strong>
+                          <ul className="mt-1 ml-4 space-y-1 list-disc">
+                            <li>Use progress tracking and grocery lists</li>
+                            <li>Try again tomorrow (resets midnight PT)</li>
+                            <li>Consider upgrading to paid tier</li>
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                    <button 
+                      onClick={() => setError("")} 
+                      className="text-red-300 hover:text-red-100 ml-3 mt-1 flex-shrink-0"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
                 </motion.div>
               )}
               
@@ -739,17 +878,24 @@ Return the result in JSON format as:
                   disabled={loading || !formData.age || !formData.weight || !formData.height}
                   className="md:col-span-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 py-3 rounded-lg text-white font-bold mt-4 flex justify-center items-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
-                  {loading ? (
-                    <>
-                      <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full mr-2"></div>
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Zap size={20} />
-                      Generate AI Diet Plan
-                    </>
-                  )}
+                {loading ? (
+                  <>
+                    <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                    <span className="flex flex-col items-center">
+                      <span>Generating...</span>
+                      {generationStatus && (
+                        <span className="text-xs text-green-200 mt-1 animate-pulse">
+                          {generationStatus}
+                        </span>
+                      )}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Zap size={20} />
+                    Generate AI Diet Plan
+                  </>
+                )}
                 </motion.button>
               </div>
             </motion.div>
@@ -765,6 +911,36 @@ Return the result in JSON format as:
               className="results-container"
               ref={dietPlanRef}
             >
+              {/* Daily Progress Bar */}
+              <motion.div 
+                className="mb-6 p-4 bg-gradient-to-r from-purple-900/30 to-indigo-900/30 border border-purple-700/30 rounded-xl"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                <div className="flex justify-between items-center mb-2">
+                  <h4 className="font-medium text-purple-300">Today's Progress</h4>
+                  <span className="text-purple-200 text-sm">{Math.round(dailyProgress)}% Complete</span>
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+                  <motion.div 
+                    className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${dailyProgress}%` }}
+                    transition={{ duration: 0.8, ease: "easeOut" }}
+                  />
+                </div>
+                {dailyProgress === 100 && (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="mt-2 text-green-400 text-sm flex items-center gap-1"
+                  >
+                    🎉 Great job! You've completed all your meals today!
+                  </motion.div>
+                )}
+              </motion.div>
+
               {/* Action buttons */}
               <div className="flex flex-wrap gap-2 mb-6">
                 <motion.button
@@ -777,7 +953,35 @@ Return the result in JSON format as:
                   Save Plan
                 </motion.button>
                 
-
+                <motion.button
+                  onClick={() => setShowGroceryList(true)}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-green-600 hover:bg-green-700 rounded-lg text-sm font-medium transition-colors"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <ShoppingCart size={16} />
+                  Grocery List
+                </motion.button>
+                
+                <motion.button
+                  onClick={() => setShowAnalytics(true)}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-medium transition-colors"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <TrendingUp size={16} />
+                  Analytics
+                </motion.button>
+                
+                <motion.button
+                  onClick={() => setShowRecipes(true)}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-orange-600 hover:bg-orange-700 rounded-lg text-sm font-medium transition-colors"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <ChefHat size={16} />
+                  Recipes
+                </motion.button>
                 
                 <motion.button
                   onClick={sharePlan}
@@ -857,25 +1061,89 @@ Return the result in JSON format as:
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.2 }}
                     >
-                      {Object.entries(dietPlan.meals).map(([mealName, items], index) => (
-                        <motion.div 
-                          key={mealName} 
-                          className="meal-section mb-4 p-3 bg-gray-800/50 rounded-lg border border-gray-700/50"
-                          initial={{ opacity: 0, x: index % 2 === 0 ? -20 : 20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.1 }}
-                        >
-                          <h4 className="font-bold text-green-400 flex items-center gap-2 mb-2">
-                            <Clock size={18} /> 
-                            {mealName}
-                          </h4>
-                          <ul className="pl-6 list-disc text-white space-y-1">
-                            {items.map((item, idx) => (
-                              <li key={idx} className="text-gray-200">{item}</li>
-                            ))}
-                          </ul>
-                        </motion.div>
-                      ))}
+                      {Object.entries(dietPlan.meals).map(([mealName, items], index) => {
+                        const mealItems = mealProgress[mealName] || [];
+                        const completedItems = mealItems.filter(Boolean).length;
+                        const totalItems = items.length;
+                        const mealProgressPercentage = totalItems > 0 ? (completedItems / totalItems) * 100 : 0;
+                        
+                        return (
+                          <motion.div 
+                            key={mealName} 
+                            className="meal-section mb-4 p-4 bg-gray-800/50 rounded-lg border border-gray-700/50 hover:border-green-500/30 transition-all"
+                            initial={{ opacity: 0, x: index % 2 === 0 ? -20 : 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: index * 0.1 }}
+                          >
+                            <div className="flex justify-between items-center mb-3">
+                              <h4 className="font-bold text-green-400 flex items-center gap-2">
+                                <Clock size={18} /> 
+                                {mealName}
+                              </h4>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-gray-400">
+                                  {completedItems}/{totalItems}
+                                </span>
+                                <div className="w-12 bg-gray-700 rounded-full h-1.5">
+                                  <div 
+                                    className="h-full bg-green-500 rounded-full transition-all duration-300"
+                                    style={{ width: `${mealProgressPercentage}%` }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                            <ul className="space-y-2">
+                              {items.map((item, idx) => {
+                                const isCompleted = mealItems[idx] || false;
+                                return (
+                                  <li key={idx} className="flex items-center gap-3 group">
+                                    <motion.button
+                                      onClick={() => toggleMealItem(mealName, idx)}
+                                      className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
+                                        isCompleted 
+                                          ? 'bg-green-500 border-green-500 text-white' 
+                                          : 'border-gray-500 hover:border-green-400'
+                                      }`}
+                                      whileHover={{ scale: 1.1 }}
+                                      whileTap={{ scale: 0.9 }}
+                                    >
+                                      {isCompleted && (
+                                        <motion.svg 
+                                          className="w-3 h-3" 
+                                          viewBox="0 0 20 20" 
+                                          fill="currentColor"
+                                          initial={{ scale: 0 }}
+                                          animate={{ scale: 1 }}
+                                          transition={{ type: "spring", stiffness: 500 }}
+                                        >
+                                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                        </motion.svg>
+                                      )}
+                                    </motion.button>
+                                    <span className={`transition-all ${
+                                      isCompleted 
+                                        ? 'text-gray-400 line-through' 
+                                        : 'text-gray-200 group-hover:text-white'
+                                    }`}>
+                                      {item}
+                                    </span>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                            {mealProgressPercentage === 100 && (
+                              <motion.div 
+                                initial={{ opacity: 0, y: 5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="mt-3 p-2 bg-green-900/20 border border-green-700/30 rounded-md text-green-400 text-sm flex items-center gap-2"
+                              >
+                                <span>✅</span>
+                                <span>{mealName} completed!</span>
+                              </motion.div>
+                            )}
+                          </motion.div>
+                        );
+                      })}
                     </motion.div>
                   )}
                   
@@ -1082,43 +1350,41 @@ Return the result in JSON format as:
           )}
         </AnimatePresence>
       </div>
+      
+      {/* Grocery List Generator */}
+      <AnimatePresence>
+        {showGroceryList && (
+          <GroceryListGenerator
+            dietPlan={dietPlan}
+            isVisible={showGroceryList}
+            onClose={() => setShowGroceryList(false)}
+          />
+        )}
+      </AnimatePresence>
+      
+      {/* Nutrition Analytics */}
+      <AnimatePresence>
+        {showAnalytics && (
+          <NutritionAnalytics
+            dietPlan={dietPlan}
+            mealProgress={mealProgress}
+            isVisible={showAnalytics}
+            onClose={() => setShowAnalytics(false)}
+          />
+        )}
+      </AnimatePresence>
+      
+      {/* Smart Recipe Suggestions */}
+      <AnimatePresence>
+        {showRecipes && (
+          <SmartRecipeSuggestions
+            dietPlan={dietPlan}
+            formData={formData}
+            isVisible={showRecipes}
+            onClose={() => setShowRecipes(false)}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
-
-// Mock diet plan fallback with enhanced data
-const mockDietPlan = {
-  calories: 2200,
-  macros: { protein: 150, carbs: 250, fats: 70 },
-  hydration: "Drink 2.5-3 liters water daily",
-  meals: {
-    "Breakfast": [
-      "Oatmeal (1 cup) with almond milk and berries", 
-      "2 boiled eggs", 
-      "1 medium apple"
-    ],
-    "Lunch": [
-      "Grilled chicken breast (150g)", 
-      "Brown rice (1 cup)", 
-      "Steamed broccoli and carrots",
-      "Olive oil dressing (1 tbsp)"
-    ],
-    "Snack": [
-      "Greek yogurt (1 cup) with honey and walnuts",
-      "Protein shake with banana"
-    ],
-    "Dinner": [
-      "Grilled salmon (150g)", 
-      "Quinoa (3/4 cup)", 
-      "Mixed green salad with avocado",
-      "Lemon and herb dressing"
-    ]
-  },
-  tips: [
-    "Include protein with every meal to support muscle maintenance",
-    "Time carbohydrates around workouts for optimal energy",
-    "Include healthy fats for satiety and hormone production",
-    "Stay consistent with meal timing to regulate blood sugar",
-    "Prioritize whole foods over processed alternatives"
-  ]
-};

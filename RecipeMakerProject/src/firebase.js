@@ -1,7 +1,7 @@
 // src/firebase.js
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore'; // ✅ Add this
+import { getAuth, GoogleAuthProvider, signInWithPopup, linkWithPopup, signInWithRedirect, getRedirectResult } from 'firebase/auth';
+import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -14,6 +14,11 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
+// Export auth instance and functions
 export const auth = getAuth(app);
 export const provider = new GoogleAuthProvider();
-export const db = getFirestore(app); // ✅ Export Firestore instance
+export { GoogleAuthProvider, signInWithPopup, linkWithPopup, signInWithRedirect, getRedirectResult };
+
+// Export Firestore instance and functions
+export const db = getFirestore(app);
+export { collection, doc, setDoc, getDoc, updateDoc, onSnapshot };

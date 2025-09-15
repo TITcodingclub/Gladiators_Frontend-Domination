@@ -8,11 +8,14 @@ import VideoCallMock from '../components/common/VideoCallMock'
 import DietPlanner from '../components/diet/DietPlanner'
 import TagAnimator from '../components/common/TagAnimator'
 import EmojiReactions from '../components/community/EmojiReactions'
+import HealthDataDisplay from '../components/health/HealthDataDisplay'
+import DevicePairingModal from '../components/health/DevicePairingModal'
 
 import { motion } from 'framer-motion'
 import { gsap } from 'gsap'
 import { FiClock, FiHeart } from 'react-icons/fi'
 import { GiChefToque } from 'react-icons/gi'
+import { Activity, Smartphone, Watch } from 'lucide-react'
 
 // 🔹 StatsCard
 function StatsCard({ icon, title, value, color }) {
@@ -97,6 +100,7 @@ function VoiceWithVideoSection() {
 export default function RecipePage() {
   const { user } = useAuth()
   const pageRef = useRef(null)
+  const [showDevicePairing, setShowDevicePairing] = useState(false)
 
   useEffect(() => {
     gsap.fromTo(
@@ -122,6 +126,34 @@ export default function RecipePage() {
           <StatsCard icon={<FiHeart size={24} />} title="Favorite Recipes" value="5" color="from-rose-500 to-pink-600" />
         </div>
 
+        {/* Health Metrics Quick Overview */}
+        <motion.div 
+          className="bg-gradient-to-br from-gray-800/40 to-gray-900/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="bg-gradient-to-r from-blue-500 to-green-500 p-2 rounded-lg">
+                <Activity size={20} className="text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">Health Overview</h2>
+                <p className="text-gray-400 text-sm">Track your health metrics alongside your nutrition</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowDevicePairing(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white text-sm font-medium transition-colors"
+            >
+              <Smartphone size={16} />
+              Connect Devices
+            </button>
+          </div>
+          <HealthDataDisplay showConnectionButtons={true} onConnect={() => setShowDevicePairing(true)} />
+        </motion.div>
+
         {/* Drag + Voice + Video */}
         <DragDropBoard>
           <VoiceWithVideoSection />
@@ -143,6 +175,16 @@ export default function RecipePage() {
           <EmojiReactions />
         </div> */}
       </motion.div>
+
+      {/* Device Pairing Modal */}
+      <DevicePairingModal 
+        isVisible={showDevicePairing}
+        onClose={() => setShowDevicePairing(false)}
+        onSuccess={(deviceType) => {
+          console.log(`${deviceType} connected successfully`);
+          setShowDevicePairing(false);
+        }}
+      />
     </>
   )
 }
