@@ -1,8 +1,11 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import Navbar from './components/common/Navbar';
 import { useEffect, useState } from 'react';
 import axiosInstance from './utils/axiosInstance';
+import { AnimatePresence } from 'framer-motion';
+import LoadingSpinner from './components/common/LoadingSpinner';
+import PageTransition from './components/common/PageTransition';
 
 import RecipePage from './pages/RecipePage';
 import RecipeGuide from './components/recipe/RecipeGuide';
@@ -46,11 +49,7 @@ function RequireCompletedProfile({ children }) {
   }, []);
 
   if (checking) {
-    return (
-      <div className="w-screen h-screen flex justify-center items-center bg-black">
-        <div className="animate-spin rounded-full h-20 w-20 border-t-2 border-b-2 border-[#FF742C]"></div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   if (!completed) return <Navigate to="/register-profile" replace />;
@@ -61,28 +60,34 @@ function App() {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div className="w-screen h-screen flex justify-center items-center bg-black">
-        <div className="flex justify-center items-center py-4">
-          <div className="animate-spin rounded-full h-20 w-20 border-t-2 border-b-2 border-[#FF742C]"></div>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   return (
     <Router>
-      <div className="min-h-screen w-full flex flex-col">
-        {user && <Navbar />}
-        <main className="flex-1 pt-20"> 
+      <AnimatedRoutes user={user} />
+    </Router>
+  );
+}
+
+function AnimatedRoutes({ user }) {
+  const location = useLocation();
+
+  return (
+    <div className="min-h-screen w-full flex flex-col">
+      {user && <Navbar />}
+      <main className="flex-1 pt-20">
         <ThreadBackground />
-          <Routes>
+        <AnimatePresence mode="wait">
+          <Routes location={location} key={location.pathname}>
             <Route
               path="/"
               element={
                 <ProtectedRoute user={user}>
                   <RequireCompletedProfile>
-                    <RecipePage />
+                    <PageTransition>
+                      <RecipePage />
+                    </PageTransition>
                   </RequireCompletedProfile>
                 </ProtectedRoute>
               }
@@ -96,7 +101,9 @@ function App() {
               element={
                 <ProtectedRoute user={user}>
                   <RequireCompletedProfile>
-                    <RecipeGuide />
+                    <PageTransition>
+                      <RecipeGuide />
+                    </PageTransition>
                   </RequireCompletedProfile>
                 </ProtectedRoute>
               }
@@ -106,7 +113,9 @@ function App() {
               element={
                 <ProtectedRoute user={user}>
                   <RequireCompletedProfile>
-                    <CommunityFeed />
+                    <PageTransition>
+                      <CommunityFeed />
+                    </PageTransition>
                   </RequireCompletedProfile>
                 </ProtectedRoute>
               }
@@ -116,7 +125,9 @@ function App() {
               element={
                 <ProtectedRoute user={user}>
                   <RequireCompletedProfile>
-                    <UserProfile />
+                    <PageTransition>
+                      <UserProfile />
+                    </PageTransition>
                   </RequireCompletedProfile>
                 </ProtectedRoute>
               }
@@ -125,7 +136,9 @@ function App() {
               path="/register-profile"
               element={
                 <ProtectedRoute user={user}>
-                  <RegisterProfile />
+                  <PageTransition>
+                    <RegisterProfile />
+                  </PageTransition>
                 </ProtectedRoute>
               }
             />
@@ -134,30 +147,48 @@ function App() {
               element={
                 <ProtectedRoute user={user}>
                   <RequireCompletedProfile>
-                    <DietPlanner />
+                    <PageTransition>
+                      <DietPlanner />
+                    </PageTransition>
                   </RequireCompletedProfile>
                 </ProtectedRoute>
               }
             />
-            <Route path="/shared-diet-plan/:id" element={<SharedDietPlan />} />
-            <Route path="/shared-diet-plan" element={<SharedDietPlan />} />
+            <Route
+              path="/shared-diet-plan/:id"
+              element={
+                <PageTransition>
+                  <SharedDietPlan />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/shared-diet-plan"
+              element={
+                <PageTransition>
+                  <SharedDietPlan />
+                </PageTransition>
+              }
+            />
             <Route
               path="/user/:userId"
               element={
                 <ProtectedRoute user={user}>
                   <RequireCompletedProfile>
-                    <UserProfile />
+                    <PageTransition>
+                      <UserProfile />
+                    </PageTransition>
                   </RequireCompletedProfile>
                 </ProtectedRoute>
               }
             />          
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+        </AnimatePresence>
         </main>
         {user && <Footer />}
       </div>
-    </Router>
-  );
+    );
 }
 
 export default App;

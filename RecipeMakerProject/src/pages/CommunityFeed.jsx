@@ -184,12 +184,23 @@ export default function CommunityFeed() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="max-w-4xl mx-auto mb-10 text-center"
+          className="max-w-4xl mx-auto mb-10 text-center bg-gradient-to-b from-gray-900/50 to-transparent p-8 rounded-2xl backdrop-blur-lg border border-white/10"
         >
-          <h1 className="text-4xl sm:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500 mb-4">
+          <motion.h1 
+            className="text-4xl sm:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 via-blue-500 to-purple-500 mb-4"
+            animate={{ 
+              backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+            }}
+            transition={{ 
+              duration: 5,
+              repeat: Infinity,
+              ease: "linear"
+            }}
+            style={{ backgroundSize: "200% 200%" }}
+          >
             Nutrithy Community
-          </h1>
-          <p className="text-xl text-gray-200 max-w-2xl mx-auto">
+          </motion.h1>
+          <p className="text-xl text-gray-200 max-w-2xl mx-auto leading-relaxed">
             Share your culinary creations, discover new recipes, and connect with fellow food enthusiasts.
           </p>
         </motion.div>
@@ -250,26 +261,34 @@ export default function CommunityFeed() {
         )}
 
         {/* Create Post Button */}
-        <motion.div 
-          className="max-w-4xl mx-auto mb-8"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-        >
-          <button 
-            onClick={() => setShowPostModal(true)}
-            className="w-full bg-gray-800/60 backdrop-blur-sm hover:bg-gray-700/70 text-left px-6 py-4 rounded-xl border border-gray-700/50 shadow-lg transition-all duration-300 hover:shadow-green-500/10 hover:border-green-500/30 group"
+          <motion.div 
+            className="max-w-4xl mx-auto mb-8"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
           >
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-gray-400">
-                <FaUserCircle size={24} />
+            <motion.button 
+              onClick={() => setShowPostModal(true)}
+              className="w-full bg-gradient-to-r from-gray-800/80 to-gray-900/80 backdrop-blur-sm text-left px-6 py-4 rounded-xl border border-gray-700/50 shadow-lg transition-all duration-300 group"
+              whileHover={{ 
+                scale: 1.01,
+                boxShadow: "0 0 20px rgba(34, 197, 94, 0.2)",
+                borderColor: "rgba(34, 197, 94, 0.3)"
+              }}
+              whileTap={{ scale: 0.99 }}
+            >
+              <div className="flex items-center gap-4">
+                <motion.div 
+                  className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center text-white shadow-lg"
+                  whileHover={{ rotate: 360 }}
+                  transition={{ duration: 0.5 }}
+                >
+                  <FaUserCircle size={24} />
+                </motion.div>
+                <p className="text-gray-300 group-hover:text-white transition-colors duration-300">Share your latest recipe or food adventure...</p>
               </div>
-              <p className="text-gray-400 group-hover:text-gray-200 transition-colors duration-300">Share your latest recipe or food adventure...</p>
-            </div>
-          </button>
-        </motion.div>
-
-        {/* Error Message */}
+            </motion.button>
+          </motion.div>        {/* Error Message */}
         {error && (
           <div className="max-w-4xl mx-auto mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg text-white text-center">
             {error}
@@ -373,11 +392,27 @@ export default function CommunityFeed() {
       
       {/* Floating Action Button for Mobile */}
       <motion.button
-        className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-gradient-to-r from-green-400 to-blue-500 text-white shadow-lg flex items-center justify-center z-20 md:hidden"
-        whileHover={{ scale: 1.1 }}
+        className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-gradient-to-r from-green-400 via-blue-500 to-purple-500 text-white shadow-lg flex items-center justify-center z-20 md:hidden"
+        initial={{ opacity: 0, scale: 0, rotate: -180 }}
+        animate={{ opacity: 1, scale: 1, rotate: 0 }}
+        whileHover={{ 
+          scale: 1.1,
+          boxShadow: "0 0 30px rgba(34, 197, 94, 0.3)",
+        }}
         whileTap={{ scale: 0.9 }}
         onClick={() => setShowPostModal(true)}
       >
+        <motion.div
+          animate={{ 
+            rotate: [0, 360],
+          }}
+          transition={{ 
+            duration: 20,
+            repeat: Infinity,
+            ease: "linear"
+          }}
+          className="absolute inset-0 bg-gradient-to-r from-green-400 via-blue-500 to-purple-500 rounded-full opacity-50 blur-lg"
+        />
         <FaPen size={20} />
       </motion.button>
     </>
@@ -395,9 +430,13 @@ function PostCard({ post, userInteractions, onInteraction, variants }) {
   
   return (
     <motion.div 
-      className="bg-gray-800/60 backdrop-blur-sm rounded-xl overflow-hidden border border-gray-700/50 shadow-lg hover:shadow-green-500/10 hover:border-green-500/30 transition-all duration-300"
+      className="bg-gradient-to-br from-gray-800/80 to-gray-900/80 backdrop-blur-sm rounded-xl overflow-hidden border border-gray-700/50 shadow-lg transition-all duration-300"
       variants={variants}
-      whileHover={{ y: -5 }}
+      whileHover={{ 
+        y: -5,
+        boxShadow: "0 8px 30px rgba(34, 197, 94, 0.2)",
+        borderColor: "rgba(34, 197, 94, 0.3)",
+      }}
       layout
     >
       {/* Post Header */}

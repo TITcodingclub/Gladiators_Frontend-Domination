@@ -88,14 +88,16 @@ exports.createPost = async (req, res) => {
     
     const newPost = new CommunityPost({
       uid,
-      author: user.name,
-      authorImage: user.photo || null,
+      author: user.displayName,
+      authorImage: user.photoURL || null,
       content,
       image,
       tags: tags || [],
       recipe: recipe || null,
       likedBy: [],
-      sharedBy: []
+      sharedBy: [],
+      likes: 0,
+      shares: 0
     });
     
     await newPost.save();
