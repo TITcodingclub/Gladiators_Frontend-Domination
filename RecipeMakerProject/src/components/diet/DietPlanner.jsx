@@ -618,7 +618,7 @@ Return JSON:
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="w-full mx-auto my-8 p-6 bg-gray-900 rounded-2xl shadow-lg text-white relative overflow-hidden"
+      className="max-w-[80vw] mx-auto my-8 p-6 bg-gray-900 rounded-2xl shadow-lg text-white relative overflow-hidden"
     >
       {/* Animated background gradient */}
       

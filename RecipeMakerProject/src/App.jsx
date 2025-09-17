@@ -6,14 +6,18 @@ import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 
 // Core hooks and utilities
 import { useAuth } from './hooks/useAuth';
+import { useSidebar } from './hooks/useSidebar';
 import axiosInstance from './utils/axiosInstance';
 import { navigationFix } from './utils/navigationFix';
+import navigationTest from './utils/navigationTest';
 import healthDataService from './services/healthDataService';
 
 // Components
 import ErrorBoundary from './components/common/ErrorBoundary';
 import LoadingFallback, { SuspenseBoundary } from './components/common/LoadingFallback';
-import Navbar from './components/common/Navbar';
+import Sidebar from './components/common/Sidebar';
+import MobileTopNav from './components/common/MobileTopNav';
+// import Breadcrumb from './components/common/Breadcrumb';
 import Footer from './components/common/Footer';
 import ThreadBackground from './components/common/ThreadBackground';
 import PageTransition from './components/common/PageTransition';
@@ -257,6 +261,7 @@ function App() {
  */
 function AppContent() {
   const { user, loading } = useAuth();
+  const { mainMargin, isMobile } = useSidebar();
   const location = useLocation();
   
   // Initialize health service and check for redirect results
@@ -287,6 +292,14 @@ function AppContent() {
   // Initialize navigation fix
   useEffect(() => {
     navigationFix.debugNavigation();
+    navigationFix.fixReactRouterV7Navigation();
+    
+    // Run navigation tests in development mode
+    if (import.meta.env.DEV) {
+      setTimeout(() => {
+        navigationTest.runAllTests().catch(console.error);
+      }, 2000);
+    }
   }, [location]);
 
   // Update page metadata when route changes
@@ -327,14 +340,15 @@ function AppContent() {
       </a>
       
       {user && (
-        <header role="banner">
-          <Navbar />
-        </header>
+        <>
+          <Sidebar />
+          <MobileTopNav />
+        </>
       )}
-      
       <main 
         id="main-content"
-        className={`flex-1 relative ${user ? 'pt-20' : ''}`}
+        className={`flex-1 relative transition-all duration-300 scroll-smooth ${user ? 'pt-16 lg:pt-0' : ''}`}
+        style={{ marginLeft: user && !isMobile ? `${mainMargin}px` : 0 }}
         role="main"
         tabIndex={-1}
       >

@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { 
   ChefHat, 
   Users, 
@@ -8,7 +9,9 @@ import {
   Trophy, 
   TrendingUp,
   Eye,
-  Calendar
+  Calendar,
+  ArrowRight,
+  BarChart3
 } from 'lucide-react';
 
 const StatCard = ({ stat, index }) => {
@@ -77,6 +80,8 @@ const StatCard = ({ stat, index }) => {
 };
 
 const ProfileStats = ({ profile }) => {
+  const navigate = useNavigate();
+  
   const stats = [
     {
       label: 'Recipes Created',
@@ -225,13 +230,26 @@ const ProfileStats = ({ profile }) => {
           </div>
         </div>
 
-        {/* Recent Activity Summary */}
+        {/* Recent Activity Summary with Navigation */}
         <div className="bg-gray-800/60 backdrop-blur-xl rounded-2xl border border-gray-700/50 p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-emerald-400/10 rounded-xl flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-emerald-400" />
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-emerald-400/10 rounded-xl flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-emerald-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-white">This Month</h3>
             </div>
-            <h3 className="text-lg font-semibold text-white">This Month</h3>
+            
+            <motion.button
+              onClick={() => navigate('/activity')}
+              className="flex items-center gap-2 text-xs text-emerald-400 hover:text-emerald-300 transition-colors group"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <BarChart3 className="w-3 h-3" />
+              <span>View All</span>
+              <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+            </motion.button>
           </div>
           
           <div className="space-y-3">
@@ -248,6 +266,18 @@ const ProfileStats = ({ profile }) => {
               <span className="text-pink-400 font-medium">+48</span>
             </div>
           </div>
+          
+          {/* Full Activity Button */}
+          <motion.button
+            onClick={() => navigate('/activity')}
+            className="w-full mt-4 py-2 px-4 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-600/30 rounded-xl text-emerald-400 text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 group"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <BarChart3 className="w-4 h-4" />
+            <span>View Full Activity</span>
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          </motion.button>
         </div>
       </motion.div>
     </motion.div>

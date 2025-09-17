@@ -13,6 +13,7 @@ const userRegistrationRoute = require("./routes/userRegistrationRoute");
 const userProfileRoutes = require("./routes/userProfileRoutes");
 const dietPlanRoutes = require("./routes/dietPlanRoutes");
 const communityRoutes = require("./routes/communityRoutes");
+const nutritionRoutes = require("./routes/nutritionRoutes");
 const socketHandler = require("./socket/socketHandler");
 
 const app = express();
@@ -44,6 +45,7 @@ app.use("/api/recipes", recipeRoutes);
 app.use("/api/rooms", roomRoutes);
 app.use("/api/diet-plans", dietPlanRoutes);
 app.use("/api/community", communityRoutes);
+app.use("/api/nutrition", nutritionRoutes);
 
 // ✅ Users routes
 app.use("/api/users", userRoutes); // existing user operations (login, profile, etc.)

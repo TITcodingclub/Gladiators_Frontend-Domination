@@ -133,24 +133,6 @@ export default function RecipePage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="bg-gradient-to-r from-blue-500 to-green-500 p-2 rounded-lg">
-                <Activity size={20} className="text-white" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-white">Health Overview</h2>
-                <p className="text-gray-400 text-sm">Track your health metrics alongside your nutrition</p>
-              </div>
-            </div>
-            <button
-              onClick={() => setShowDevicePairing(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white text-sm font-medium transition-colors"
-            >
-              <Smartphone size={16} />
-              Connect Devices
-            </button>
-          </div>
           <HealthDataDisplay showConnectionButtons={true} onConnect={() => setShowDevicePairing(true)} />
         </motion.div>
 

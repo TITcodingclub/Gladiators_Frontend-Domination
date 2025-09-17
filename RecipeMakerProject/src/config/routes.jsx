@@ -9,6 +9,7 @@ const UserProfile = lazy(() => import('../pages/UserProfile'));
 const RegisterProfile = lazy(() => import('../pages/RegisterProfile'));
 const DietPlanner = lazy(() => import('../components/diet/DietPlanner'));
 const SharedDietPlan = lazy(() => import('../pages/SharedDietPlan'));
+const ActivityPage = lazy(() => import('../pages/ActivityPage'));
 
 // Route configuration with metadata
 export const routeConfig = [
@@ -44,6 +45,15 @@ export const routeConfig = [
     element: CommunityFeed,
     title: 'Nutrithy - Nutrition Community',
     description: 'Connect with health-conscious food enthusiasts',
+    requiresAuth: true,
+    requiresProfile: true,
+    preloadOnHover: true,
+  },
+  {
+    path: '/activity',
+    element: ActivityPage,
+    title: 'Nutrithy - Your Activity',
+    description: 'Track your nutrition journey, achievements, and community engagement',
     requiresAuth: true,
     requiresProfile: true,
     preloadOnHover: true,

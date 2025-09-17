@@ -94,7 +94,7 @@ export default function RegisterProfile() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 text-white py-15">
+    <div className="min-h-screen max-w-[80vw] flex items-center justify-center p-6 text-white py-15">
       <motion.div
         ref={formRef}
         className="rounded-3xl p-8 w-full max-w-5xl bg-gray-800 shadow-2xl"

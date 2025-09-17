@@ -8,7 +8,6 @@ import toast from 'react-hot-toast';
 // Import enhanced modern components
 import ProfileHeader from '../components/profile/ProfileHeader';
 import ProfileStats from '../components/profile/ProfileStats';
-import ActivityFeed from '../components/profile/ActivityFeed';
 import FavoriteRecipes from '../components/user/FavoriteRecipes';
 import NutritionTracking from '../components/user/NutritionTracking';
 import PersonalInfo from '../components/user/PersonalInfo';
@@ -127,34 +126,60 @@ export default function UserProfile({
   // Profile not found state
   if (!profile) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20, scale: 0.9 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          className="text-center max-w-md"
-        >
-          <div className="w-24 h-24 bg-gray-800/60 backdrop-blur-xl rounded-3xl flex items-center justify-center mx-auto mb-6 border border-gray-700/50">
-            <User className="w-12 h-12 text-gray-400" />
-          </div>
-          
-          <h2 className="text-3xl font-bold text-white mb-4">
-            Profile Not Found
-          </h2>
-          
-          <p className="text-gray-400 mb-8 leading-relaxed">
-            The requested profile could not be found or may have been removed. The user might have deactivated their account.
-          </p>
-          
-          <motion.button
-            onClick={() => window.history.back()}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="px-8 py-3 bg-gray-800/60 backdrop-blur-xl hover:bg-gray-700/60 text-white rounded-2xl font-medium transition-all duration-200 border border-gray-700/50"
-          >
-            Go Back
-          </motion.button>
-        </motion.div>
-      </div>
+     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-950 flex items-center justify-center p-6">
+  <motion.div
+    initial={{ opacity: 0, y: 40, scale: 0.9 }}
+    animate={{ opacity: 1, y: 0, scale: 1 }}
+    transition={{ duration: 0.7, ease: "easeOut" }}
+    className="text-center max-w-md w-full"
+  >
+    {/* Icon */}
+    <div className="w-28 h-28 bg-gray-800/70 backdrop-blur-2xl rounded-3xl flex items-center justify-center mx-auto mb-6 border border-gray-700/50 shadow-2xl shadow-purple-500/20 animate-pulse">
+      <User className="w-14 h-14 text-gray-300" />
+    </div>
+
+    {/* Heading */}
+    <h2 className="text-4xl font-extrabold text-white mb-3 tracking-tight drop-shadow-lg">
+      Profile Not Found
+    </h2>
+    <p className="text-gray-400 text-lg mb-10 leading-relaxed px-2">
+      The requested profile could not be found. It may have been removed or the user might have deactivated their account.
+    </p>
+
+    {/* Animated Illustration */}
+    <motion.div
+      initial={{ scale: 0.8, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ delay: 0.4, duration: 0.6 }}
+      className="w-40 h-40 mx-auto mb-10 bg-gray-800/40 border border-gray-700/40 rounded-full flex items-center justify-center shadow-inner relative overflow-hidden"
+    >
+      <span className="text-gray-500 text-2xl animate-bounce">👤❌</span>
+      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-purple-500/10 to-transparent animate-spin-slow rounded-full" />
+    </motion.div>
+
+    {/* Button Row */}
+    <div className="flex flex-col sm:flex-row gap-4 justify-center">
+      <motion.button
+        onClick={() => window.history.back()}
+        whileHover={{ scale: 1.07, backgroundColor: "rgba(75,85,99,0.6)" }}
+        whileTap={{ scale: 0.95 }}
+        className="px-8 py-3 bg-gray-800/70 backdrop-blur-xl hover:bg-gray-700/70 text-white rounded-2xl font-semibold transition-all duration-200 border border-gray-700/50 shadow-md"
+      >
+        Go Back
+      </motion.button>
+
+      <motion.a
+        href="/"
+        whileHover={{ scale: 1.07, backgroundColor: "rgba(139,92,246,0.2)" }}
+        whileTap={{ scale: 0.95 }}
+        className="px-8 py-3 bg-purple-600/80 hover:bg-purple-700 text-white rounded-2xl font-semibold transition-all duration-200 shadow-md"
+      >
+        Go Home
+      </motion.a>
+    </div>
+  </motion.div>
+</div>
+
     );
   }
 
@@ -175,7 +200,7 @@ export default function UserProfile({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
-          className="max-w-7xl mx-auto px-4 py-8"
+          className="max-w-[80vw] mx-auto px-4 py-8"
         >
           {/* Modern Profile Header */}
           <Suspense fallback={<LoadingFallback message="Loading profile header..." minimal />}>
@@ -196,11 +221,6 @@ export default function UserProfile({
           {/* Enhanced Profile Stats */}
           <Suspense fallback={<LoadingFallback message="Loading statistics..." minimal />}>
             <ProfileStats profile={profile} userStats={userStats} />
-          </Suspense>
-
-          {/* Activity Feed */}
-          <Suspense fallback={<LoadingFallback message="Loading activity feed..." minimal />}>
-            <ActivityFeed profile={profile} />
           </Suspense>
 
           {/* Health Metrics Section (Only for own profile) */}

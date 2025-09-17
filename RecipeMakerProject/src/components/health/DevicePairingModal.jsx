@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect, useRef, memo, useCallback } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { 
   X, Smartphone, Watch, Activity, Heart, Footprints, 
   Zap, CheckCircle, AlertCircle, Loader2, RefreshCw,
@@ -11,9 +11,12 @@ import { useAuth } from '../../hooks/useAuth';
 import healthDataService from '../../services/healthDataService';
 import '../../styles/modal-utils.css';
 
-const DevicePairingModal = ({ isVisible, onClose, onSuccess }) => {
+const DevicePairingModal = memo(({ isVisible, onClose, onSuccess }) => {
   const { user } = useAuth();
   const modalRef = useRef(null);
+  
+  // Accessibility and performance
+  const shouldReduceMotion = useReducedMotion();
   
   // Enhanced state management
   const [activeTab, setActiveTab] = useState('googlefit');
@@ -31,18 +34,37 @@ const DevicePairingModal = ({ isVisible, onClose, onSuccess }) => {
   const [batteryLevel, setBatteryLevel] = useState(null);
   const [signalStrength, setSignalStrength] = useState(null);
   
-  // Mobile detection
+  // Enhanced responsive detection
   const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
+  const [screenSize, setScreenSize] = useState('desktop');
   
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-      setIsFullScreen(window.innerWidth < 640);
+    const checkResponsive = () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      
+      setIsMobile(width < 768);
+      setIsTablet(width >= 768 && width < 1024);
+      setIsFullScreen(width < 640 || height < 700);
+      
+      // Set screen size for better layout decisions
+      if (width < 480) {
+        setScreenSize('xs');
+      } else if (width < 768) {
+        setScreenSize('sm');
+      } else if (width < 1024) {
+        setScreenSize('md');
+      } else if (width < 1440) {
+        setScreenSize('lg');
+      } else {
+        setScreenSize('xl');
+      }
     };
     
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    checkResponsive();
+    window.addEventListener('resize', checkResponsive);
+    return () => window.removeEventListener('resize', checkResponsive);
   }, []);
 
   // Touch gesture handling
@@ -101,15 +123,46 @@ const DevicePairingModal = ({ isVisible, onClose, onSuccess }) => {
     }
   }, [isVisible, user]);
   
-  // Prevent body scroll on mobile when modal is open
+  // Prevent body scroll on mobile when modal is open and add keyboard navigation
   useEffect(() => {
-    if (isVisible && isMobile) {
-      document.body.style.overflow = 'hidden';
+    if (isVisible) {
+      if (isMobile) {
+        document.body.style.overflow = 'hidden';
+      }
+      
+      // Add keyboard navigation
+      const handleKeyDown = (e) => {
+        if (e.key === 'Escape') {
+          onClose();
+        }
+        if (e.key === 'Tab') {
+          // Let the browser handle tab navigation within the modal
+          const focusableElements = modalRef.current?.querySelectorAll(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          );
+          if (focusableElements?.length) {
+            const firstElement = focusableElements[0];
+            const lastElement = focusableElements[focusableElements.length - 1];
+            
+            if (e.shiftKey && document.activeElement === firstElement) {
+              e.preventDefault();
+              lastElement.focus();
+            } else if (!e.shiftKey && document.activeElement === lastElement) {
+              e.preventDefault();
+              firstElement.focus();
+            }
+          }
+        }
+      };
+      
+      document.addEventListener('keydown', handleKeyDown);
+      
       return () => {
         document.body.style.overflow = '';
+        document.removeEventListener('keydown', handleKeyDown);
       };
     }
-  }, [isVisible, isMobile]);
+  }, [isVisible, isMobile, onClose]);
 
   const checkConnectionStatus = async () => {
     try {
@@ -381,152 +434,427 @@ const DevicePairingModal = ({ isVisible, onClose, onSuccess }) => {
 
   if (!isVisible) return null;
 
-  const MobileHeader = () => (
-    <div className={`${isMobile ? 'sticky top-0 bg-gray-900/95 backdrop-blur-xl z-10 -mx-4 -mt-4 px-4 pt-4 pb-2 mb-4' : 'mb-6'}`}>
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <div className={`${isMobile ? 'w-10 h-10' : 'w-12 h-12'} rounded-2xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center`}>
-            <Activity size={isMobile ? 20 : 24} className="text-blue-400" />
+  const ResponsiveHeader = () => {
+    const getHeaderSize = () => {
+      switch(screenSize) {
+        case 'xs': return { icon: 18, title: 'text-base', subtitle: 'text-xs' };
+        case 'sm': return { icon: 20, title: 'text-lg', subtitle: 'text-xs' };
+        case 'md': return { icon: 22, title: 'text-xl', subtitle: 'text-sm' };
+        case 'lg': return { icon: 24, title: 'text-2xl', subtitle: 'text-sm' };
+        default: return { icon: 28, title: 'text-3xl', subtitle: 'text-base' };
+      }
+    };
+    
+    const sizes = getHeaderSize();
+    
+    return (
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className={`${isMobile ? 'sticky top-0 bg-gray-900/95 backdrop-blur-2xl z-20 -mx-4 -mt-4 px-4 pt-4 pb-3 mb-4 border-b border-gray-700/30' : 'mb-6'}`}
+      >
+        <div className="flex justify-between items-start gap-4">
+          <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
+            <motion.div 
+              className={`${screenSize === 'xs' ? 'w-10 h-10' : screenSize === 'sm' ? 'w-11 h-11' : 'w-12 h-12'} rounded-2xl bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-pink-500/20 backdrop-blur-sm border border-blue-500/20 flex items-center justify-center flex-shrink-0`}
+              whileHover={{ scale: 1.05, rotate: 5 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Activity size={sizes.icon} className="text-blue-400" />
+            </motion.div>
+            <div className="flex-1 min-w-0">
+              <h2 className={`${sizes.title} font-bold text-white leading-tight`} id="modal-title">
+                {screenSize === 'xs' ? 'Devices' : isMobile ? 'Health Devices' : 'Connect Health Devices'}
+              </h2>
+              <p className={`${sizes.subtitle} text-gray-400 leading-relaxed mt-0.5`} id="modal-description">
+                {isMobile ? 'Track health metrics in real-time' : 'Connect your devices to track health metrics in real-time'}
+              </p>
+              {(connectionStatus.googleFit || connectionStatus.smartwatch) && (
+                <div className="flex items-center gap-2 mt-2">
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                  <span className="text-xs text-green-400 font-medium">Devices Connected</span>
+                </div>
+              )}
+            </div>
           </div>
-          <div>
-            <h2 className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold text-white`}>
-              {isMobile ? 'Health Devices' : 'Connect Health Devices'}
-            </h2>
-            <p className="text-gray-400 text-xs sm:text-sm">
-              {isMobile ? 'Track metrics in real-time' : 'Connect your devices to track health metrics in real-time'}
-            </p>
-          </div>
+          
+            <motion.button
+              onClick={onClose}
+              className={`${screenSize === 'xs' ? 'p-2' : 'p-2.5'} bg-gray-800/80 hover:bg-gray-700 border border-gray-700/50 hover:border-gray-600 rounded-xl text-white transition-all duration-200 backdrop-blur-sm flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900`}
+              whileHover={shouldReduceMotion ? {} : { scale: 1.05 }}
+              whileTap={shouldReduceMotion ? {} : { scale: 0.95 }}
+              aria-label="Close modal"
+              autoFocus
+            >
+              <X size={screenSize === 'xs' ? 16 : 18} aria-hidden="true" />
+            </motion.button>
         </div>
-        <button
-          onClick={onClose}
-          className={`${isMobile ? 'p-2.5' : 'p-2'} bg-gray-800 hover:bg-gray-700 rounded-xl text-white transition-all duration-200 active:scale-95`}
+        
+        {/* Enhanced swipe indicator for mobile */}
+        {isMobile && (
+          <motion.div 
+            className="flex justify-center mt-4"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <div className="w-12 h-1 bg-gradient-to-r from-gray-600 via-gray-500 to-gray-600 rounded-full"></div>
+          </motion.div>
+        )}
+      </motion.div>
+    );
+  };
+
+  const EnhancedTabNavigation = () => {
+    const getTabLayout = () => {
+      if (screenSize === 'xs') return { spacing: 'space-x-1', padding: 'px-2.5 py-2', text: 'text-xs' };
+      if (screenSize === 'sm') return { spacing: 'space-x-2', padding: 'px-3 py-2.5', text: 'text-sm' };
+      return { spacing: 'space-x-3', padding: 'px-4 py-3', text: 'text-base' };
+    };
+    
+    const layout = getTabLayout();
+    
+    return (
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className={`flex ${layout.spacing} mb-6 p-1 bg-gray-800/30 backdrop-blur-sm rounded-2xl border border-gray-700/50`}
+      >
+        <motion.button
+          onClick={() => setActiveTab('googlefit')}
+          className={`flex items-center justify-center gap-2 ${layout.padding} ${layout.text} rounded-xl font-medium transition-all duration-300 flex-1 relative overflow-hidden ${
+            activeTab === 'googlefit' 
+              ? 'bg-gradient-to-r from-blue-600/90 to-blue-500/90 text-white shadow-lg border border-blue-500/30' 
+              : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+          }`}
+          whileHover={shouldReduceMotion ? {} : { scale: 1.02 }}
+          whileTap={shouldReduceMotion ? {} : { scale: 0.98 }}
         >
-          <X size={isMobile ? 18 : 20} />
-        </button>
-      </div>
-      
-      {/* Mobile swipe indicator */}
-      {isMobile && (
-        <div className="flex justify-center mt-3">
-          <div className="w-12 h-1 bg-gray-600 rounded-full"></div>
-        </div>
-      )}
-    </div>
-  );
+          {activeTab === 'googlefit' && (
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-r from-blue-600 to-blue-500 rounded-xl"
+              layoutId="activeTab"
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            />
+          )}
+          <div className="relative z-10 flex items-center gap-2">
+            <Smartphone size={screenSize === 'xs' ? 14 : screenSize === 'sm' ? 16 : 18} />
+            <span className={screenSize === 'xs' ? 'hidden' : ''}>
+              {screenSize === 'sm' || isMobile ? 'Google Fit' : 'Google Fit'}
+            </span>
+            {connectionStatus.googleFit && (
+              <motion.div 
+                className="w-2 h-2 bg-green-300 rounded-full"
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ repeat: Infinity, duration: 1.5 }}
+              />
+            )}
+          </div>
+        </motion.button>
+        
+        <motion.button
+          onClick={() => setActiveTab('smartwatch')}
+          className={`flex items-center justify-center gap-2 ${layout.padding} ${layout.text} rounded-xl font-medium transition-all duration-300 flex-1 relative overflow-hidden ${
+            activeTab === 'smartwatch' 
+              ? 'bg-gradient-to-r from-purple-600/90 to-purple-500/90 text-white shadow-lg border border-purple-500/30' 
+              : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+          }`}
+          whileHover={shouldReduceMotion ? {} : { scale: 1.02 }}
+          whileTap={shouldReduceMotion ? {} : { scale: 0.98 }}
+        >
+          {activeTab === 'smartwatch' && (
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-r from-purple-600 to-purple-500 rounded-xl"
+              layoutId="activeTab"
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            />
+          )}
+          <div className="relative z-10 flex items-center gap-2">
+            <Watch size={screenSize === 'xs' ? 14 : screenSize === 'sm' ? 16 : 18} />
+            <span className={screenSize === 'xs' ? 'hidden' : ''}>
+              {screenSize === 'sm' || isMobile ? 'Smartwatch' : 'Smartwatch'}
+            </span>
+            {connectionStatus.smartwatch && (
+              <motion.div 
+                className="w-2 h-2 bg-blue-300 rounded-full"
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ repeat: Infinity, duration: 1.5 }}
+              />
+            )}
+          </div>
+        </motion.button>
+      </motion.div>
+    );
+  };
 
-  const TabNavigation = () => (
-    <div className={`${isMobile ? 'flex space-x-2' : 'flex space-x-4'} mb-6`}>
-      <button
-        onClick={() => setActiveTab('googlefit')}
-        className={`flex items-center gap-2 ${isMobile ? 'px-3 py-2.5 text-sm' : 'px-4 py-2'} rounded-xl font-medium transition-all duration-200 ${
-          activeTab === 'googlefit' 
-            ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg' 
-            : 'bg-gray-800/70 text-gray-400 hover:text-white hover:bg-gray-700/70'
-        }`}
-      >
-        <Smartphone size={isMobile ? 16 : 20} />
-        {!isMobile && 'Google Fit'}
-        {isMobile && 'Fit'}
-        {connectionStatus.googleFit && (
-          <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-        )}
-      </button>
-      <button
-        onClick={() => setActiveTab('smartwatch')}
-        className={`flex items-center gap-2 ${isMobile ? 'px-3 py-2.5 text-sm' : 'px-4 py-2'} rounded-xl font-medium transition-all duration-200 ${
-          activeTab === 'smartwatch' 
-            ? 'bg-gradient-to-r from-purple-600 to-purple-500 text-white shadow-lg' 
-            : 'bg-gray-800/70 text-gray-400 hover:text-white hover:bg-gray-700/70'
-        }`}
-      >
-        <Watch size={isMobile ? 16 : 20} />
-        {!isMobile && 'Smartwatch'}
-        {isMobile && 'Watch'}
-        {connectionStatus.smartwatch && (
-          <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-        )}
-      </button>
-    </div>
-  );
-
-  const FeatureCard = ({ feature, index, type }) => {
-    const paddingClass = isMobile ? 'p-3' : 'p-4';
-    const iconSize = isMobile ? 'w-10 h-10' : 'w-12 h-12';
-    const gradientClass = type === 'googlefit' ? 'from-blue-500/20 to-green-500/20' : 'from-purple-500/20 to-pink-500/20';
+  const EnhancedFeatureCard = ({ feature, index, type }) => {
+    const getCardLayout = () => {
+      switch(screenSize) {
+        case 'xs': return { padding: 'p-2.5', iconSize: 'w-8 h-8', iconSvg: 16, titleSize: 'text-xs', descSize: 'text-xs', valueSize: 'text-xs' };
+        case 'sm': return { padding: 'p-3', iconSize: 'w-9 h-9', iconSvg: 17, titleSize: 'text-sm', descSize: 'text-xs', valueSize: 'text-xs' };
+        case 'md': return { padding: 'p-3.5', iconSize: 'w-10 h-10', iconSvg: 18, titleSize: 'text-sm', descSize: 'text-sm', valueSize: 'text-sm' };
+        case 'lg': return { padding: 'p-4', iconSize: 'w-11 h-11', iconSvg: 20, titleSize: 'text-base', descSize: 'text-sm', valueSize: 'text-sm' };
+        default: return { padding: 'p-5', iconSize: 'w-12 h-12', iconSvg: 22, titleSize: 'text-lg', descSize: 'text-base', valueSize: 'text-base' };
+      }
+    };
+    
+    const layout = getCardLayout();
+    const gradientClass = type === 'googlefit' 
+      ? 'from-blue-500/20 via-cyan-500/20 to-green-500/20' 
+      : 'from-purple-500/20 via-pink-500/20 to-rose-500/20';
+    
+    const borderClass = type === 'googlefit' 
+      ? 'border-blue-500/20 hover:border-blue-400/30' 
+      : 'border-purple-500/20 hover:border-purple-400/30';
     
     return (
       <motion.div
         key={index}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: index * 0.1 }}
-        className={`flex items-start gap-3 ${paddingClass} bg-gray-800/50 hover:bg-gray-800/70 rounded-xl transition-all duration-200 group border border-gray-700/30 hover:border-gray-600/50`}
+        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ 
+          delay: index * 0.08, 
+          duration: 0.4,
+          ease: [0.25, 0.46, 0.45, 0.94]
+        }}
+        whileHover={{ 
+          y: -2, 
+          scale: 1.02,
+          transition: { duration: 0.2 }
+        }}
+        className={`flex items-start gap-3 ${layout.padding} bg-gray-800/30 hover:bg-gray-800/50 backdrop-blur-sm rounded-xl sm:rounded-2xl transition-all duration-300 group border ${borderClass} relative overflow-hidden`}
       >
-        <div className={`${iconSize} rounded-xl bg-gradient-to-br ${gradientClass} flex items-center justify-center`}>
-          <feature.icon size={isMobile ? 18 : 20} className={feature.color} />
+        {/* Background gradient effect */}
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <div className={`absolute inset-0 bg-gradient-to-br ${gradientClass} rounded-xl sm:rounded-2xl`}></div>
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-1">
-            <h4 className={`text-white font-semibold ${isMobile ? 'text-sm' : 'text-base'}`}>{feature.label}</h4>
-            <span className={`${feature.color} font-bold ${isMobile ? 'text-xs' : 'text-sm'} opacity-80`}>
+        
+        <motion.div 
+          className={`${layout.iconSize} rounded-xl bg-gradient-to-br ${gradientClass} backdrop-blur-sm border border-white/10 flex items-center justify-center flex-shrink-0 relative z-10`}
+          whileHover={{ scale: 1.1, rotate: 5 }}
+          transition={{ duration: 0.2 }}
+        >
+          <feature.icon size={layout.iconSvg} className={feature.color} />
+        </motion.div>
+        
+        <div className="flex-1 min-w-0 relative z-10">
+          <div className="flex items-start justify-between mb-1 gap-2">
+            <h4 className={`text-white font-semibold ${layout.titleSize} leading-tight`}>
+              {feature.label}
+            </h4>
+            <motion.span 
+              className={`${feature.color} font-bold ${layout.valueSize} opacity-90 flex-shrink-0`}
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: index * 0.1 + 0.2 }}
+            >
               {feature.value}
-            </span>
+            </motion.span>
           </div>
-          <p className={`text-gray-400 ${isMobile ? 'text-xs' : 'text-sm'} leading-relaxed`}>{feature.description}</p>
+          <p className={`text-gray-400 ${layout.descSize} leading-relaxed`}>
+            {feature.description}
+          </p>
+          
+          {/* Feature highlight bar */}
+          <motion.div
+            className={`w-0 group-hover:w-full h-0.5 ${feature.color.replace('text-', 'bg-')} rounded-full mt-2 transition-all duration-300`}
+            initial={{ width: 0 }}
+            whileHover={{ width: '100%' }}
+          />
         </div>
       </motion.div>
     );
   };
 
-  const ConnectionStatusCard = () => {
+  const EnhancedConnectionStatusCard = () => {
+    const getStatusLayout = () => {
+      switch(screenSize) {
+        case 'xs': return { padding: 'p-3', titleSize: 'text-sm', itemPadding: 'p-2.5', statusSize: 'text-xs px-2 py-1' };
+        case 'sm': return { padding: 'p-3.5', titleSize: 'text-base', itemPadding: 'p-3', statusSize: 'text-xs px-2 py-1' };
+        case 'md': return { padding: 'p-4', titleSize: 'text-base', itemPadding: 'p-3', statusSize: 'text-sm px-3 py-1.5' };
+        default: return { padding: 'p-6', titleSize: 'text-lg', itemPadding: 'p-4', statusSize: 'text-sm px-3 py-1.5' };
+      }
+    };
+    
+    const layout = getStatusLayout();
+    
     return (
-      <div className="bg-gray-800/30 backdrop-blur-xl rounded-2xl p-4 sm:p-6 border border-gray-700/50">
-        <h4 className={`text-white font-bold ${isMobile ? 'text-base' : 'text-lg'} mb-4 flex items-center gap-2`}>
-          <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
-            <Activity size={16} className="text-green-400" />
-          </div>
-          Connection Status
-        </h4>
-        
-        <div className="space-y-3">
-          <div className={`flex items-center justify-between p-3 ${isMobile ? 'rounded-xl' : 'rounded-lg'} bg-gray-700/30 border border-gray-600/30`}>
-            <div className="flex items-center gap-3">
-              <div className={`w-3 h-3 rounded-full ${connectionStatus.googleFit ? 'bg-green-500 animate-pulse' : 'bg-gray-500'}`}></div>
-              <span className={`text-white font-medium ${isMobile ? 'text-sm' : ''}`}>Google Fit</span>
-            </div>
-            <span className={`${isMobile ? 'text-xs px-2 py-1' : 'text-sm px-3 py-1.5'} rounded-lg font-medium ${
-              connectionStatus.googleFit ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-gray-600/20 text-gray-400 border border-gray-600/30'
-            }`}>
-              {connectionStatus.googleFit ? 'Connected' : 'Disconnected'}
-            </span>
-          </div>
-
-          <div className={`flex items-center justify-between p-3 ${isMobile ? 'rounded-xl' : 'rounded-lg'} bg-gray-700/30 border border-gray-600/30`}>
-            <div className="flex items-center gap-3">
-              <div className={`w-3 h-3 rounded-full ${connectionStatus.smartwatch ? 'bg-blue-500 animate-pulse' : 'bg-gray-500'}`}></div>
-              <span className={`text-white font-medium ${isMobile ? 'text-sm' : ''}`}>Smartwatch</span>
-              {smartwatchDevices.length > 0 && batteryLevel && (
-                <div className="flex items-center gap-1">
-                  <Battery size={12} className="text-green-400" />
-                  <span className="text-xs text-green-400">{batteryLevel}%</span>
-                </div>
-              )}
-            </div>
-            <span className={`${isMobile ? 'text-xs px-2 py-1' : 'text-sm px-3 py-1.5'} rounded-lg font-medium ${
-              connectionStatus.smartwatch ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-gray-600/20 text-gray-400 border border-gray-600/30'
-            }`}>
-              {connectionStatus.smartwatch ? 'Connected' : 'Disconnected'}
-            </span>
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.2 }}
+        className={`bg-gray-800/20 backdrop-blur-xl rounded-2xl ${layout.padding} border border-gray-700/40 hover:border-gray-600/50 transition-all duration-300`}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h4 className={`text-white font-bold ${layout.titleSize} flex items-center gap-2`}>
+            <motion.div 
+              className="w-8 h-8 rounded-xl bg-gradient-to-br from-green-500/20 to-blue-500/20 border border-green-500/30 flex items-center justify-center"
+              whileHover={{ scale: 1.05, rotate: 5 }}
+            >
+              <Activity size={16} className="text-green-400" />
+            </motion.div>
+            Device Status
+          </h4>
+          
+          <div className="flex items-center gap-2">
+            {(connectionStatus.googleFit || connectionStatus.smartwatch) && (
+              <motion.div 
+                className="flex items-center gap-1 px-2 py-1 bg-green-500/10 border border-green-500/30 rounded-lg"
+                animate={{ scale: [1, 1.05, 1] }}
+                transition={{ repeat: Infinity, duration: 2 }}
+              >
+                <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
+                <span className="text-xs text-green-400 font-medium">Live</span>
+              </motion.div>
+            )}
           </div>
         </div>
-      </div>
+        
+        <div className="space-y-3">
+          {/* Google Fit Status */}
+          <motion.div 
+            className={`flex items-center justify-between ${layout.itemPadding} rounded-xl bg-gray-700/20 border border-gray-600/30 hover:border-gray-500/40 transition-all duration-200 group`}
+            whileHover={{ scale: 1.01 }}
+          >
+            <div className="flex items-center gap-3 flex-1">
+              <div className="relative">
+                <div className={`w-3 h-3 rounded-full ${connectionStatus.googleFit ? 'bg-green-500' : 'bg-gray-500'}`}>
+                  {connectionStatus.googleFit && (
+                    <motion.div 
+                      className="absolute inset-0 bg-green-500 rounded-full"
+                      animate={{ scale: [1, 1.5, 1], opacity: [1, 0, 1] }}
+                      transition={{ repeat: Infinity, duration: 2 }}
+                    />
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2 flex-1">
+                <Smartphone size={screenSize === 'xs' ? 14 : 16} className="text-gray-400 group-hover:text-blue-400 transition-colors" />
+                <div>
+                  <span className={`text-white font-medium ${screenSize === 'xs' ? 'text-xs' : 'text-sm'} block`}>
+                    Google Fit
+                  </span>
+                  <span className={`${connectionStatus.googleFit ? 'text-green-400' : 'text-gray-500'} text-xs`}>
+                    {connectionStatus.googleFit ? 'Syncing data' : 'Not connected'}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <motion.span 
+              className={`${layout.statusSize} rounded-lg font-medium border transition-colors ${
+                connectionStatus.googleFit 
+                  ? 'bg-green-500/10 text-green-400 border-green-500/30' 
+                  : 'bg-gray-600/10 text-gray-500 border-gray-600/30'
+              }`}
+              whileHover={{ scale: 1.05 }}
+            >
+              {connectionStatus.googleFit ? 'ON' : 'OFF'}
+            </motion.span>
+          </motion.div>
+
+          {/* Smartwatch Status */}
+          <motion.div 
+            className={`flex items-center justify-between ${layout.itemPadding} rounded-xl bg-gray-700/20 border border-gray-600/30 hover:border-gray-500/40 transition-all duration-200 group`}
+            whileHover={{ scale: 1.01 }}
+          >
+            <div className="flex items-center gap-3 flex-1">
+              <div className="relative">
+                <div className={`w-3 h-3 rounded-full ${connectionStatus.smartwatch ? 'bg-blue-500' : 'bg-gray-500'}`}>
+                  {connectionStatus.smartwatch && (
+                    <motion.div 
+                      className="absolute inset-0 bg-blue-500 rounded-full"
+                      animate={{ scale: [1, 1.5, 1], opacity: [1, 0, 1] }}
+                      transition={{ repeat: Infinity, duration: 2 }}
+                    />
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2 flex-1">
+                <Watch size={screenSize === 'xs' ? 14 : 16} className="text-gray-400 group-hover:text-purple-400 transition-colors" />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className={`text-white font-medium ${screenSize === 'xs' ? 'text-xs' : 'text-sm'}`}>
+                      Smartwatch
+                    </span>
+                    {smartwatchDevices.length > 0 && batteryLevel && (
+                      <div className="flex items-center gap-1">
+                        <Battery size={10} className="text-green-400" />
+                        <span className="text-xs text-green-400 font-medium">{batteryLevel}%</span>
+                      </div>
+                    )}
+                  </div>
+                  <span className={`${connectionStatus.smartwatch ? 'text-blue-400' : 'text-gray-500'} text-xs`}>
+                    {connectionStatus.smartwatch ? 'Real-time sync' : 'Not connected'}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <motion.span 
+              className={`${layout.statusSize} rounded-lg font-medium border transition-colors ${
+                connectionStatus.smartwatch 
+                  ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' 
+                  : 'bg-gray-600/10 text-gray-500 border-gray-600/30'
+              }`}
+              whileHover={{ scale: 1.05 }}
+            >
+              {connectionStatus.smartwatch ? 'ON' : 'OFF'}
+            </motion.span>
+          </motion.div>
+        </div>
+      </motion.div>
     );
   };
+
+  // Get responsive modal dimensions
+  const getModalConfig = () => {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    
+    if (width < 480) {
+      return {
+        containerClass: 'items-end',
+        modalClass: 'rounded-t-3xl w-full h-[88vh]',
+        padding: 'p-3',
+        maxWidth: 'w-full'
+      };
+    } else if (width < 768) {
+      return {
+        containerClass: 'items-center justify-center',
+        modalClass: 'rounded-2xl w-full max-w-md h-[85vh]',
+        padding: 'p-4',
+        maxWidth: 'max-w-md'
+      };
+    } else if (width < 1024) {
+      return {
+        containerClass: 'items-center justify-center',
+        modalClass: 'rounded-2xl w-full max-w-2xl max-h-[90vh]',
+        padding: 'p-5',
+        maxWidth: 'max-w-2xl'
+      };
+    } else if (width < 1440) {
+      return {
+        containerClass: 'items-center justify-center',
+        modalClass: 'rounded-3xl w-full max-w-4xl max-h-[90vh]',
+        padding: 'p-6',
+        maxWidth: 'max-w-4xl'
+      };
+    } else {
+      return {
+        containerClass: 'items-center justify-center',
+        modalClass: 'rounded-3xl w-full max-w-6xl max-h-[90vh]',
+        padding: 'p-8',
+        maxWidth: 'max-w-6xl'
+      };
+    }
+  };
+  
+  const modalConfig = getModalConfig();
 
   return (
     <AnimatePresence>
       <motion.div
-        className={`fixed inset-0 bg-black/60 backdrop-blur-sm flex ${isFullScreen ? 'items-end' : 'items-center justify-center'} z-50 ${isMobile ? 'p-0' : 'p-4'}`}
+        className={`fixed inset-0 bg-black/70 backdrop-blur-md flex ${modalConfig.containerClass} z-50 ${isMobile ? 'p-0' : 'p-4'}`}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -534,35 +862,37 @@ const DevicePairingModal = ({ isVisible, onClose, onSuccess }) => {
       >
         <motion.div
           ref={modalRef}
-          className={`bg-gray-900/95 backdrop-blur-2xl border border-gray-700/50 overflow-hidden ${
-            isFullScreen 
-              ? 'rounded-t-3xl w-full h-[85vh] max-h-[85vh]' 
-              : isMobile 
-                ? 'rounded-2xl w-full h-[80vh] max-h-[80vh] mx-2 mb-2' 
-                : 'rounded-3xl w-full max-w-5xl max-h-[90vh]'
-          }`}
-          initial={{
-            scale: isFullScreen ? 0.95 : 0.9,
+          className={`bg-gray-900/95 backdrop-blur-2xl border border-gray-700/40 shadow-2xl overflow-hidden ${modalConfig.modalClass}`}
+          initial={shouldReduceMotion ? false : {
+            scale: screenSize === 'xs' ? 0.95 : 0.9,
             opacity: 0,
-            y: isFullScreen ? 100 : 20
+            y: screenSize === 'xs' ? 100 : 20
           }}
-          animate={{
+          animate={shouldReduceMotion ? false : {
             scale: 1,
             opacity: 1,
             y: 0
           }}
-          exit={{
-            scale: isFullScreen ? 0.95 : 0.9,
+          exit={shouldReduceMotion ? false : {
+            scale: screenSize === 'xs' ? 0.95 : 0.9,
             opacity: 0,
-            y: isFullScreen ? 100 : 20
+            y: screenSize === 'xs' ? 100 : 20
           }}
-          transition={{ type: "spring", damping: 25, stiffness: 300 }}
+          transition={shouldReduceMotion ? {} : { 
+            type: "spring", 
+            damping: 30, 
+            stiffness: 300,
+            mass: 0.8
+          }}
           onClick={(e) => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-title"
+          aria-describedby="modal-description"
         >
-          <div className={`${isMobile ? 'p-4' : 'p-6'} h-full overflow-y-auto scrollbar-hide`}>
-            <MobileHeader />
-
-            <TabNavigation />
+          <div className={`${modalConfig.padding} h-full overflow-y-auto scrollbar-hide`}>
+            <ResponsiveHeader />
+            <EnhancedTabNavigation />
             
             {/* Progress Steps for Mobile */}
             {isMobile && currentStep !== 'overview' && (
@@ -584,9 +914,15 @@ const DevicePairingModal = ({ isVisible, onClose, onSuccess }) => {
               </div>
             )}
 
-            <div className={`${isMobile ? 'space-y-4' : 'grid grid-cols-1 lg:grid-cols-2 gap-6'}`}>
+            {/* Enhanced responsive layout */}
+            <div className={`grid gap-4 sm:gap-6 ${
+              screenSize === 'xs' ? 'grid-cols-1' 
+                : screenSize === 'sm' ? 'grid-cols-1' 
+                : screenSize === 'md' ? 'grid-cols-1 lg:grid-cols-2' 
+                : 'grid-cols-1 xl:grid-cols-2'
+            }`}>
               {/* Device Info Section */}
-              <div className={isMobile ? '' : 'space-y-6'}>
+              <div className={`space-y-4 sm:space-y-6 ${screenSize === 'xl' ? 'order-1' : ''}`}>
                 <AnimatePresence mode="wait">
                   {activeTab === 'googlefit' && (
                     <motion.div
@@ -607,9 +943,9 @@ const DevicePairingModal = ({ isVisible, onClose, onSuccess }) => {
                           </div>
                         </div>
 
-                        <div className="space-y-3">
+                        <div className="space-y-2 sm:space-y-3">
                           {deviceFeatures.googlefit.map((feature, index) => (
-                            <FeatureCard key={index} feature={feature} index={index} type="googlefit" />
+                            <EnhancedFeatureCard key={index} feature={feature} index={index} type="googlefit" />
                           ))}
                         </div>
                         
@@ -646,9 +982,9 @@ const DevicePairingModal = ({ isVisible, onClose, onSuccess }) => {
                           </div>
                         </div>
 
-                        <div className="space-y-3">
+                        <div className="space-y-2 sm:space-y-3">
                           {deviceFeatures.smartwatch.map((feature, index) => (
-                            <FeatureCard key={index} feature={feature} index={index} type="smartwatch" />
+                            <EnhancedFeatureCard key={index} feature={feature} index={index} type="smartwatch" />
                           ))}
                         </div>
                         
@@ -680,8 +1016,8 @@ const DevicePairingModal = ({ isVisible, onClose, onSuccess }) => {
               </div>
 
               {/* Connection Interface Section */}
-              <div className={isMobile ? 'space-y-4' : 'space-y-6'}>
-                <ConnectionStatusCard />
+              <div className={`space-y-4 sm:space-y-6 ${screenSize === 'xl' ? 'order-2' : ''}`}>
+                <EnhancedConnectionStatusCard />
                 
                 {/* Connection Actions */}
                 <div className="bg-gray-800/30 backdrop-blur-xl rounded-2xl p-4 sm:p-6 border border-gray-700/50">
@@ -881,6 +1217,8 @@ const DevicePairingModal = ({ isVisible, onClose, onSuccess }) => {
       </motion.div>
     </AnimatePresence>
   );
-};
+});
+
+DevicePairingModal.displayName = 'DevicePairingModal';
 
 export default DevicePairingModal;

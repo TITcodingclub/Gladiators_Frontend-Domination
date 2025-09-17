@@ -179,12 +179,12 @@ export default function CommunityFeed() {
   return (
     <>
       <ThreadBackground />
-      <div className="min-h-screen py-20 px-4 sm:px-6 lg:px-8 relative z-10">
+      <div className="min-h-screen relative z-10">
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="max-w-4xl mx-auto mb-10 text-center bg-gradient-to-b from-gray-900/50 to-transparent p-8 rounded-2xl backdrop-blur-lg border border-white/10"
+          className="max-w-6xl mx-auto mb-10 text-center bg-gradient-to-b from-gray-900/50 to-transparent p-8 rounded-2xl backdrop-blur-lg border border-white/10"
         >
           <motion.h1 
             className="text-4xl sm:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 via-blue-500 to-purple-500 mb-4"
@@ -210,7 +210,7 @@ export default function CommunityFeed() {
 
         {/* Filters - Only show when not in search mode */}
         {!searchResults && (
-          <div className="max-w-4xl mx-auto mb-8">
+          <div className="max-w-6xl mx-auto mb-8">
             <motion.div 
               className="flex flex-wrap gap-2 justify-center"
               initial={{ opacity: 0 }}
@@ -236,7 +236,7 @@ export default function CommunityFeed() {
         
         {/* Search Results Info */}
         {searchResults && (
-          <div className="max-w-4xl mx-auto mb-6">
+          <div className="max-w-6xl mx-auto mb-6">
             <div className="bg-gray-800/60 backdrop-blur-sm rounded-lg p-4 border border-gray-700/50">
               <div className="flex justify-between items-center">
                 <div>
@@ -262,7 +262,7 @@ export default function CommunityFeed() {
 
         {/* Create Post Button */}
           <motion.div 
-            className="max-w-4xl mx-auto mb-8"
+            className="max-w-6xl mx-auto mb-8"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
@@ -290,7 +290,7 @@ export default function CommunityFeed() {
             </motion.button>
           </motion.div>        {/* Error Message */}
         {error && (
-          <div className="max-w-4xl mx-auto mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg text-white text-center">
+          <div className="max-w-6xl mx-auto mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg text-white text-center">
             {error}
             <button 
               className="ml-4 underline"
@@ -307,7 +307,7 @@ export default function CommunityFeed() {
         {/* Posts Feed */}
         <motion.div 
           ref={feedRef}
-          className="max-w-4xl mx-auto space-y-6"
+          className="max-w-6xl mx-auto space-y-6"
           variants={containerVariants}
           initial="hidden"
           animate="visible"
