@@ -71,9 +71,18 @@ export default function UserProfile({
   // Loading state with modern loader
   if (loading) {
     return (
-      <LoadingFallback 
-        message="Loading nutrition profile..." 
-      />
+      <div className="min-h-screen bg-gray-900 relative">
+        {/* Background Pattern */}
+        <div className="fixed inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-emerald-400/5 blur-3xl animate-pulse" />
+          <div className="absolute top-1/2 -left-40 w-80 h-80 rounded-full bg-blue-400/5 blur-3xl animate-pulse" />
+          <div className="absolute -bottom-40 left-1/3 w-80 h-80 rounded-full bg-purple-400/5 blur-3xl animate-pulse" />
+        </div>
+        
+        <LoadingFallback 
+          message="Loading your nutrition profile..." 
+        />
+      </div>
     );
   }
 
@@ -200,7 +209,7 @@ export default function UserProfile({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
-          className="max-w-[80vw] mx-auto px-4 py-8"
+          className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8"
         >
           {/* Modern Profile Header */}
           <Suspense fallback={<LoadingFallback message="Loading profile header..." minimal />}>
@@ -219,9 +228,15 @@ export default function UserProfile({
           </Suspense>
 
           {/* Enhanced Profile Stats */}
-          <Suspense fallback={<LoadingFallback message="Loading statistics..." minimal />}>
-            <ProfileStats profile={profile} userStats={userStats} />
-          </Suspense>
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.6 }}
+          >
+            <Suspense fallback={<LoadingFallback message="Loading statistics..." minimal />}>
+              <ProfileStats profile={profile} userStats={userStats} />
+            </Suspense>
+          </motion.div>
 
           {/* Health Metrics Section (Only for own profile) */}
           {isOwnProfile && (
@@ -229,9 +244,9 @@ export default function UserProfile({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4, duration: 0.6 }}
-              className="mt-12"
+              className="mt-8 lg:mt-12"
             >
-              <div className="bg-gradient-to-br from-gray-800/40 to-gray-900/40 backdrop-blur-sm rounded-3xl p-8 border border-gray-700/50">
+              <div className="bg-gradient-to-br from-gray-800/40 to-gray-900/40 backdrop-blur-sm rounded-2xl lg:rounded-3xl p-6 lg:p-8 border border-gray-700/50">
                 <HealthDataDisplay 
                   showConnectionButtons={true} 
                   onConnect={() => setShowDevicePairing(true)} 
@@ -240,25 +255,54 @@ export default function UserProfile({
             </motion.div>
           )}
 
-          {/* Legacy Components (Enhanced) */}
-          <div className="grid lg:grid-cols-2 gap-8 mt-12">
-            <div className="space-y-8">
-              <FavoriteRecipes
-                favorites={favorites}
-                profile={profile}
-              />
-              <NutritionTracking profile={profile} />
+          {/* Enhanced Components Grid */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8 mt-8 lg:mt-12">
+            <div className="space-y-6 lg:space-y-8">
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.6, duration: 0.6 }}
+              >
+                <FavoriteRecipes
+                  favorites={favorites}
+                  profile={profile}
+                />
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.8, duration: 0.6 }}
+              >
+                <NutritionTracking profile={profile} />
+              </motion.div>
             </div>
             
-            <div className="space-y-8">
-              <PersonalInfo profile={profile} setEditMode={setEditMode} />
-              <PreferencesPanel profile={profile} />
+            <div className="space-y-6 lg:space-y-8">
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.7, duration: 0.6 }}
+              >
+                <PersonalInfo profile={profile} setEditMode={setEditMode} />
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.9, duration: 0.6 }}
+              >
+                <PreferencesPanel profile={profile} />
+              </motion.div>
             </div>
           </div>
 
           {/* Account Settings */}
           {isOwnProfile && (
-            <div className="mt-12">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.0, duration: 0.6 }}
+              className="mt-8 lg:mt-12"
+            >
               <AccountSettings
                 showAccountManagement={showAccountManagement}
                 setShowAccountManagement={setShowAccountManagement}
@@ -273,7 +317,7 @@ export default function UserProfile({
                 showConfirmDelete={showConfirmDelete}
                 setShowConfirmDelete={setShowConfirmDelete}
               />
-            </div>
+            </motion.div>
           )}
         </motion.div>
       </div>

@@ -1,137 +1,392 @@
-import { useState, useEffect, useRef} from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import {
-  FaUserCircle,
-  FaBars,
-  FaTimes,
-  FaHome,
-  FaUtensils,
-  FaUsers,
-  FaCalendarAlt,
-  FaChartLine,
-} from 'react-icons/fa';
-import { FcGoogle } from 'react-icons/fc';
+import { useSidebar } from '../../hooks/useSidebar';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { 
+  Home, 
+  ChefHat, 
+  Users, 
+  Activity, 
+  Calendar, 
+  LogOut,
+  User,
+  Menu,
+  X
+} from 'lucide-react';
 
 export default function Navbar() {
-  const { user, login } = useAuth();
-  const [mobileMenu, setMobileMenu] = useState(false);
+  const { user, logout } = useAuth();
+  const {
+    isCollapsed,
+    isMobileOpen,
+    isMobile,
+    isHovering,
+    sidebarWidth,
+    toggleCollapsed,
+    toggleMobile,
+    closeMobile,
+    handleMouseEnter,
+    handleMouseLeave
+  } = useSidebar();
+  const [activeLink, setActiveLink] = useState('/');
   const [scrolled, setScrolled] = useState(false);
-  const [activeLink, setActiveLink] = useState("/");
   const location = useLocation();
   const navigate = useNavigate();
-  const menuRef = useRef(null);
+  const sidebarRef = useRef(null);
 
   // Update active link when route changes
   useEffect(() => {
     setActiveLink(location.pathname);
   }, [location]);
 
-  // Lock scroll when mobile menu is open
+  // Handle scroll effect for mobile nav
   useEffect(() => {
-    document.body.style.overflow = mobileMenu ? "hidden" : "";
-    return () => {
-      document.body.style.overflow = "";
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 10);
     };
-  }, [mobileMenu]);
-
-  // Handle scroll effect
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 50);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Close mobile menu when clicking outside
+  // Navigation items matching the original sidebar
+  const navigationItems = useMemo(() => [
+    { name: 'Dashboard', icon: Home, path: '/' },
+    { name: 'Recipes', icon: ChefHat, path: '/recipes' },
+    { name: 'Community', icon: Users, path: '/community' },
+    { name: 'Activity', icon: Activity, path: '/activity' },
+    { name: 'Diet Planner', icon: Calendar, path: '/diet-planner' },
+  ], []);
+
+  const handleNavigation = useCallback((path) => {
+    setActiveLink(path);
+    navigate(path);
+    closeMobile();
+  }, [navigate, closeMobile]);
+
+  // Handle click outside to close mobile sidebar
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setMobileMenu(false);
+      if (sidebarRef.current && !sidebarRef.current.contains(event.target)) {
+        closeMobile();
       }
     };
-    if (mobileMenu) {
-      document.addEventListener("mousedown", handleClickOutside);
+
+    if (isMobileOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.body.style.overflow = 'hidden';
     } else {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.body.style.overflow = '';
     }
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [mobileMenu]);
 
-  const navItems = [
-    { name: 'Home', icon: <FaHome className="inline" />, path: '/' },
-    { name: 'Recipes', icon: <FaUtensils className="inline" />, path: '/recipes' },
-    { name: 'Community', icon: <FaUsers className="inline" />, path: '/community' },
-    { name: 'Activity', icon: <FaChartLine className="inline" />, path: '/activity' },
-    { name: 'Diet Planner', icon: <FaCalendarAlt className="inline" />, path: '/diet-planner' },
-  ];
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.body.style.overflow = '';
+    };
+  }, [isMobileOpen, closeMobile]);
 
-  // Handle navigation with proper state management
-  const handleNavigation = (path) => {
-    try {
-      setActiveLink(path);
-      navigate(path, { replace: false });
-      setMobileMenu(false);
-    } catch (error) {
-      console.error('Navigation error:', error);
-      // Fallback to direct navigation
-      window.location.href = path;
-    }
-  };
+  const handleLogout = useCallback(() => {
+    logout();
+    closeMobile();
+  }, [logout, closeMobile]);
+
+  const sidebarVariants = useMemo(() => ({
+    expanded: { width: 280 },
+    collapsed: { width: 80 },
+    hovering: { width: 280 }
+  }), []);
+
+  const mobileSidebarVariants = useMemo(() => ({
+    open: { x: 0, opacity: 1 },
+    closed: { x: -280, opacity: 0 }
+  }), []);
+
+  // Don't render anything if user is not authenticated
+  if (!user) {
+    return null;
+  }
 
   return (
-    <motion.nav 
-      initial={{ y: -100, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-      className={`fixed w-full px-6 md:px-8 lg:px-10 py-4 flex justify-between items-center z-50 transition-all duration-500
-        ${scrolled 
-          ? 'backdrop-blur-2xl bg-gray-900/70 shadow-2xl border-b border-emerald-500/20' 
-          : 'backdrop-blur-xl bg-gray-900/30 border-b border-white/5'}`}
-      style={{
-        background: scrolled 
-          ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.8), rgba(30, 41, 59, 0.9))' 
-          : 'linear-gradient(135deg, rgba(15, 23, 42, 0.4), rgba(30, 41, 59, 0.6))',
-        boxShadow: scrolled 
-          ? '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
-          : '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-      }}
-    >
-      {/* Animated gradient border */}
-      <motion.div 
-        className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-emerald-400 to-transparent"
-        animate={{
-          backgroundPosition: ['0% 50%', '100% 50%', '0% 50%']
+    <>
+      {/* Desktop Sidebar - Enhanced with Glass Morphism */}
+      <motion.aside
+        ref={sidebarRef}
+        initial="expanded"
+        animate={isCollapsed && !isHovering ? "collapsed" : "expanded"}
+        variants={sidebarVariants}
+        transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        className="hidden lg:flex fixed left-0 top-0 h-screen z-40 flex-col backdrop-blur-2xl bg-white/80 dark:bg-gray-900/85 border-r border-white/20 dark:border-gray-700/30 shadow-2xl shadow-gray-200/10 dark:shadow-black/20"
+        style={{
+          backgroundImage: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
+          backdropFilter: 'blur(20px) saturate(180%)',
         }}
-        transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
-        style={{ backgroundSize: '200% 200%' }}
-      />
-      
-      {/* Professional Logo */}
-      <motion.div 
-        className="relative z-10 group"
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-        initial={{ opacity: 0, x: -30 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.6, delay: 0.2 }}
       >
-        <Link to="/" className="flex items-center gap-3">
-          {/* Logo Icon with glassmorphism */}
-          <motion.div 
-            className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-400/20 to-emerald-600/30 backdrop-blur-md border border-emerald-400/30 flex items-center justify-center group-hover:border-emerald-400/50 transition-all duration-300"
-            whileHover={{ rotate: [0, -5, 5, 0] }}
-            transition={{ duration: 0.6 }}
-          >
-            <span className="text-2xl filter drop-shadow-lg">🍳</span>
-            {/* Glow effect */}
-            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-emerald-400/10 to-emerald-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 animate-pulse" />
-          </motion.div>
+        {/* Desktop Header - Enhanced */}
+        <div className="p-4 border-b border-white/10 dark:border-gray-700/30 relative">
+          {/* Animated gradient line */}
+          <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent opacity-60" />
           
-          {/* Logo Text */}
-          <motion.div className="flex flex-col">
-            <motion.h1 
-              className="text-2xl font-bold bg-gradient-to-r from-white via-emerald-200 to-emerald-400 bg-clip-text text-transparent tracking-tight"
+          {(!isCollapsed || isHovering) && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.3 }}
+              className="flex items-center gap-3"
+            >
+              <motion.div 
+                className="relative p-2 rounded-xl bg-gradient-to-br from-emerald-500/10 to-blue-500/10 border border-emerald-500/20"
+                whileHover={{ scale: 1.1, rotate: [0, -5, 5, 0] }}
+                transition={{ duration: 0.6 }}
+              >
+                <img src="/vite.svg" alt="Logo" className="w-6 h-6" />
+                <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-emerald-400/10 to-blue-500/10 opacity-0 hover:opacity-100 transition-opacity duration-300 animate-pulse" />
+              </motion.div>
+              <div>
+                <motion.h1 
+                  className="text-lg font-bold bg-gradient-to-r from-gray-800 to-emerald-600 dark:from-white dark:to-emerald-400 bg-clip-text text-transparent"
+                  animate={{
+                    backgroundPosition: ['0% 50%', '100% 50%', '0% 50%']
+                  }}
+                  transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
+                  style={{ backgroundSize: '200% 200%' }}
+                >
+                  Nutrithy
+                </motion.h1>
+                <motion.span 
+                  className="text-xs text-emerald-600/70 dark:text-emerald-400/70 font-medium"
+                  animate={{ opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                  Smart Nutrition
+                </motion.span>
+              </div>
+            </motion.div>
+          )}
+          
+          {/* Collapsed state logo - Enhanced */}
+          {(isCollapsed && !isHovering) && (
+            <motion.div 
+              className="flex justify-center"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3 }}
+            >
+              <motion.div 
+                className="relative p-2 rounded-xl bg-gradient-to-br from-emerald-500/10 to-blue-500/10 border border-emerald-500/20"
+                whileHover={{ scale: 1.15, rotate: 360 }}
+                transition={{ duration: 0.6 }}
+              >
+                <img src="/vite.svg" alt="Logo" className="w-6 h-6" />
+                <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-emerald-400/20 to-blue-500/20 opacity-0 hover:opacity-100 transition-opacity duration-300 blur-sm" />
+              </motion.div>
+            </motion.div>
+          )}
+        </div>
+
+        {/* Desktop Navigation */}
+        <nav className="flex-1 px-4 py-6 space-y-2">
+          {navigationItems.map((item, index) => {
+            const Icon = item.icon;
+            const isActive = activeLink === item.path;
+            
+            return (
+              <motion.div key={item.name} className="relative group">
+                <motion.button
+                  onClick={() => handleNavigation(item.path)}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className={`relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 group overflow-hidden ${
+                    isActive
+                      ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-xl shadow-emerald-500/30 scale-105'
+                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-gray-700/50 backdrop-blur-sm'
+                  }`}
+                  whileHover={{ x: isActive ? 0 : 6, scale: isActive ? 1.05 : 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  {/* Active indicator bar */}
+                  {isActive && (
+                    <motion.div 
+                      className="absolute left-0 top-0 h-full w-1 bg-white/80 rounded-r-full"
+                      initial={{ height: 0 }}
+                      animate={{ height: '100%' }}
+                      transition={{ duration: 0.3 }}
+                    />
+                  )}
+                  
+                  {/* Hover glow effect */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl" />
+                  
+                  <motion.div
+                    whileHover={{ scale: 1.1, rotate: isActive ? 0 : 5 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                    className="relative z-10"
+                  >
+                    <Icon className={`w-5 h-5 flex-shrink-0 transition-all duration-300 ${
+                      isActive ? 'text-white drop-shadow-sm' : 'group-hover:text-emerald-500'
+                    }`} />
+                  </motion.div>
+                  
+                  {(!isCollapsed || isHovering) && (
+                    <motion.span 
+                      className={`font-semibold text-sm truncate relative z-10 transition-all duration-300 ${
+                        isActive ? 'text-white drop-shadow-sm' : 'group-hover:text-gray-900 dark:group-hover:text-white'
+                      }`}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -10 }}
+                    >
+                      {item.name}
+                    </motion.span>
+                  )}
+                </motion.button>
+                
+                {/* Tooltip for collapsed state */}
+                {isCollapsed && !isHovering && (
+                  <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-2 py-1 bg-gray-900 text-white text-sm rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                    {item.name}
+                  </div>
+                )}
+              </motion.div>
+            );
+          })}
+        </nav>
+
+        {/* Desktop User Profile */}
+        {user && (
+          <div className="p-4 border-t border-gray-200 dark:border-gray-800">
+            {(!isCollapsed || isHovering) ? (
+              <div className="space-y-3">
+                {/* User Info */}
+                <div 
+                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                  onClick={() => handleNavigation('/profile')}
+                >
+                  {user.photoURL ? (
+                    <img
+                      src={user.photoURL}
+                      alt={user.displayName}
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-sm font-medium">
+                        {user.displayName?.charAt(0) || 'U'}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                      {user.displayName?.split(' ')[0] || 'User'}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                      My Profile
+                    </p>
+                  </div>
+                </div>
+
+                {/* Logout Button */}
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-2 p-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Sign out
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={() => handleNavigation('/profile')}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors flex items-center justify-center"
+                >
+                  {user.photoURL ? (
+                    <img
+                      src={user.photoURL}
+                      alt={user.displayName}
+                      className="w-6 h-6 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-xs font-medium">
+                        {user.displayName?.charAt(0) || 'U'}
+                      </span>
+                    </div>
+                  )}
+                </button>
+                
+                <button
+                  onClick={handleLogout}
+                  className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex items-center justify-center"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </motion.aside>
+
+      {/* Mobile Top Navigation - Enhanced */}
+      <motion.header 
+        className={`lg:hidden fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+          scrolled 
+            ? 'backdrop-blur-2xl bg-white/85 dark:bg-gray-900/90 shadow-xl shadow-gray-900/5 border-b border-white/20 dark:border-gray-700/30' 
+            : 'backdrop-blur-xl bg-white/70 dark:bg-gray-900/80 border-b border-white/10 dark:border-gray-800/20'
+        }`}
+        style={{
+          backgroundImage: scrolled 
+            ? 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%)'
+            : 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.02) 100%)',
+          backdropFilter: 'blur(25px) saturate(180%)',
+        }}
+        initial={{ y: -100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+      >
+        {/* Animated gradient border */}
+        <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent opacity-60" />
+        
+        <div className="flex items-center justify-between px-4 py-3 relative">
+          {/* Enhanced Menu Button */}
+          <motion.button
+            onClick={toggleMobile}
+            className="group relative p-2.5 rounded-xl bg-white/20 dark:bg-gray-700/20 backdrop-blur-sm border border-white/30 dark:border-gray-600/30 hover:bg-white/40 dark:hover:bg-gray-600/30 transition-all duration-300"
+            aria-label="Toggle menu"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-emerald-500/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <Menu className="w-6 h-6 text-gray-700 dark:text-gray-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors duration-300 relative z-10" />
+          </motion.button>
+
+          {/* Enhanced Logo */}
+          <motion.div 
+            className="flex items-center gap-2 cursor-pointer group"
+            onClick={() => handleNavigation('/')}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+          >
+            <motion.div 
+              className="relative p-2 rounded-xl bg-gradient-to-br from-emerald-500/10 to-blue-500/10 border border-emerald-500/20 group-hover:border-emerald-400/40 transition-all duration-300"
+              whileHover={{ rotate: [0, -5, 5, 0] }}
+              transition={{ duration: 0.6 }}
+            >
+              <img src="/vite.svg" alt="Logo" className="w-6 h-6" />
+              <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-emerald-400/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 animate-pulse" />
+            </motion.div>
+            <motion.span 
+              className="text-lg font-bold bg-gradient-to-r from-gray-800 to-emerald-600 dark:from-white dark:to-emerald-400 bg-clip-text text-transparent group-hover:from-emerald-600 group-hover:to-blue-600 dark:group-hover:from-emerald-400 dark:group-hover:to-blue-400 transition-all duration-300"
               animate={{
                 backgroundPosition: ['0% 50%', '100% 50%', '0% 50%']
               }}
@@ -139,386 +394,173 @@ export default function Navbar() {
               style={{ backgroundSize: '200% 200%' }}
             >
               Nutrithy
-            </motion.h1>
-            <motion.span 
-              className="text-xs text-emerald-300/70 font-medium -mt-1"
-              animate={{ opacity: [0.5, 1, 0.5] }}
-              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-            >
-              Smart Nutrition
             </motion.span>
           </motion.div>
-        </Link>
-      </motion.div>
 
-
-      {/* Professional Desktop Navigation */}
-      <div className="hidden md:block relative z-10">
-        <motion.nav 
-          className="flex items-center gap-2"
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.4 }}
-        >
-          {navItems.map(({ name, icon, path }, index) => {
-            const isActive = activeLink === path;
-            return (
-              <motion.div 
-                key={name}
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 * index + 0.5, duration: 0.4, type: 'spring', stiffness: 100 }}
-                whileHover={{ y: -2 }}
-                className="relative group"
-              >
-                <Link
-                  to={path}
-                  className={`relative px-6 py-3 flex items-center gap-3 text-sm font-medium rounded-2xl transition-all duration-300 overflow-hidden
-                    ${isActive 
-                      ? 'text-white bg-gradient-to-r from-emerald-500 to-emerald-600 shadow-lg shadow-emerald-500/25' 
-                      : 'text-gray-300 hover:text-white hover:bg-white/10 backdrop-blur-sm border border-white/10 hover:border-emerald-400/30'}`}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleNavigation(path);
-                  }}
-                >
-                  {/* Active background gradient */}
-                  {isActive && (
-                    <motion.div 
-                      className="absolute inset-0 bg-gradient-to-r from-emerald-400/20 to-emerald-600/20"
-                      layoutId="activeNavBackground"
-                      transition={{ type: 'spring', stiffness: 200, damping: 30 }}
-                    />
-                  )}
-                  
-                  {/* Hover glow effect */}
-                  <motion.div 
-                    className="absolute inset-0 bg-gradient-to-r from-emerald-400/10 to-emerald-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                    animate={{ scale: isActive ? 1 : 0.8 }}
-                  />
-                  
-                  {/* Icon with enhanced styling */}
-                  <motion.span 
-                    className={`relative z-10 transition-all duration-300 ${
-                      isActive 
-                        ? 'text-white drop-shadow-lg' 
-                        : 'text-emerald-400 group-hover:text-emerald-300'
-                    }`}
-                    whileHover={{ scale: 1.1 }}
-                    transition={{ type: 'spring', stiffness: 400 }}
-                  >
-                    {icon}
-                  </motion.span>
-                  
-                  {/* Text with improved typography */}
-                  <span className={`relative z-10 transition-all duration-300 whitespace-nowrap ${
-                    isActive 
-                      ? 'font-semibold text-white drop-shadow-sm' 
-                      : 'font-medium group-hover:font-semibold'
-                  }`}>
-                    {name}
-                  </span>
-                  
-                  {/* Active indicator */}
-                  {isActive && (
-                    <motion.div
-                      className="absolute bottom-0 left-1/2 w-8 h-[2px] bg-white/80 rounded-full"
-                      initial={{ scale: 0, x: '-50%' }}
-                      animate={{ scale: 1, x: '-50%' }}
-                      transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-                    />
-                  )}
-                </Link>
-              </motion.div>
-            );
-          })}
-        </motion.nav>
-      </div>
-
-      {/* Professional Mobile Menu Toggle */}
-      <div className="md:hidden relative z-10">
-        <motion.button
-          onClick={() => setMobileMenu(!mobileMenu)}
-          className="group relative p-3 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 hover:border-emerald-400/30 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
-          aria-label="Toggle menu"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          initial={{ opacity: 0, x: 30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-        >
-          {/* Glow effect */}
-          <motion.div 
-            className="absolute inset-0 rounded-2xl bg-gradient-to-r from-emerald-400/10 to-emerald-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-          />
-          
-          <AnimatePresence mode="wait">
-            {mobileMenu ? (
-              <motion.div
-                key="close"
-                initial={{ rotate: -90, opacity: 0 }}
-                animate={{ rotate: 0, opacity: 1 }}
-                exit={{ rotate: 90, opacity: 0 }}
-                transition={{ duration: 0.3, type: 'spring', stiffness: 200 }}
-                className="relative z-10"
-              >
-                <FaTimes className="text-lg text-emerald-400 group-hover:text-emerald-300 transition-colors duration-300" />
-              </motion.div>
-            ) : (
-              <motion.div
-                key="menu"
-                initial={{ rotate: 90, opacity: 0 }}
-                animate={{ rotate: 0, opacity: 1 }}
-                exit={{ rotate: -90, opacity: 0 }}
-                transition={{ duration: 0.3, type: 'spring', stiffness: 200 }}
-                className="relative z-10"
-              >
-                <FaBars className="text-lg text-emerald-400 group-hover:text-emerald-300 transition-colors duration-300" />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.button>
-      </div>
-
-      {/* Professional User Profile Section */}
-      <div className="hidden md:block relative z-10">
-        <motion.div
-          initial={{ opacity: 0, x: 30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6, delay: 0.6 }}
-        >
-          {user ? (
-            <motion.div
-              className="group flex items-center gap-4 p-3 rounded-2xl backdrop-blur-md bg-white/5 border border-white/10 hover:border-emerald-400/30 transition-all duration-300 cursor-pointer"
-              onClick={() => navigate('/profile')}
-              whileHover={{ scale: 1.02, y: -1 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              {/* User Info */}
-              <div className="text-right">
-                <motion.p 
-                  className="text-sm font-semibold text-white group-hover:text-emerald-200 transition-colors duration-300"
-                  initial={{ opacity: 0.8 }}
-                  whileHover={{ opacity: 1 }}
-                >
-                  {user.displayName?.split(' ')[0] || 'User'}
-                </motion.p>
-                <p className="text-xs text-emerald-300/70 font-medium">My Profile</p>
-              </div>
-              
-              {/* Enhanced Avatar */}
-              <motion.div 
-                className="relative"
-                whileHover={{ rotate: 5 }}
-                transition={{ type: 'spring', stiffness: 200 }}
-              >
-                {/* Animated glow ring */}
-                <motion.div 
-                  className="absolute inset-0 rounded-full bg-gradient-to-r from-emerald-400/40 to-emerald-600/60 blur-sm"
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
-                />
-                
-                {user.photoURL ? (
+          {/* Enhanced User Profile Button */}
+          <motion.button
+            onClick={() => handleNavigation('/profile')}
+            className="group relative p-2.5 rounded-xl bg-white/20 dark:bg-gray-700/20 backdrop-blur-sm border border-white/30 dark:border-gray-600/30 hover:bg-white/40 dark:hover:bg-gray-600/30 transition-all duration-300"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-emerald-500/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            
+            <div className="relative z-10">
+              {user?.photoURL ? (
+                <div className="relative">
                   <img
                     src={user.photoURL}
                     alt="Profile"
-                    className="relative w-11 h-11 rounded-full border-2 border-white/40 object-cover shadow-lg backdrop-blur-sm"
+                    className="w-7 h-7 rounded-full object-cover border-2 border-white/40 group-hover:border-emerald-400/60 transition-all duration-300"
                   />
-                ) : (
-                  <div className="relative w-11 h-11 rounded-full border-2 border-white/40 bg-gradient-to-br from-emerald-400/20 to-emerald-600/30 backdrop-blur-md flex items-center justify-center">
-                    <FaUserCircle className="w-6 h-6 text-emerald-300" />
-                  </div>
-                )}
-                
-                {/* Online status indicator */}
-                <motion.div
-                  className="absolute -bottom-1 -right-1 w-4 h-4 bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full border-2 border-gray-900 shadow-lg"
-                  animate={{ scale: [1, 1.1, 1] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                >
-                  <div className="w-full h-full rounded-full bg-white/20 animate-ping" />
-                </motion.div>
-              </motion.div>
-              
-              {/* Hover glow effect */}
-              <motion.div 
-                className="absolute inset-0 rounded-2xl bg-gradient-to-r from-emerald-400/5 to-emerald-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-              />
-            </motion.div>
-          ) : (
-            <motion.button
-              onClick={login}
-              className="group relative flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-2xl font-semibold shadow-lg shadow-emerald-500/25 hover:shadow-xl hover:shadow-emerald-500/30 transition-all duration-300 overflow-hidden"
-              whileHover={{ scale: 1.02, y: -1 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              {/* Button glow effect */}
-              <motion.div 
-                className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-              />
-              
-              <FcGoogle className="text-xl relative z-10" />
-              <span className="relative z-10 whitespace-nowrap">Sign in</span>
-              
-              {/* Animated shine effect */}
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 opacity-0 group-hover:opacity-100"
-                animate={{
-                  x: ['-100%', '100%']
-                }}
-                transition={{
-                  duration: 1.5,
-                  repeat: Infinity,
-                  repeatDelay: 3
-                }}
-              />
-            </motion.button>
-          )}
-        </motion.div>
-      </div>
+                  {/* Online indicator */}
+                  <motion.div 
+                    className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full border border-white dark:border-gray-900 shadow-sm"
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  />
+                </div>
+              ) : (
+                <div className="relative">
+                  <motion.div 
+                    className="w-7 h-7 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center group-hover:from-emerald-600 group-hover:to-blue-500 transition-all duration-300"
+                    whileHover={{ rotate: 360 }}
+                    transition={{ duration: 0.6 }}
+                  >
+                    <span className="text-white text-xs font-bold drop-shadow-sm">
+                      {user?.displayName?.charAt(0) || 'U'}
+                    </span>
+                  </motion.div>
+                  {/* Glow ring */}
+                  <div className="absolute inset-0 rounded-full bg-gradient-to-r from-emerald-400/40 to-emerald-600/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-sm" />
+                </div>
+              )}
+            </div>
+          </motion.button>
+        </div>
+      </motion.header>
 
-      {/* Mobile Drawer - Enhanced with framer-motion animations */}
+      {/* Mobile Sidebar */}
       <AnimatePresence>
-        {mobileMenu && (
+        {isMobileOpen && (
           <>
             {/* Backdrop */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="fixed min-h-screen inset-0 bg-black/80 backdrop-blur-md z-40 md:hidden"
-              onClick={() => setMobileMenu(false)}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:hidden"
+              onClick={closeMobile}
             />
-            
-            {/* Drawer */}
-            <motion.div 
-              className="fixed top-0 right-0 min-h-screen w-[80%] max-w-sm z-50 bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 px-6 py-6 shadow-2xl md:hidden overflow-y-auto"
-              initial={{ x: '100%', opacity: 0.5 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: '100%', opacity: 0.5 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+
+            {/* Mobile Sidebar - Enhanced */}
+            <motion.aside
+              initial="closed"
+              animate="open"
+              exit="closed"
+              variants={mobileSidebarVariants}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="fixed left-0 top-0 h-screen w-80 backdrop-blur-2xl bg-white/85 dark:bg-gray-900/90 border-r border-white/20 dark:border-gray-700/30 shadow-2xl shadow-black/10 z-40 lg:hidden flex flex-col overflow-hidden"
+              style={{
+                backgroundImage: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
+                backdropFilter: 'blur(25px) saturate(180%)',
+              }}
             >
-              {/* Top bar: Logo + Close Button */}
-              <div className="flex items-center justify-between mb-8">
-                <Link to="/" onClick={() => setMobileMenu(false)}>
-                  <div className="w-[150px] h-[40px]">
-                    <svg viewBox="0 0 300 60" width="100%" height="100%">
-                      <text x="0" y="45" fontSize="50" fill="none" stroke="#22c55e" strokeWidth="2">Nutrithy</text>
-                      <text x="190" y="50" fontSize="50">🍳</text>
-                    </svg>
+              {/* Mobile Header */}
+              <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
+                <div className="flex items-center gap-3">
+                  <img src="/vite.svg" alt="Logo" className="w-8 h-8" />
+                  <div>
+                    <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Nutrithy</h1>
                   </div>
-                </Link>
-      
-                <motion.button
-                  onClick={() => setMobileMenu(false)}
-                  className="text-2xl text-[#FF742C] p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800/30 transition-all duration-300"
-                  whileTap={{ scale: 0.9 }}
+                </div>
+                
+                <button
+                  onClick={closeMobile}
+                  className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                 >
-                  <FaTimes />
-                </motion.button>
+                  <X className="w-6 h-6" />
+                </button>
               </div>
-      
-              {/* Mobile Nav Items */}
-              <div className="space-y-2">
-                {navItems.map(({ name, icon, path }, i) => {
-                  const isActive = activeLink === path;
+
+              {/* Mobile Navigation */}
+              <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+                {navigationItems.map((item, index) => {
+                  const Icon = item.icon;
+                  const isActive = activeLink === item.path;
+                  
                   return (
-                    <motion.div
-                      key={name}
-                      initial={{ x: 50, opacity: 0 }}
-                      animate={{ x: 0, opacity: 1 }}
-                      transition={{ delay: i * 0.1, duration: 0.3 }}
-                    >
-                      <Link
-                        to={path}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handleNavigation(path);
-                        }}
-                        className={`flex items-center text-base font-medium p-3 rounded-2xl transition-all duration-300 ${
-                          isActive 
-                            ? 'text-black font-bold italic bg-green-500 shadow-md'  // mono color background
-                            : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/30'
+                    <motion.div key={item.name} className="relative group">
+                      <motion.button
+                        onClick={() => handleNavigation(item.path)}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className={`relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 ${
+                          isActive
+                            ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/25'
+                            : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800'
                         }`}
                       >
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-3 ${
-                          isActive 
-                            ? 'bg-black text-white' 
-                            : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
-                        }`}>
-                          <span className="text-lg">{icon}</span>
-                        </div>
-                        {name}
-                      </Link>
+                        <Icon className="w-5 h-5 flex-shrink-0" />
+                        <span className="font-medium text-sm truncate">{item.name}</span>
+                      </motion.button>
                     </motion.div>
                   );
                 })}
-              </div>
-      
-              {/* Profile / Auth Section */}
-              <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-800">
-                {user ? (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
-                    <div className="flex items-center mb-4">
+              </nav>
+
+              {/* Mobile User Profile */}
+              {user && (
+                <div className="p-4 border-t border-gray-200 dark:border-gray-800">
+                  <div className="space-y-3">
+                    {/* User Info */}
+                    <div 
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                      onClick={() => handleNavigation('/profile')}
+                    >
                       {user.photoURL ? (
-                        <div className="relative">
-                          <div className="absolute inset-0 rounded-full bg-black/50 blur-[1px] opacity-70 animate-pulse-slow"></div>
-                          <img
-                            src={user.photoURL}
-                            alt={user.displayName}
-                            className="relative w-12 h-12 rounded-full border-2 border-white dark:border-gray-800 object-cover"
-                          />
-                        </div>
+                        <img
+                          src={user.photoURL}
+                          alt={user.displayName}
+                          className="w-8 h-8 rounded-full object-cover"
+                        />
                       ) : (
-                        <div className="relative">
-                          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-green-400 to-[#FF742C] blur-[1px] opacity-70 animate-pulse-slow"></div>
-                          <div className="relative w-12 h-12 rounded-full border-2 border-white dark:border-gray-800 bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                            <FaUserCircle className="w-7 h-7 text-[#FF742C]" />
-                          </div>
+                        <div className="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center">
+                          <span className="text-white text-sm font-medium">
+                            {user.displayName?.charAt(0) || 'U'}
+                          </span>
                         </div>
                       )}
-                      <div className="ml-3">
-                        <p className="text-gray-800 dark:text-white font-medium">{user.displayName || 'User'}</p>
-                        <p className="text-gray-500 dark:text-gray-400 text-sm">{user.email}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                          {user.displayName?.split(' ')[0] || 'User'}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                          My Profile
+                        </p>
                       </div>
                     </div>
-                    <motion.button
-                      onClick={() => {
-                        navigate('/profile');
-                        setMobileMenu(false);
-                      }}
-                      className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-black/90 text-white rounded-xl font-medium transition-all duration-300 hover:shadow-lg hover:shadow-orange-500/20"
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
+
+                    {/* Logout Button */}
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2 p-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                     >
-                      <FaUserCircle />
-                      View Profile
-                    </motion.button>
-                  </motion.div>
-                ) : (
-                  <motion.button
-                    onClick={() => {
-                      login();
-                      setMobileMenu(false);
-                    }}
-                    className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-green-500 to-[#FF742C] text-white rounded-xl font-medium transition-all duration-300 hover:shadow-lg hover:shadow-orange-500/20 mt-4"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <FcGoogle className="text-xl" />
-                    Sign in with Google
-                  </motion.button>
-                )}
-              </div>
-            </motion.div>
+                      <LogOut className="w-4 h-4" />
+                      Sign out
+                    </button>
+                  </div>
+                </div>
+              )}
+            </motion.aside>
           </>
         )}
       </AnimatePresence>
-    </motion.nav>
+    </>
   );
 }

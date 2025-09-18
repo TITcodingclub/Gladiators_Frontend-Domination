@@ -4,6 +4,9 @@ import { AnimatePresence } from 'framer-motion';
 import { Toaster } from 'react-hot-toast';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 
+// Import layout utilities
+import './styles/layout-utils.css';
+
 // Core hooks and utilities
 import { useAuth } from './hooks/useAuth';
 import { useSidebar } from './hooks/useSidebar';
@@ -15,8 +18,7 @@ import healthDataService from './services/healthDataService';
 // Components
 import ErrorBoundary from './components/common/ErrorBoundary';
 import LoadingFallback, { SuspenseBoundary } from './components/common/LoadingFallback';
-import Sidebar from './components/common/Sidebar';
-import MobileTopNav from './components/common/MobileTopNav';
+import Navbar from './components/common/Navbar';
 // import Breadcrumb from './components/common/Breadcrumb';
 import Footer from './components/common/Footer';
 import ThreadBackground from './components/common/ThreadBackground';
@@ -339,21 +341,21 @@ function AppContent() {
         Skip to main content
       </a>
       
-      {user && (
-        <>
-          <Sidebar />
-          <MobileTopNav />
-        </>
-      )}
+      <Navbar />
       <main 
         id="main-content"
-        className={`flex-1 relative transition-all duration-300 scroll-smooth ${user ? 'pt-16 lg:pt-0' : ''}`}
-        style={{ marginLeft: user && !isMobile ? `${mainMargin}px` : 0 }}
+        className={`flex-1 relative transition-all duration-300 scroll-smooth min-h-screen ${
+          user ? 'pt-16 lg:pt-0 pb-20' : 'pb-20'
+        }`}
+        style={{ 
+          marginLeft: user && !isMobile ? `${mainMargin}px` : 0,
+          paddingBottom: user ? '8rem' : '2rem' // Extra space for footer
+        }}
         role="main"
         tabIndex={-1}
       >
         <ThreadBackground />
-        <div className="relative z-10">
+        <div className="relative z-10 min-h-[calc(100vh-12rem)]">
           <AnimatePresence mode="wait" initial={false}>
             <Routes location={location} key={location.pathname}>
               {routes}

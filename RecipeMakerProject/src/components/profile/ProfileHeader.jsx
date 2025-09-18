@@ -44,29 +44,29 @@ const ProfileHeader = ({
       className="relative overflow-hidden"
     >
       {/* Background Cover */}
-      <div className="h-48 bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-700 relative">
+      <div className="h-32 sm:h-40 lg:h-48 bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-700 relative">
         <div className="absolute inset-0 bg-black/20" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
         
         {/* Floating Elements */}
-        <div className="absolute top-8 right-8 w-24 h-24 bg-white/10 rounded-full blur-xl" />
-        <div className="absolute bottom-12 left-12 w-16 h-16 bg-emerald-300/20 rounded-full blur-lg" />
-        <div className="absolute top-16 left-1/3 w-8 h-8 bg-cyan-300/30 rounded-full blur-sm" />
+        <div className="absolute top-4 sm:top-6 lg:top-8 right-4 sm:right-6 lg:right-8 w-16 sm:w-20 lg:w-24 h-16 sm:h-20 lg:h-24 bg-white/10 rounded-full blur-xl" />
+        <div className="absolute bottom-6 sm:bottom-8 lg:bottom-12 left-6 sm:left-8 lg:left-12 w-12 sm:w-14 lg:w-16 h-12 sm:h-14 lg:h-16 bg-emerald-300/20 rounded-full blur-lg" />
+        <div className="absolute top-8 sm:top-12 lg:top-16 left-1/4 sm:left-1/3 w-6 sm:w-7 lg:w-8 h-6 sm:h-7 lg:h-8 bg-cyan-300/30 rounded-full blur-sm" />
       </div>
 
       {/* Content Container */}
-      <div className="relative -mt-20 px-6">
-        <div className="bg-gray-900/95 backdrop-blur-xl rounded-3xl border border-gray-700/50 p-8 shadow-2xl">
-          <div className="flex flex-col lg:flex-row items-center lg:items-end gap-8">
+      <div className="relative -mt-12 sm:-mt-16 lg:-mt-20 px-4 sm:px-6">
+        <div className="bg-gray-900/95 backdrop-blur-xl rounded-2xl sm:rounded-3xl border border-gray-700/50 p-4 sm:p-6 lg:p-8 shadow-2xl">
+          <div className="flex flex-col sm:flex-row lg:flex-row items-center sm:items-end lg:items-end gap-4 sm:gap-6 lg:gap-8">
             
             {/* Profile Image Section */}
-            <div className="relative group">
+            <div className="relative group flex-shrink-0">
               <motion.div 
                 className="relative"
                 whileHover={{ scale: 1.02 }}
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
               >
-                <div className="w-32 h-32 rounded-3xl overflow-hidden border-4 border-emerald-400/30 shadow-xl relative">
+                <div className="w-20 h-20 sm:w-24 sm:h-24 lg:w-32 lg:h-32 rounded-2xl sm:rounded-3xl overflow-hidden border-2 sm:border-4 border-emerald-400/30 shadow-xl relative">
                   <img
                     src={profileImagePreview || profile?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.name || 'User')}&background=10b981&color=fff&size=128`}
                     alt={profile?.name || 'Profile'}
@@ -77,9 +77,9 @@ const ProfileHeader = ({
                   <motion.div 
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    className="absolute -bottom-1 -right-1 w-8 h-8 bg-emerald-400 rounded-full border-4 border-gray-900 flex items-center justify-center"
+                    className="absolute -bottom-0.5 sm:-bottom-1 -right-0.5 sm:-right-1 w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 bg-emerald-400 rounded-full border-2 sm:border-3 lg:border-4 border-gray-900 flex items-center justify-center"
                   >
-                    <div className="w-3 h-3 bg-white rounded-full animate-pulse" />
+                    <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 lg:w-3 lg:h-3 bg-white rounded-full animate-pulse" />
                   </motion.div>
                 </div>
 
@@ -116,7 +116,7 @@ const ProfileHeader = ({
             </div>
 
             {/* Profile Info */}
-            <div className="flex-1 text-center lg:text-left space-y-4">
+            <div className="flex-1 text-center sm:text-left space-y-3 sm:space-y-4 min-w-0">
               
               {/* Name and Title */}
               <div>
@@ -126,11 +126,11 @@ const ProfileHeader = ({
                     value={editForm.name || ''}
                     onChange={handleInputChange}
                     placeholder="Your name"
-                    className="text-3xl lg:text-4xl font-bold bg-transparent border-b-2 border-emerald-400/50 focus:border-emerald-400 outline-none text-white placeholder:text-gray-400 w-full"
+                    className="text-lg sm:text-2xl lg:text-3xl xl:text-4xl font-bold bg-transparent border-b-2 border-emerald-400/50 focus:border-emerald-400 outline-none text-white placeholder:text-gray-400 w-full"
                   />
                 ) : (
-                  <div className="flex items-center gap-3 justify-center lg:justify-start">
-                    <h1 className="text-3xl lg:text-4xl font-bold text-white">
+                  <div className="flex items-center gap-2 sm:gap-3 justify-center sm:justify-start">
+                    <h1 className="text-lg sm:text-2xl lg:text-3xl xl:text-4xl font-bold text-white truncate">
                       {profile?.name || profile?.displayName || 'Anonymous User'}
                     </h1>
                     {profile?.verified && (
@@ -138,8 +138,9 @@ const ProfileHeader = ({
                         initial={{ scale: 0, rotate: -180 }}
                         animate={{ scale: 1, rotate: 0 }}
                         transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
+                        className="flex-shrink-0"
                       >
-                        <Verified className="w-7 h-7 text-emerald-400 fill-current" />
+                        <Verified className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 text-emerald-400 fill-current" />
                       </motion.div>
                     )}
                   </div>
@@ -150,7 +151,7 @@ const ProfileHeader = ({
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4 }}
-                    className="text-emerald-400 font-medium mt-1"
+                    className="text-emerald-400 font-medium mt-1 text-sm sm:text-base"
                   >
                     {profile.title}
                   </motion.p>
@@ -166,10 +167,10 @@ const ProfileHeader = ({
                     onChange={handleInputChange}
                     placeholder="Tell us about yourself..."
                     rows={3}
-                    className="w-full bg-gray-800/50 border border-gray-600/50 rounded-2xl p-4 text-gray-200 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-400/50 focus:border-emerald-400/50 outline-none resize-none"
+                    className="w-full bg-gray-800/50 border border-gray-600/50 rounded-2xl p-3 sm:p-4 text-sm sm:text-base text-gray-200 placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-400/50 focus:border-emerald-400/50 outline-none resize-none"
                   />
                 ) : (
-                  <p className="text-gray-300 text-lg leading-relaxed max-w-2xl">
+                  <p className="text-gray-300 text-sm sm:text-base lg:text-lg leading-relaxed max-w-2xl">
                     {profile?.bio || 'Welcome to my profile! I love sharing healthy recipes and nutrition tips.'}
                   </p>
                 )}
@@ -180,7 +181,7 @@ const ProfileHeader = ({
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
-                className="flex flex-wrap items-center gap-6 text-gray-400 justify-center lg:justify-start"
+                className="flex flex-wrap items-center gap-3 sm:gap-4 lg:gap-6 text-gray-400 text-xs sm:text-sm justify-center sm:justify-start"
               >
                 {(profile?.location || editMode) && (
                   <div className="flex items-center gap-2">
@@ -236,7 +237,7 @@ const ProfileHeader = ({
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.6 }}
-                className="flex gap-3"
+                className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto mt-4 sm:mt-0"
               >
                 {editMode ? (
                   <>
@@ -245,21 +246,22 @@ const ProfileHeader = ({
                       disabled={saving}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-800 disabled:cursor-not-allowed text-white rounded-2xl font-medium transition-all duration-200 shadow-lg"
+                      className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-800 disabled:cursor-not-allowed text-white rounded-xl sm:rounded-2xl font-medium transition-all duration-200 shadow-lg text-sm sm:text-base"
                     >
                       {saving ? (
                         <RefreshCw className="w-4 h-4 animate-spin" />
                       ) : (
                         <Save className="w-4 h-4" />
                       )}
-                      {saving ? 'Saving...' : 'Save Changes'}
+                      <span className="hidden sm:inline">{saving ? 'Saving...' : 'Save Changes'}</span>
+                      <span className="sm:hidden">{saving ? 'Saving...' : 'Save'}</span>
                     </motion.button>
 
                     <motion.button
                       onClick={() => setEditMode(false)}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      className="flex items-center gap-2 px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-2xl font-medium transition-all duration-200 shadow-lg"
+                      className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-xl sm:rounded-2xl font-medium transition-all duration-200 shadow-lg text-sm sm:text-base"
                     >
                       <X className="w-4 h-4" />
                       Cancel
@@ -270,10 +272,11 @@ const ProfileHeader = ({
                     onClick={() => setEditMode(true)}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="flex items-center gap-2 px-6 py-3 bg-gray-800 hover:bg-gray-700 text-white rounded-2xl font-medium transition-all duration-200 shadow-lg border border-gray-600/50"
+                    className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gray-800 hover:bg-gray-700 text-white rounded-xl sm:rounded-2xl font-medium transition-all duration-200 shadow-lg border border-gray-600/50 text-sm sm:text-base"
                   >
                     <Edit className="w-4 h-4" />
-                    Edit Profile
+                    <span className="hidden sm:inline">Edit Profile</span>
+                    <span className="sm:hidden">Edit</span>
                   </motion.button>
                 )}
               </motion.div>

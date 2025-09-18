@@ -5,6 +5,8 @@ import { FiMail, FiUsers, FiExternalLink, FiHeart, FiX, FiArrowUp, FiStar, FiTre
 import { FaGithub, FaLinkedin, FaGlobe, FaHeart, FaInstagram, FaYoutube, FaDiscord, FaTelegramPlane } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useSidebar } from '../../hooks/useSidebar';
+import { Home, ChefHat, Users, Activity, Calendar, User } from 'lucide-react';
 
 // Register GSAP plugin
 if (typeof window !== "undefined") {
@@ -18,6 +20,7 @@ const Footer = () => {
   const [subscribed, setSubscribed] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const navigate = useNavigate();
+  const { mainMargin, isMobile, isCollapsed } = useSidebar();
 
   // Entrance and particle animations
   useEffect(() => {
@@ -146,7 +149,12 @@ const Footer = () => {
       className="relative mt-20 overflow-hidden"
     >
       {/* Main footer container with glassmorphism */}
-      <div className="bg-gradient-to-br from-slate-900/95 via-gray-900/90 to-black/95 backdrop-blur-xl border-t border-white/10 relative">
+      <div 
+        className="bg-gradient-to-br from-slate-900/95 via-gray-900/90 to-black/95 backdrop-blur-xl border-t border-white/10 relative transition-all duration-300" 
+        style={{
+          marginLeft: !isMobile ? `${mainMargin}px` : 0,
+        }}
+      >
         {/* Animated gradient border */}
         <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-emerald-500 to-transparent animate-pulse"></div>
         <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-emerald-400 via-blue-500 via-purple-500 via-pink-500 to-emerald-400 opacity-60 animate-pulse"></div>
@@ -199,8 +207,8 @@ const Footer = () => {
               >
                 {[
                   { icon: FiZap, title: "AI-Powered", desc: "Smart recommendations" },
-                  { icon: FiShield, title: "Secure", desc: "Privacy protected" },
-                  { icon: FiUsers, title: "Community", desc: "Members" },
+                  // { icon: FiShield, title: "Secure", desc: "Privacy protected" },
+                  // { icon: FiUsers, title: "Community", desc: "Members" },
                   { icon: FiGlobe, title: "Global", desc: "Worldwide recipes" },
                 ].map((feature, idx) => (
                   <div key={idx} className="group p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all duration-300">
@@ -251,32 +259,38 @@ const Footer = () => {
               
               <div className="space-y-2">
                 {[
-                  { name: "🏠 Home", path: "/", desc: "Start your journey" },
-                  { name: "🍳 Recipes", path: "/recipes", desc: "Discover amazing recipes" },
-                  { name: "👥 Community", path: "/community", desc: "Connect with others" },
-                  { name: "📊 Activity", path: "/activity", desc: "Track your progress" },
-                  { name: "📱 Diet Planner", path: "/diet-planner", desc: "Plan your meals" },
-                  { name: "👤 Profile", path: "/profile", desc: "Manage your account" },
+                  { name: "Dashboard", icon: Home, path: "/", desc: "Start your journey", color: "text-emerald-400" },
+                  { name: "Recipes", icon: ChefHat, path: "/recipes", desc: "Discover amazing recipes", color: "text-orange-400" },
+                  { name: "Community", icon: Users, path: "/community", desc: "Connect with others", color: "text-blue-400" },
+                  { name: "Activity", icon: Activity, path: "/activity", desc: "Track your progress", color: "text-purple-400" },
+                  { name: "Diet Planner", icon: Calendar, path: "/diet-planner", desc: "Plan your meals", color: "text-pink-400" },
+                  { name: "Profile", icon: User, path: "/profile", desc: "Manage your account", color: "text-cyan-400" },
                 ].map((link, index) => (
                   <motion.div
                     key={link.name}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.4 + index * 0.05 }}
-                    whileHover={{ x: 8 }}
+                    whileHover={{ x: 8, scale: 1.02 }}
                     className="group"
                   >
                     <Link
                       to={link.path}
-                      className="block p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-blue-400/30 transition-all duration-300"
+                      className="block p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-emerald-400/40 transition-all duration-300 backdrop-blur-sm hover:shadow-lg hover:shadow-emerald-500/10"
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="text-white font-medium group-hover:text-blue-400 transition-colors">
+                      <div className="flex items-center gap-3 mb-1">
+                        <motion.div
+                          className={`${link.color} group-hover:scale-110 transition-all duration-300`}
+                          whileHover={{ rotate: 5 }}
+                        >
+                          <link.icon size={18} />
+                        </motion.div>
+                        <span className="text-white font-semibold group-hover:text-emerald-400 transition-colors">
                           {link.name}
                         </span>
-                        <FiExternalLink className="text-gray-400 group-hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-all" size={14} />
+                        <FiExternalLink className="text-gray-500 group-hover:text-emerald-400 opacity-0 group-hover:opacity-100 transition-all ml-auto" size={14} />
                       </div>
-                      <p className="text-gray-400 text-xs mt-1 group-hover:text-gray-300 transition-colors">{link.desc}</p>
+                      <p className="text-gray-400 text-sm group-hover:text-gray-300 transition-colors leading-relaxed">{link.desc}</p>
                     </Link>
                   </motion.div>
                 ))}
@@ -758,7 +772,7 @@ const Footer = () => {
             </div>
             
             {/* Footer Links */}
-            <div className="flex flex-wrap justify-center items-center gap-4 lg:gap-6 text-sm text-gray-400">
+            <div className="flex flex-wrap justify-center items-center gap-4 lg:gap-6 text-sm text-gray-400 px-20">
               <motion.a
                 href="#"
                 className="hover:text-green-400 transition-all duration-300 relative after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-green-400 after:transition-all after:duration-300 hover:after:w-full"
@@ -786,37 +800,44 @@ const Footer = () => {
           </div>
         </motion.div>
         
-          {/* Scroll to Top Button - Enhanced */}
-          <AnimatePresence>
-            {showScrollTop && (
-              <motion.button
-                onClick={scrollToTop}
-                className="fixed bottom-8 right-8 w-14 h-14 bg-gradient-to-r from-emerald-500 via-blue-500 to-purple-600 hover:from-emerald-600 hover:via-blue-600 hover:to-purple-700 text-white rounded-2xl shadow-2xl hover:shadow-emerald-500/30 transition-all duration-300 flex items-center justify-center z-50 backdrop-blur-xl border border-white/20 group"
-                initial={{ opacity: 0, scale: 0, y: 20, rotate: -180 }}
-                animate={{ opacity: 1, scale: 1, y: 0, rotate: 0 }}
-                exit={{ opacity: 0, scale: 0, y: 20, rotate: 180 }}
-                whileHover={{ 
-                  scale: 1.15, 
-                  y: -4,
-                  boxShadow: "0 20px 40px rgba(16, 185, 129, 0.4)",
-                  rotate: [0, -5, 5, 0]
-                }}
-                whileTap={{ scale: 0.9 }}
-                aria-label="Scroll to top"
-              >
-                <FiArrowUp className="relative z-10 group-hover:scale-110 transition-transform" size={22} />
-                
-                {/* Multiple pulse rings */}
-                <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-emerald-500/30 to-purple-500/30 animate-ping"></div>
-                <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-emerald-500/20 to-purple-500/20 animate-ping delay-75"></div>
-                
-                {/* Shine effect */}
-                <div className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-white/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              </motion.button>
-            )}
-          </AnimatePresence>
+        
         </div>
       </div>
+      
+      {/* Scroll to Top Button - Enhanced and Properly Positioned */}
+      <AnimatePresence>
+        {showScrollTop && (
+          <motion.button
+            onClick={scrollToTop}
+            className="fixed z-50 w-14 h-14 bg-black/95 text-white rounded-2xl shadow-2xl hover:shadow-emerald-500/30 transition-all duration-300 flex items-center justify-center backdrop-blur-xl border border-white/20 group"
+            style={{
+              bottom: '2rem',
+              right: '2rem',
+              marginRight: !isMobile ? '0' : '0', // No need to adjust for sidebar since it's fixed
+            }}
+            initial={{ opacity: 0, scale: 0, y: 20, rotate: -180 }}
+            animate={{ opacity: 1, scale: 1, y: 0, rotate: 0 }}
+            exit={{ opacity: 0, scale: 0, y: 20, rotate: 180 }}
+            whileHover={{ 
+              scale: 1.15, 
+              y: -4,
+              boxShadow: "0 20px 40px rgba(16, 185, 129, 0.4)",
+              rotate: [0, -5, 5, 0]
+            }}
+            whileTap={{ scale: 0.9 }}
+            aria-label="Scroll to top"
+          >
+            <FiArrowUp className="relative z-10 group-hover:scale-110 transition-transform" size={22} />
+            
+            {/* Multiple pulse rings */}
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-emerald-500/30 to-purple-500/30 animate-ping"></div>
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-emerald-500/20 to-purple-500/20 animate-ping delay-75"></div>
+            
+            {/* Shine effect */}
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-white/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          </motion.button>
+        )}
+      </AnimatePresence>
     </footer>
   );
 };

@@ -35,22 +35,22 @@ const StatCard = ({ stat, index }) => {
       className="group relative"
     >
       {/* Background with glassmorphism */}
-      <div className="absolute inset-0 bg-gradient-to-br from-gray-800/60 to-gray-900/60 backdrop-blur-xl rounded-2xl border border-gray-700/50" />
+      <div className="absolute inset-0 bg-gradient-to-br from-gray-800/60 to-gray-900/60 backdrop-blur-xl rounded-xl sm:rounded-2xl border border-gray-700/50" />
       
       {/* Hover effect background */}
-      <div className={`absolute inset-0 bg-gradient-to-br ${stat.gradient} opacity-0 group-hover:opacity-10 rounded-2xl transition-opacity duration-300`} />
+      <div className={`absolute inset-0 bg-gradient-to-br ${stat.gradient} opacity-0 group-hover:opacity-10 rounded-xl sm:rounded-2xl transition-opacity duration-300`} />
       
       {/* Content */}
-      <div className="relative p-6 text-center">
+      <div className="relative p-3 sm:p-4 lg:p-6 text-center">
         {/* Icon */}
-        <div className={`w-14 h-14 mx-auto mb-4 rounded-2xl ${stat.bgColor} flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
-          <Icon className={`w-7 h-7 ${stat.color}`} />
+        <div className={`w-8 h-8 sm:w-10 sm:h-10 lg:w-14 lg:h-14 mx-auto mb-2 sm:mb-3 lg:mb-4 rounded-xl sm:rounded-2xl ${stat.bgColor} flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
+          <Icon className={`w-4 h-4 sm:w-5 sm:h-5 lg:w-7 lg:h-7 ${stat.color}`} />
         </div>
         
         {/* Value */}
-        <div className="space-y-1">
+        <div className="space-y-0.5 sm:space-y-1">
           <motion.div 
-            className="text-2xl lg:text-3xl font-bold text-white"
+            className="text-sm sm:text-lg lg:text-2xl xl:text-3xl font-bold text-white"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: index * 0.1 + 0.3 }}
@@ -58,19 +58,22 @@ const StatCard = ({ stat, index }) => {
             {stat.value}
           </motion.div>
           
-          <div className="text-sm text-gray-400 font-medium">
+          <div className="text-xs sm:text-sm text-gray-400 font-medium leading-tight">
             {stat.label}
           </div>
           
           {stat.trend && (
             <motion.div 
-              className={`flex items-center justify-center gap-1 text-xs ${stat.trend > 0 ? 'text-emerald-400' : 'text-red-400'} mt-2`}
+              className={`flex items-center justify-center gap-1 text-xs ${stat.trend > 0 ? 'text-emerald-400' : 'text-red-400'} mt-1 sm:mt-2`}
               initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 + 0.5 }}
             >
-              <TrendingUp className={`w-3 h-3 ${stat.trend < 0 ? 'rotate-180' : ''}`} />
-              <span>{Math.abs(stat.trend)}% this month</span>
+              <TrendingUp className={`w-2.5 h-2.5 sm:w-3 sm:h-3 ${stat.trend < 0 ? 'rotate-180' : ''}`} />
+              <span className="text-xs">
+                <span className="hidden sm:inline">{Math.abs(stat.trend)}% this month</span>
+                <span className="sm:hidden">+{Math.abs(stat.trend)}%</span>
+              </span>
             </motion.div>
           )}
         </div>
@@ -165,12 +168,12 @@ const ProfileStats = ({ profile }) => {
       className="mt-8"
     >
       {/* Section Header */}
-      <div className="mb-8 text-center">
+      <div className="mb-6 sm:mb-8 text-center px-4">
         <motion.h2 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="text-2xl lg:text-3xl font-bold text-white mb-2"
+          className="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-2"
         >
           Profile Statistics
         </motion.h2>
@@ -178,14 +181,14 @@ const ProfileStats = ({ profile }) => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="text-gray-400 max-w-2xl mx-auto"
+          className="text-gray-400 max-w-2xl mx-auto text-sm sm:text-base"
         >
           Track your nutrition journey progress and community engagement
         </motion.p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
         {stats.map((stat, index) => (
           <StatCard 
             key={stat.label} 
@@ -200,15 +203,15 @@ const ProfileStats = ({ profile }) => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.8 }}
-        className="mt-8 grid md:grid-cols-2 gap-6"
+        className="mt-6 sm:mt-8 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6"
       >
         {/* Achievement Progress */}
-        <div className="bg-gray-800/60 backdrop-blur-xl rounded-2xl border border-gray-700/50 p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-purple-400/10 rounded-xl flex items-center justify-center">
-              <Trophy className="w-5 h-5 text-purple-400" />
+        <div className="bg-gray-800/60 backdrop-blur-xl rounded-xl sm:rounded-2xl border border-gray-700/50 p-4 sm:p-6">
+          <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-400/10 rounded-lg sm:rounded-xl flex items-center justify-center">
+              <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" />
             </div>
-            <h3 className="text-lg font-semibold text-white">Achievement Level</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-white">Achievement Level</h3>
           </div>
           
           <div className="space-y-3">
@@ -231,23 +234,24 @@ const ProfileStats = ({ profile }) => {
         </div>
 
         {/* Recent Activity Summary with Navigation */}
-        <div className="bg-gray-800/60 backdrop-blur-xl rounded-2xl border border-gray-700/50 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-emerald-400/10 rounded-xl flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-emerald-400" />
+        <div className="bg-gray-800/60 backdrop-blur-xl rounded-xl sm:rounded-2xl border border-gray-700/50 p-4 sm:p-6">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-emerald-400/10 rounded-lg sm:rounded-xl flex items-center justify-center">
+                <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
               </div>
-              <h3 className="text-lg font-semibold text-white">This Month</h3>
+              <h3 className="text-base sm:text-lg font-semibold text-white">This Month</h3>
             </div>
             
             <motion.button
               onClick={() => navigate('/activity')}
-              className="flex items-center gap-2 text-xs text-emerald-400 hover:text-emerald-300 transition-colors group"
+              className="flex items-center gap-1 sm:gap-2 text-xs text-emerald-400 hover:text-emerald-300 transition-colors group"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
               <BarChart3 className="w-3 h-3" />
-              <span>View All</span>
+              <span className="hidden sm:inline">View All</span>
+              <span className="sm:hidden">All</span>
               <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
             </motion.button>
           </div>
@@ -270,13 +274,14 @@ const ProfileStats = ({ profile }) => {
           {/* Full Activity Button */}
           <motion.button
             onClick={() => navigate('/activity')}
-            className="w-full mt-4 py-2 px-4 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-600/30 rounded-xl text-emerald-400 text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 group"
+            className="w-full mt-3 sm:mt-4 py-2 px-3 sm:px-4 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-600/30 rounded-lg sm:rounded-xl text-emerald-400 text-xs sm:text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 group"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            <BarChart3 className="w-4 h-4" />
-            <span>View Full Activity</span>
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            <BarChart3 className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">View Full Activity</span>
+            <span className="sm:hidden">Full Activity</span>
+            <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 group-hover:translate-x-1 transition-transform" />
           </motion.button>
         </div>
       </motion.div>
