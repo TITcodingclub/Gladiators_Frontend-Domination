@@ -160,14 +160,14 @@ const Footer = () => {
         <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-emerald-400 via-blue-500 via-purple-500 via-pink-500 to-emerald-400 opacity-60 animate-pulse"></div>
         
         {/* Floating orbs */}
-        <div className="absolute -top-20 -left-20 w-80 h-80 bg-gradient-to-r from-emerald-500/20 via-blue-500/15 to-purple-500/20 rounded-full blur-3xl animate-pulse"></div>
+        {/* <div className="absolute -top-20 -left-20 w-80 h-80 bg-gradient-to-r from-emerald-500/20 via-blue-500/15 to-purple-500/20 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute -bottom-20 -right-20 w-96 h-96 bg-gradient-to-l from-pink-500/20 via-orange-500/15 to-red-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-r from-purple-500/10 to-blue-500/10 rounded-full blur-2xl animate-pulse delay-500"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-r from-purple-500/10 to-blue-500/10 rounded-full blur-2xl animate-pulse delay-500"></div> */}
         
         {/* Grid pattern overlay */}
-        <div className="absolute inset-0 opacity-[0.03]" style={{
+        {/* <div className="absolute inset-0 opacity-[0.03]" style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-        }}></div>
+        }}></div> */}
 
         <div className="relative z-20 px-6 lg:px-12 py-16">
           
@@ -181,12 +181,32 @@ const Footer = () => {
                 transition={{ delay: 0.2 }}
               >
                 <div className="relative">
-                  <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-blue-600 rounded-2xl flex items-center justify-center">
-                    <img src="/vite.svg" alt="logo" className="w-6 h-6" />
+                  <div className="w-15 h-14 rounded-2xl flex items-center justify-center">
+                    <img src="/vite.svg" alt="logo" className="w-16 h-15 rounded-full" />
                   </div>
-                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-blue-600 rounded-2xl blur-lg opacity-50 animate-pulse"></div>
                 </div>
-                <h3 className="text-3xl font-bold bg-gradient-to-r from-emerald-400 to-blue-400 bg-clip-text text-transparent">Nutrithy</h3>
+                <div className="flex justify-center">
+                  <motion.svg
+                    viewBox="0 0 180 60"
+                    width="220"
+                    height="60"
+                    initial={{ strokeDasharray: 1000, strokeDashoffset: 1000 }}
+                    animate={{ strokeDashoffset: 0 }}
+                    transition={{ duration: 6, delay: 0.3 }}
+                  >
+                    <text
+                      x="-20"
+                      y="45"
+                      fontSize="32"
+                      className="sm:font-bold"
+                      fill="none"
+                      stroke="#22c55e"
+                      strokeWidth="2"
+                    >
+                      Nutrithy 🍳
+                    </text>
+                  </motion.svg>
+                </div>
               </motion.div>
               
               <motion.p
@@ -271,7 +291,6 @@ const Footer = () => {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.4 + index * 0.05 }}
-                    whileHover={{ x: 8, scale: 1.02 }}
                     className="group"
                   >
                     <Link
@@ -281,7 +300,6 @@ const Footer = () => {
                       <div className="flex items-center gap-3 mb-1">
                         <motion.div
                           className={`${link.color} group-hover:scale-110 transition-all duration-300`}
-                          whileHover={{ rotate: 5 }}
                         >
                           <link.icon size={18} />
                         </motion.div>
@@ -290,7 +308,7 @@ const Footer = () => {
                         </span>
                         <FiExternalLink className="text-gray-500 group-hover:text-emerald-400 opacity-0 group-hover:opacity-100 transition-all ml-auto" size={14} />
                       </div>
-                      <p className="text-gray-400 text-sm group-hover:text-gray-300 transition-colors leading-relaxed">{link.desc}</p>
+                      {/* <p className="text-gray-400 text-sm group-hover:text-gray-300 transition-colors leading-relaxed">{link.desc}</p> */}
                     </Link>
                   </motion.div>
                 ))}
@@ -474,7 +492,7 @@ const Footer = () => {
                 transition={{ duration: 0.5, ease: "easeOut" }}
               >
                 {/* Background with glassmorphism */}
-                <div className="absolute inset-0 bg-gradient-to-br from-gray-900/90 via-purple-900/20 to-blue-900/20 backdrop-blur-2xl rounded-3xl border border-white/10"></div>
+                <div className="absolute inset-0 rounded-3xl border border-white/10"></div>
                 
                 {/* Floating decorative elements */}
                 {/* <div className="absolute -top-10 -right-10 w-20 h-20 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-full blur-2xl animate-pulse"></div>
@@ -551,7 +569,7 @@ const Footer = () => {
                         skills: [
                           "React.js", "MySQL", "Java", "JavaScript",
                           "Node.js", "Express", "Figma", "Tailwind",
-                          "GSAP", "Framer Motion", "Adobe XD"
+                          "GSAP", "Framer Motion", "TypeScript"
                         ],
                         achievements: [
                           "🎨 Designed and developed several personal & academic projects",
@@ -575,7 +593,6 @@ const Footer = () => {
                         initial={{ opacity: 0, y: 30, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         transition={{ delay: 0.3 + i * 0.1, duration: 0.6 }}
-                        whileHover={{ y: -8 }}
                       >
                         {/* Card background */}
                         <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-white/[0.02] to-transparent backdrop-blur-xl rounded-3xl border border-white/10 group-hover:border-white/20 transition-all duration-500"></div>
@@ -585,11 +602,9 @@ const Footer = () => {
                           <div className="flex items-start gap-6 mb-6">
                             <div className="relative">
                               {/* Avatar with animated border */}
-                              <div className={`w-20 h-20 rounded-2xl bg-gradient-to-r ${dev.gradient} flex items-center justify-center text-2xl font-bold text-white shadow-2xl group-hover:scale-110 transition-all duration-300`}>
+                              <div className={`w-20 h-20 rounded-2xl bg-black/90 flex items-center justify-center text-2xl font-bold text-white`}>
                                 {dev.initials}
                               </div>
-                              {/* Floating ring */}
-                              <div className={`absolute inset-0 rounded-2xl bg-gradient-to-r ${dev.gradient} blur-lg opacity-0 group-hover:opacity-50 animate-pulse transition-all duration-500`}></div>
                               {/* Status indicator */}
                               <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 border-3 border-white dark:border-gray-900 rounded-full flex items-center justify-center">
                                 <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
@@ -597,10 +612,10 @@ const Footer = () => {
                             </div>
                             
                             <div className="flex-1">
-                              <h4 className="text-2xl font-bold text-white mb-2 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:bg-clip-text group-hover:from-white group-hover:to-gray-300 transition-all duration-300">
+                              <h4 className="text-2xl font-bold text-white mb-2 ">
                                 {dev.name}
                               </h4>
-                              <p className={`text-lg font-semibold bg-gradient-to-r ${dev.gradient} bg-clip-text text-transparent mb-2`}>
+                              <p className={`text-lg font-semibold text-white mb-2`}>
                                 {dev.role}
                               </p>
                               <div className="flex flex-wrap items-center gap-3 text-sm text-gray-400">
@@ -617,7 +632,7 @@ const Footer = () => {
                           </p>
                           
                           {/* Skills */}
-                          <div className="mb-6">
+                          {/* <div className="mb-6">
                             <h5 className="text-white font-semibold mb-3 flex items-center gap-2">
                               <FiZap className="text-yellow-400" size={16} />
                               Tech Stack
@@ -634,10 +649,10 @@ const Footer = () => {
                                 </motion.span>
                               ))}
                             </div>
-                          </div>
+                          </div> */}
                           
                           {/* Achievements */}
-                          <div className="mb-6">
+                          {/* <div className="mb-6">
                             <h5 className="text-white font-semibold mb-3 flex items-center gap-2">
                               <FiStar className="text-yellow-400" size={16} />
                               Highlights
@@ -649,14 +664,14 @@ const Footer = () => {
                                 </div>
                               ))}
                             </div>
-                          </div>
+                          </div> */}
                           
                           {/* Fun fact */}
-                          <div className="mb-6 p-4 bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-xl">
+                          {/* <div className="mb-6 p-4 bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-xl">
                             <p className="text-purple-300 text-sm font-medium">
                               {dev.funFact}
                             </p>
-                          </div>
+                          </div> */}
                           
                           {/* Social links */}
                           <div className="flex flex-row flex-wrap gap-3 justify-between items-center">

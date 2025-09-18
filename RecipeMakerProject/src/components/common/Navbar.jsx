@@ -12,7 +12,8 @@ import {
   LogOut,
   User,
   Menu,
-  X
+  X,
+  Phone
 } from 'lucide-react';
 
 export default function Navbar() {
@@ -54,6 +55,7 @@ export default function Navbar() {
     { name: 'Dashboard', icon: Home, path: '/' },
     { name: 'Recipes', icon: ChefHat, path: '/recipes' },
     { name: 'Community', icon: Users, path: '/community' },
+    { name: 'Calls', icon: Phone, path: '/calls' },
     { name: 'Activity', icon: Activity, path: '/activity' },
     { name: 'Diet Planner', icon: Calendar, path: '/diet-planner' },
   ], []);
@@ -109,7 +111,72 @@ export default function Navbar() {
 
   return (
     <>
-      {/* Desktop Sidebar - Enhanced with Glass Morphism */}
+      {/* Fixed Logo Header - Always Visible at Top */}
+      <motion.div
+        className="fixed top-0 left-0 right-0 z-50 backdrop-blur-2xl bg-white/90 dark:bg-gray-900/95 border-b border-white/20 dark:border-gray-700/30 shadow-lg hidden sm:flex items-center justify-center"
+        style={{
+          backgroundImage: 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%)',
+          backdropFilter: 'blur(25px) saturate(180%)',
+        }}
+        initial={{ y: -100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+      >
+        <div className="flex items-center justify-center py-3 px-4">
+          {/* Enhanced Fixed Logo */}
+         <motion.div 
+            className="flex items-center gap-3 cursor-pointer group"
+            onClick={() => handleNavigation('/')}
+          >
+            <motion.div 
+              className="relative rounded-2xl transition-all duration-300 h-13 w-14"
+            >
+              <img 
+                src="/vite.svg" 
+                alt="Logo" 
+                className="w-15 h-14 rounded-full object-cover" 
+              />
+            </motion.div>
+            <div>
+              <motion.h1 
+                className="text-lg font-bold bg-gradient-to-r from-gray-800 to-emerald-600 dark:from-white dark:to-emerald-400 bg-clip-text text-transparent group-hover:from-emerald-600 group-hover:to-blue-600 dark:group-hover:from-emerald-400 dark:group-hover:to-blue-400 transition-all duration-300"
+                animate={{
+                  backgroundPosition: ['0% 50%', '100% 50%', '0% 50%']
+                }}
+                transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
+                style={{ backgroundSize: '200% 200%' }}
+              >
+                <div className="flex justify-center">
+                  <motion.svg
+                    viewBox="0 0 180 60"
+                    width="180"
+                    height="45"
+                    initial={{ strokeDasharray: 1000, strokeDashoffset: 1000 }}
+                    animate={{ strokeDashoffset: 0 }}
+                    transition={{ duration: 6, delay: 0.3 }}
+                  >
+                    <text
+                      x="-20"
+                      y="45"
+                      fontSize="40"
+                      className="font-bold"
+                      fill="none"
+                      stroke="#22c55e"
+                      strokeWidth="1.5"
+                    >
+                      Nutrithy 🍳
+                    </text>
+                  </motion.svg>
+                </div>
+              </motion.h1>
+            </div>
+          </motion.div>
+        </div>
+        {/* Animated gradient border at bottom */}
+        <div className="absolute bottom-0 left-0 w-full h-1 item-center bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent opacity-60" />
+      </motion.div>
+
+      {/* Desktop Sidebar - Enhanced with Glass Morphism (Adjusted for fixed logo) */}
       <motion.aside
         ref={sidebarRef}
         initial="expanded"
@@ -118,13 +185,15 @@ export default function Navbar() {
         transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        className="hidden lg:flex fixed left-0 top-0 h-screen z-40 flex-col backdrop-blur-2xl bg-white/80 dark:bg-gray-900/85 border-r border-white/20 dark:border-gray-700/30 shadow-2xl shadow-gray-200/10 dark:shadow-black/20"
+        className="hidden lg:flex fixed left-0 h-screen z-40 flex-col backdrop-blur-2xl bg-white/90 dark:bg-gray-900/95 border-b border-white/20 dark:border-gray-700/30 shadow-lg"
         style={{
-          backgroundImage: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
-          backdropFilter: 'blur(20px) saturate(180%)',
+          top: '70px', // Adjusted to accommodate fixed logo
+          height: 'calc(100vh - 80px)',
+          backgroundImage: 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%)',
+          backdropFilter: 'blur(25px) saturate(180%)',
         }}
       >
-        {/* Desktop Header - Enhanced */}
+        {/* Sidebar Header - Simplified since logo is at top */}
         <div className="p-4 border-b border-white/10 dark:border-gray-700/30 relative">
           {/* Animated gradient line */}
           <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent opacity-60" />
@@ -135,39 +204,49 @@ export default function Navbar() {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
               transition={{ duration: 0.3 }}
-              className="flex items-center gap-3"
+              className="flex items-center justify-center"
             >
-              <motion.div 
-                className="relative p-2 rounded-xl bg-gradient-to-br from-emerald-500/10 to-blue-500/10 border border-emerald-500/20"
-                whileHover={{ scale: 1.1, rotate: [0, -5, 5, 0] }}
-                transition={{ duration: 0.6 }}
+              <motion.span 
+                className="text-sm text-gray-600/80 dark:text-gray-400/80 font-medium px-3 py-1 rounded-full bg-white/30 dark:bg-gray-700/30"
+                animate={{ opacity: [0.7, 1, 0.7] }}
+                transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
               >
-                <img src="/vite.svg" alt="Logo" className="w-6 h-6" />
-                <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-emerald-400/10 to-blue-500/10 opacity-0 hover:opacity-100 transition-opacity duration-300 animate-pulse" />
-              </motion.div>
-              <div>
-                <motion.h1 
-                  className="text-lg font-bold bg-gradient-to-r from-gray-800 to-emerald-600 dark:from-white dark:to-emerald-400 bg-clip-text text-transparent"
-                  animate={{
-                    backgroundPosition: ['0% 50%', '100% 50%', '0% 50%']
-                  }}
-                  transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
-                  style={{ backgroundSize: '200% 200%' }}
-                >
-                  Nutrithy
-                </motion.h1>
-                <motion.span 
-                  className="text-xs text-emerald-600/70 dark:text-emerald-400/70 font-medium"
-                  animate={{ opacity: [0.5, 1, 0.5] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                >
-                  Smart Nutrition
-                </motion.span>
-              </div>
+                 <motion.h1 
+                className="text-lg font-bold bg-gradient-to-r from-gray-800 to-emerald-600 dark:from-white dark:to-emerald-400 bg-clip-text text-transparent group-hover:from-emerald-600 group-hover:to-blue-600 dark:group-hover:from-emerald-400 dark:group-hover:to-blue-400 transition-all duration-300"
+                animate={{
+                  backgroundPosition: ['0% 50%', '100% 50%', '0% 50%']
+                }}
+                transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
+                style={{ backgroundSize: '200% 200%' }}
+              >
+                <div className="flex justify-center">
+                  <motion.svg
+                    viewBox="0 0 180 60"
+                    width="180"
+                    height="45"
+                    initial={{ strokeDasharray: 1000, strokeDashoffset: 1000 }}
+                    animate={{ strokeDashoffset: 0 }}
+                    transition={{ duration: 6, delay: 0.3 }}
+                  >
+                    <text
+                      x="-20"
+                      y="45"
+                      fontSize="40"
+                      className="font-bold"
+                      fill="none"
+                      stroke="#22c55e"
+                      strokeWidth="1.5"
+                    >
+                      Nutrithy 🍳
+                    </text>
+                  </motion.svg>
+                </div>
+              </motion.h1>
+              </motion.span>
             </motion.div>
           )}
           
-          {/* Collapsed state logo - Enhanced */}
+          {/* Collapsed state indicator */}
           {(isCollapsed && !isHovering) && (
             <motion.div 
               className="flex justify-center"
@@ -176,19 +255,16 @@ export default function Navbar() {
               transition={{ duration: 0.3 }}
             >
               <motion.div 
-                className="relative p-2 rounded-xl bg-gradient-to-br from-emerald-500/10 to-blue-500/10 border border-emerald-500/20"
-                whileHover={{ scale: 1.15, rotate: 360 }}
-                transition={{ duration: 0.6 }}
-              >
-                <img src="/vite.svg" alt="Logo" className="w-6 h-6" />
-                <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-emerald-400/20 to-blue-500/20 opacity-0 hover:opacity-100 transition-opacity duration-300 blur-sm" />
-              </motion.div>
+                className="w-8 h-1 bg-gradient-to-r from-emerald-500/50 to-blue-500/50 rounded-full"
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              />
             </motion.div>
           )}
         </div>
 
         {/* Desktop Navigation */}
-        <nav className="flex-1 px-4 py-6 space-y-2">
+        <nav className="flex-1 px-4 py-6 space-y-3">
           {navigationItems.map((item, index) => {
             const Icon = item.icon;
             const isActive = activeLink === item.path;
@@ -202,11 +278,9 @@ export default function Navbar() {
                   transition={{ delay: index * 0.05 }}
                   className={`relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 group overflow-hidden ${
                     isActive
-                      ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-xl shadow-emerald-500/30 scale-105'
+                      ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white scale-105'
                       : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-gray-700/50 backdrop-blur-sm'
                   }`}
-                  whileHover={{ x: isActive ? 0 : 6, scale: isActive ? 1.05 : 1.02 }}
-                  whileTap={{ scale: 0.98 }}
                 >
                   {/* Active indicator bar */}
                   {isActive && (
@@ -331,14 +405,15 @@ export default function Navbar() {
         )}
       </motion.aside>
 
-      {/* Mobile Top Navigation - Enhanced */}
+      {/* Mobile Navigation Bar - Positioned below fixed logo */}
       <motion.header 
-        className={`lg:hidden fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+        className={`lg:hidden fixed top-0 left-0 right-0 z-40 transition-all duration-500 ${
           scrolled 
             ? 'backdrop-blur-2xl bg-white/85 dark:bg-gray-900/90 shadow-xl shadow-gray-900/5 border-b border-white/20 dark:border-gray-700/30' 
             : 'backdrop-blur-xl bg-white/70 dark:bg-gray-900/80 border-b border-white/10 dark:border-gray-800/20'
         }`}
         style={{
+          top: '0px', // Positioned below fixed logo
           backgroundImage: scrolled 
             ? 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%)'
             : 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.02) 100%)',
@@ -346,7 +421,7 @@ export default function Navbar() {
         }}
         initial={{ y: -100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
       >
         {/* Animated gradient border */}
         <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent opacity-60" />
@@ -361,39 +436,55 @@ export default function Navbar() {
             whileTap={{ scale: 0.95 }}
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
           >
             <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-emerald-500/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             <Menu className="w-6 h-6 text-gray-700 dark:text-gray-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors duration-300 relative z-10" />
           </motion.button>
 
-          {/* Enhanced Logo */}
+          {/* Navigation Title */}
           <motion.div 
-            className="flex items-center gap-2 cursor-pointer group"
-            onClick={() => handleNavigation('/')}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            className="flex items-center justify-center flex-1"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
           >
-            <motion.div 
-              className="relative p-2 rounded-xl bg-gradient-to-br from-emerald-500/10 to-blue-500/10 border border-emerald-500/20 group-hover:border-emerald-400/40 transition-all duration-300"
-              whileHover={{ rotate: [0, -5, 5, 0] }}
-              transition={{ duration: 0.6 }}
-            >
-              <img src="/vite.svg" alt="Logo" className="w-6 h-6" />
-              <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-emerald-400/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 animate-pulse" />
-            </motion.div>
             <motion.span 
-              className="text-lg font-bold bg-gradient-to-r from-gray-800 to-emerald-600 dark:from-white dark:to-emerald-400 bg-clip-text text-transparent group-hover:from-emerald-600 group-hover:to-blue-600 dark:group-hover:from-emerald-400 dark:group-hover:to-blue-400 transition-all duration-300"
-              animate={{
-                backgroundPosition: ['0% 50%', '100% 50%', '0% 50%']
-              }}
-              transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
-              style={{ backgroundSize: '200% 200%' }}
+              className="text-sm text-gray-600/80 dark:text-gray-400/80 font-medium px-4 py-1.5 rounded-full bg-white/30 dark:bg-gray-700/30"
+              animate={{ opacity: [0.7, 1, 0.7] }}
+              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
             >
-              Nutrithy
+              <motion.h1 
+                className="text-lg font-bold bg-gradient-to-r from-gray-800 to-emerald-600 dark:from-white dark:to-emerald-400 bg-clip-text text-transparent group-hover:from-emerald-600 group-hover:to-blue-600 dark:group-hover:from-emerald-400 dark:group-hover:to-blue-400 transition-all duration-300"
+                animate={{
+                  backgroundPosition: ['0% 50%', '100% 50%', '0% 50%']
+                }}
+                transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
+                style={{ backgroundSize: '200% 200%' }}
+              >
+                <div className="flex justify-center">
+                  <motion.svg
+                    viewBox="0 0 180 60"
+                    width="180"
+                    height="45"
+                    initial={{ strokeDasharray: 1000, strokeDashoffset: 1000 }}
+                    animate={{ strokeDashoffset: 0 }}
+                    transition={{ duration: 6, delay: 0.3 }}
+                  >
+                    <text
+                      x="-20"
+                      y="45"
+                      fontSize="40"
+                      className="font-bold"
+                      fill="none"
+                      stroke="#22c55e"
+                      strokeWidth="1.5"
+                    >
+                      Nutrithy 🍳
+                    </text>
+                  </motion.svg>
+                </div>
+              </motion.h1>
             </motion.span>
           </motion.div>
 
@@ -405,7 +496,7 @@ export default function Navbar() {
             whileTap={{ scale: 0.95 }}
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
+            transition={{ duration: 0.5, delay: 0.5 }}
           >
             <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-emerald-500/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             
@@ -457,34 +548,39 @@ export default function Navbar() {
               onClick={closeMobile}
             />
 
-            {/* Mobile Sidebar - Enhanced */}
+            {/* Mobile Sidebar - Enhanced (Adjusted for fixed logo) */}
             <motion.aside
               initial="closed"
               animate="open"
               exit="closed"
               variants={mobileSidebarVariants}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="fixed left-0 top-0 h-screen w-80 backdrop-blur-2xl bg-white/85 dark:bg-gray-900/90 border-r border-white/20 dark:border-gray-700/30 shadow-2xl shadow-black/10 z-40 lg:hidden flex flex-col overflow-hidden"
+              className="fixed left-0 w-80 backdrop-blur-2xl bg-white/85 dark:bg-gray-900/90 border-r border-white/20 dark:border-gray-700/30 shadow-2xl shadow-black/10 z-40 lg:hidden flex flex-col overflow-hidden"
               style={{
+                top: '80px', // Adjusted to start below fixed logo
+                height: 'calc(100vh - 80px)',
                 backgroundImage: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
                 backdropFilter: 'blur(25px) saturate(180%)',
               }}
             >
-              {/* Mobile Header */}
-              <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
-                <div className="flex items-center gap-3">
-                  <img src="/vite.svg" alt="Logo" className="w-8 h-8" />
-                  <div>
-                    <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Nutrithy</h1>
-                  </div>
-                </div>
-                
-                <button
-                  onClick={closeMobile}
-                  className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+              {/* Mobile Sidebar Header */}
+              <div className="flex items-center justify-between p-4 border-b border-gray-200/50 dark:border-gray-800/50">
+                <motion.span 
+                  className="text-sm text-gray-600/80 dark:text-gray-400/80 font-medium px-3 py-1.5 rounded-full bg-white/30 dark:bg-gray-700/30"
+                  animate={{ opacity: [0.7, 1, 0.7] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
                 >
-                  <X className="w-6 h-6" />
-                </button>
+                  Navigation Menu
+                </motion.span>
+                
+                <motion.button
+                  onClick={closeMobile}
+                  className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-200"
+                  whileHover={{ scale: 1.1, rotate: 90 }}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  <X className="w-5 h-5" />
+                </motion.button>
               </div>
 
               {/* Mobile Navigation */}

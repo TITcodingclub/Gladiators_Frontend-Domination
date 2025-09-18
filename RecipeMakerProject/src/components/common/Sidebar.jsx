@@ -51,6 +51,7 @@ export default function Sidebar() {
     { name: 'Dashboard', icon: Home, path: '/' },
     { name: 'Recipes', icon: ChefHat, path: '/recipes' },
     { name: 'Community', icon: Users, path: '/community' },
+    { name: 'Calls', icon: MessageCircle, path: '/calls' },
     { name: 'Activity', icon: Activity, path: '/activity' },
     { name: 'Diet Planner', icon: Calendar, path: '/diet-planner' },
   ], []);

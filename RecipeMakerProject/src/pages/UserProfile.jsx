@@ -204,12 +204,12 @@ export default function UserProfile({
       </div>
 
       {/* Main Content */}
-      <div className="relative z-10">
+      <div className="px-10 pt-8 w-full mx-auto flex flex-col gap-8 max-w-7xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
-          className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8"
+          className="px-10 pt-8 w-full mx-auto flex flex-col gap-8 max-w-7xl"
         >
           {/* Modern Profile Header */}
           <Suspense fallback={<LoadingFallback message="Loading profile header..." minimal />}>

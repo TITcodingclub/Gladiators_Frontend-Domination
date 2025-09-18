@@ -345,7 +345,7 @@ function AppContent() {
       <main 
         id="main-content"
         className={`flex-1 relative transition-all duration-300 scroll-smooth min-h-screen ${
-          user ? 'pt-16 lg:pt-0 pb-20' : 'pb-20'
+          user ? 'pt-44 lg:pt-20 pb-20' : 'pt-20 pb-20'
         }`}
         style={{ 
           marginLeft: user && !isMobile ? `${mainMargin}px` : 0,

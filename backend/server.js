@@ -14,6 +14,7 @@ const userProfileRoutes = require("./routes/userProfileRoutes");
 const dietPlanRoutes = require("./routes/dietPlanRoutes");
 const communityRoutes = require("./routes/communityRoutes");
 const nutritionRoutes = require("./routes/nutritionRoutes");
+const callRoutes = require("./routes/callRoutes");
 const socketHandler = require("./socket/socketHandler");
 
 const app = express();
@@ -46,6 +47,7 @@ app.use("/api/rooms", roomRoutes);
 app.use("/api/diet-plans", dietPlanRoutes);
 app.use("/api/community", communityRoutes);
 app.use("/api/nutrition", nutritionRoutes);
+app.use("/api/calls", callRoutes);
 
 // ✅ Users routes
 app.use("/api/users", userRoutes); // existing user operations (login, profile, etc.)
@@ -60,6 +62,12 @@ const io = new Server(server, {
   },
 });
 socketHandler(io);
+
+// Debug route for testing
+app.get('/debug', (req, res) => {
+  const path = require('path');
+  res.sendFile(path.join(__dirname, '..', 'frontend-debug.html'));
+});
 
 // Start Server
 const PORT = process.env.PORT || 5000;

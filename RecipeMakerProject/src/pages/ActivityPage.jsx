@@ -170,103 +170,105 @@ const ActivityPage = () => {
     : {};
 
   // Enhanced activity stats with more features
-  const activityStats = [
-    {
-      id: 'calories_today',
-      title: "Today's Calories",
-      value: nutritionData?.calories || 0,
-      icon: Zap,
-      color: 'text-emerald-400',
-      bg: 'bg-emerald-400/10',
-      border: 'border-emerald-400/20',
-      trend: nutritionGoals?.calories ? `${nutritionPercentages.calories || 0}% of goal` : 'No goal set',
-      progress: nutritionPercentages.calories || 0
-    },
-    {
-      id: 'water_intake',
-      title: 'Water Intake',
-      value: waterIntake?.total || 0,
-      unit: 'ml',
-      icon: Droplets,
-      color: 'text-blue-400',
-      bg: 'bg-blue-400/10',
-      border: 'border-blue-400/20',
-      trend: nutritionGoals?.water ? `${nutritionPercentages.water || 0}% of goal` : 'Stay hydrated!',
-      progress: nutritionPercentages.water || 0
-    },
-    {
-      id: 'current_weight',
-      title: 'Current Weight',
-      value: weightHistory[0]?.weight || 0,
-      unit: 'kg',
-      icon: Scale,
-      color: 'text-purple-400',
-      bg: 'bg-purple-400/10',
-      border: 'border-purple-400/20',
-      trend: weightHistory.length > 1 ? 
-        `${weightHistory[0]?.weight > weightHistory[1]?.weight ? '+' : ''}${((weightHistory[0]?.weight || 0) - (weightHistory[1]?.weight || 0)).toFixed(1)}kg this week` : 
-        'Track your progress',
-      progress: 75 // Default progress for weight tracking
-    },
-    {
-      id: 'active_streak',
-      title: 'Active Streak',
-      value: profile?.activeStreak || streakData?.current || 28,
-      unit: 'days',
-      icon: Flame,
-      color: 'text-orange-400',
-      bg: 'bg-orange-400/10',
-      border: 'border-orange-400/20',
-      trend: 'Personal best!',
-      progress: Math.min(100, ((profile?.activeStreak || 28) / 30) * 100)
-    },
-    {
-      id: 'social_engagement',
-      title: 'Community Points',
-      value: socialStats?.likes || 156,
-      icon: Heart,
-      color: 'text-pink-400',
-      bg: 'bg-pink-400/10',
-      border: 'border-pink-400/20',
-      trend: '+24 this week',
-      progress: 82
-    },
-    {
-      id: 'achievements',
-      title: 'Achievements',
-      value: achievements.filter(a => a.earned).length,
-      unit: `/${achievements.length}`,
-      icon: Trophy,
-      color: 'text-yellow-400',
-      bg: 'bg-yellow-400/10',
-      border: 'border-yellow-400/20',
-      trend: 'Keep going!',
-      progress: (achievements.filter(a => a.earned).length / achievements.length) * 100
-    },
-    {
-      id: 'meal_planning',
-      title: 'Meal Plans Created',
-      value: userProfile?.mealPlans || 5,
-      icon: CalendarIcon,
-      color: 'text-indigo-400',
-      bg: 'bg-indigo-400/10',
-      border: 'border-indigo-400/20',
-      trend: 'Coming Soon!',
-      progress: 60,
-      comingSoon: true
-    },
-    {
-      id: 'recipes_shared',
-      title: 'Recipes Shared',
-      value: userProfile?.recipesShared || 12,
-      icon: Share2,
-      color: 'text-cyan-400',
-      bg: 'bg-cyan-400/10',
-      border: 'border-cyan-400/20',
-      trend: '+3 this month',
-      progress: 85
-    }
-  ];
+const activityStats = [
+  {
+    id: 'calories_today',
+    title: "Today's Calories",
+    value: nutritionData?.calories || 0,
+    icon: Zap,
+    color: 'text-emerald-600',
+    bg: 'bg-emerald-500/15',
+    border: 'border-emerald-500/40',
+    trend: nutritionGoals?.calories ? `${nutritionPercentages.calories || 0}% of goal` : 'No goal set',
+    progress: nutritionPercentages.calories || 0
+  },
+  {
+    id: 'water_intake',
+    title: 'Water Intake',
+    value: waterIntake?.total || 0,
+    unit: 'ml',
+    icon: Droplets,
+    color: 'text-blue-600',
+    bg: 'bg-blue-500/15',
+    border: 'border-blue-500/40',
+    trend: nutritionGoals?.water ? `${nutritionPercentages.water || 0}% of goal` : 'Stay hydrated!',
+    progress: nutritionPercentages.water || 0
+  },
+  {
+    id: 'current_weight',
+    title: 'Current Weight',
+    value: weightHistory[0]?.weight || 0,
+    unit: 'kg',
+    icon: Scale,
+    color: 'text-purple-600',
+    bg: 'bg-purple-500/15',
+    border: 'border-purple-500/40',
+    trend: weightHistory.length > 1 ? 
+      `${weightHistory[0]?.weight > weightHistory[1]?.weight ? '+' : ''}${((weightHistory[0]?.weight || 0) - (weightHistory[1]?.weight || 0)).toFixed(1)}kg this week` : 
+      'Track your progress',
+    progress: 75
+  },
+  {
+    id: 'active_streak',
+    title: 'Active Streak',
+    value: profile?.activeStreak || streakData?.current || 28,
+    unit: 'days',
+    icon: Flame,
+    color: 'text-orange-600',
+    bg: 'bg-orange-500/15',
+    border: 'border-orange-500/40',
+    trend: 'Personal best!',
+    progress: Math.min(100, ((profile?.activeStreak || 28) / 30) * 100)
+  },
+  {
+    id: 'social_engagement',
+    title: 'Community Points',
+    value: socialStats?.likes || 156,
+    icon: Heart,
+    color: 'text-pink-600',
+    bg: 'bg-pink-500/15',
+    border: 'border-pink-500/40',
+    trend: '+24 this week',
+    progress: 82
+  },
+  {
+    id: 'achievements',
+    title: 'Achievements',
+    value: achievements.filter(a => a.earned).length,
+    unit: `/${achievements.length}`,
+    icon: Trophy,
+    color: 'text-yellow-600',
+    bg: 'bg-yellow-500/15',
+    border: 'border-yellow-500/40',
+    trend: 'Keep going!',
+    progress: (achievements.filter(a => a.earned).length / achievements.length) * 100
+  },
+  {
+    id: 'meal_planning',
+    title: 'Meal Plans Created',
+    value: userProfile?.mealPlans || 5,
+    icon: CalendarIcon,
+    color: 'text-indigo-600',
+    bg: 'bg-indigo-500/15',
+    border: 'border-indigo-500/40',
+    trend: 'Coming Soon!',
+    progress: 60,
+    comingSoon: true
+  },
+  {
+    id: 'recipes_shared',
+    title: 'Recipes Shared',
+    value: userProfile?.recipesShared || 12,
+    icon: Share2,
+    color: 'text-cyan-600',
+    bg: 'bg-cyan-500/15',
+    border: 'border-cyan-500/40',
+    trend: '+3 this month',
+    progress: 85
+  }
+];
+
+
 
   if (loading || profileLoading || nutritionLoading) {
     return (
@@ -316,7 +318,7 @@ const ActivityPage = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
-          className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8"
+          className="px-10 pt-8 w-full mx-auto flex flex-col gap-8 max-w-7xl"
         >
           {/* Enhanced Page Header */}
           <div className="relative mb-12 overflow-hidden">
