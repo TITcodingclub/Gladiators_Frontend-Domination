@@ -1,134 +1,100 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import SimplePeer from "simple-peer";
 import io from "socket.io-client";
 import { useAuth } from "../../hooks/useAuth";
 import { motion, AnimatePresence } from "framer-motion";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   FiMic, FiMicOff, FiVideo, FiVideoOff, FiRepeat, FiMaximize, FiExternalLink,
-  FiPhoneOff, FiUsers, FiCopy, FiRefreshCw, FiWifi, FiWifiOff, FiSettings, FiMessageCircle
+  FiPhoneOff, FiUsers, FiCopy, FiRefreshCw, FiWifi, FiWifiOff, FiSettings, 
+  FiMessageCircle, FiMonitor, FiVolumeX, FiVolume2, FiShare2
 } from "react-icons/fi";
-import { LucideUser } from "lucide-react";
+import { User, Phone, PhoneCall } from "lucide-react";
 import styled from "styled-components";
+import toast from 'react-hot-toast';
 
 const SOCKET_SERVER = import.meta.env.VITE_SOCKET_SERVER || "http://localhost:5000";
-let socket;
 
 // Styled Components
 const VideoContainer = styled.div`
-  background-color: rgba(0, 0, 0, 0.41);
-  border-radius: 1rem;
-  padding: 2rem;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 1rem;
   color: white;
-
   display: flex;
   flex-direction: column;
-  justify-content: center; /* Vertically center */
-  align-items: center;     /* Horizontally center */
-  gap: 2rem;
-
-  /* Scroll if content overflows */
+  align-items: center;
+  gap: 1.5rem;
   overflow-y: auto;
+  position: relative;
 
-  /* Responsive grid for videos */
-  .videos-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1.5rem;
-    width: 100%;
-    max-width: 1200px;
+  /* Enhanced scrollbar */
+  &::-webkit-scrollbar {
+    width: 8px;
   }
 
-  /* Buttons container */
-  .controls {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 1rem;
-    margin-top: 1rem;
+  &::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
   }
 
-  /* Participants panel */
-  .participants-panel {
-    background: rgba(0, 0, 0, 0.6);
-    padding: 1rem;
-    border-radius: 1rem;
-    width: 100%;
-    max-width: 400px;
-
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-
-    .participant {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0.5rem 0.75rem;
-      border-radius: 0.75rem;
-      background: rgba(255, 255, 255, 0.1);
-      font-size: 0.9rem;
-      transition: background 0.2s;
-
-      &:hover {
-        background: rgba(255, 255, 255, 0.2);
-      }
-
-      button {
-        padding: 0.25rem 0.5rem;
-        border-radius: 0.5rem;
-        font-size: 0.8rem;
-        cursor: pointer;
-        border: none;
-        transition: all 0.2s;
-      }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.5);
     }
   }
 
-  /* Alert styling */
-  .alert {
-    position: fixed;
-    bottom: 1rem;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0,0,0,0.7);
-    padding: 0.75rem 1.25rem;
-    border-radius: 0.75rem;
-    font-weight: 500;
-    z-index: 999;
-  }
-
-  /* Responsive adjustments */
   @media (max-width: 768px) {
-    padding: 1rem;
-
-    .videos-grid {
-      gap: 1rem;
-    }
-
-    .controls {
-      gap: 0.75rem;
-    }
-
-    .participants-panel {
-      max-width: 90%;
-    }
+    padding: 0.5rem;
+    gap: 1rem;
   }
 `;
 
 const VideoGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 1400px;
   margin-bottom: 1.5rem;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
 `;
 
 const VideoWrapper = styled(motion.div)`
   position: relative;
   border-radius: 1rem;
   overflow: hidden;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
-  background: #000;
+  box-shadow: 
+    0 20px 25px -5px rgba(0, 0, 0, 0.3),
+    0 10px 10px -5px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(145deg, #1a1a1a, #2d2d2d);
   aspect-ratio: 16/9;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 
+      0 25px 30px -5px rgba(0, 0, 0, 0.4),
+      0 15px 15px -5px rgba(0, 0, 0, 0.2);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  @media (max-width: 768px) {
+    border-radius: 0.75rem;
+  }
 `;
 
 const VideoElement = styled.video`
@@ -141,36 +107,103 @@ const ControlsBar = styled.div`
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 0.75rem;
-  margin-top: 1.5rem;
-  padding: 0.5rem;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 1rem;
-  backdrop-filter: blur(10px);
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background: rgba(30, 41, 59, 0.95);
+  border-radius: 2rem;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  
+  @media (max-width: 768px) {
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    flex-wrap: wrap;
+  }
+
+  @media (max-width: 480px) {
+    gap: 0.5rem;
+    padding: 0.5rem;
+  }
 `;
 
 const ControlButton = styled(motion.button)`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 3rem;
-  height: 3rem;
+  width: 3.5rem;
+  height: 3.5rem;
   border-radius: 50%;
   border: none;
   cursor: pointer;
   color: white;
-  font-size: 1.2rem;
-  transition: all 0.2s ease;
-  background: ${props => props.active ? props.activeColor || '#4CAF50' : props.color || '#2c3e50'};
+  font-size: 1.3rem;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
   
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+  background: ${props => {
+    if (props.variant === 'danger') return 'linear-gradient(135deg, #ef4444, #dc2626)';
+    if (props.variant === 'success') return 'linear-gradient(135deg, #22c55e, #16a34a)';
+    if (props.active) return props.activeColor || 'linear-gradient(135deg, #3b82f6, #2563eb)';
+    return props.color || 'linear-gradient(135deg, #475569, #334155)';
+  }};
+  
+  box-shadow: 0 4px 14px 0 rgba(0, 0, 0, 0.2);
+  
+  &:hover:not(:disabled) {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+  }
+  
+  &:active:not(:disabled) {
+    transform: translateY(0) scale(0.98);
   }
   
   &:disabled {
-    opacity: 0.5;
+    opacity: 0.6;
     cursor: not-allowed;
+    transform: none;
+    filter: grayscale(20%);
+    
+    /* Subtle pulse animation for disabled state */
+    animation: ${props => props.loading ? 'pulse 2s infinite' : 'none'};
+  }
+
+  &:focus {
+    outline: 2px solid rgba(59, 130, 246, 0.5);
+    outline-offset: 2px;
+  }
+
+  /* Ripple effect for active state */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    transition: width 0.6s, height 0.6s, top 0.6s, left 0.6s;
+    transform: translate(-50%, -50%);
+  }
+  
+  &:active::before {
+    width: 100%;
+    height: 100%;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 0.8; }
+  }
+
+  @media (max-width: 768px) {
+    width: 3rem;
+    height: 3rem;
+    font-size: 1.1rem;
   }
 `;
 
@@ -302,15 +335,108 @@ const WaitingScreen = styled.div`
   padding: 1rem;
 `;
 
-// --- Participant Video Component ---
-const ParticipantVideo = ({ peer, micOn, videoOn, displayName }) => {
-  const ref = useRef();
+// Styled components for video overlays
+const VideoOverlay = styled.div`
+  position: absolute;
+  ${props => props.position};
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: rgba(0, 0, 0, 0.8);
+  }
+`;
+
+const StatusIndicators = styled.div`
+  display: flex;
+  gap: 0.375rem;
+  align-items: center;
+`;
+
+const NoVideoOverlay = styled.div`
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, #2d2d2d, #1a1a1a);
+  color: rgba(255, 255, 255, 0.7);
+`;
+
+// --- Enhanced Participant Video Component ---
+const ParticipantVideo = React.memo(({ peer, micOn = true, videoOn = true, displayName, isLocal = false }) => {
+  const videoRef = useRef(null);
+  const [hasStream, setHasStream] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    peer.on("stream", stream => {
-      if (ref.current) ref.current.srcObject = stream;
-    });
-  }, [peer]);
+    if (!peer) return;
+
+    let mounted = true;
+    
+    const handleStream = (stream) => {
+      if (!mounted) return;
+      
+      try {
+        if (videoRef.current && stream) {
+          videoRef.current.srcObject = stream;
+          setHasStream(true);
+          setError(null);
+        }
+      } catch (err) {
+        console.error('Error setting video stream:', err);
+        setError('Failed to load video');
+        toast.error(`Video error for ${displayName || 'participant'}: ${err.message}`);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    const handleError = (err) => {
+      if (!mounted) return;
+      console.error('Peer error:', err);
+      setError('Connection error');
+      setIsLoading(false);
+      toast.error(`Connection error with ${displayName || 'participant'}`);
+    };
+
+    const handleClose = () => {
+      if (!mounted) return;
+      setHasStream(false);
+      setIsLoading(false);
+    };
+
+    peer.on('stream', handleStream);
+    peer.on('error', handleError);
+    peer.on('close', handleClose);
+
+    return () => {
+      mounted = false;
+      peer.off('stream', handleStream);
+      peer.off('error', handleError);
+      peer.off('close', handleClose);
+    };
+  }, [peer, displayName]);
+
+  const handleVideoError = useCallback((e) => {
+    console.error('Video element error:', e);
+    setError('Video playback error');
+    toast.error(`Video playback error for ${displayName || 'participant'}`);
+  }, [displayName]);
+
+  const handleVideoLoad = useCallback(() => {
+    setIsLoading(false);
+    setError(null);
+  }, []);
 
   return (
     <VideoWrapper
@@ -320,41 +446,73 @@ const ParticipantVideo = ({ peer, micOn, videoOn, displayName }) => {
       exit={{ opacity: 0, scale: 0.9 }}
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
     >
-      <VideoElement ref={ref} autoPlay playsInline />
-      <div style={{
-        position: "absolute",
-        bottom: "0.5rem",
-        left: "0.5rem",
-        background: "rgba(0, 0, 0, 0.6)",
-        color: "white",
-        padding: "0.25rem 0.5rem",
-        borderRadius: "0.375rem",
-        fontSize: "0.875rem",
-        fontWeight: "500"
-      }}>
+      {hasStream && !error ? (
+        <VideoElement 
+          ref={videoRef} 
+          autoPlay 
+          playsInline 
+          muted={isLocal}
+          onError={handleVideoError}
+          onLoadedData={handleVideoLoad}
+        />
+      ) : (
+        <NoVideoOverlay>
+          {isLoading ? (
+            <>
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                style={{
+                  width: "2rem",
+                  height: "2rem",
+                  border: "3px solid rgba(255, 255, 255, 0.3)",
+                  borderTop: "3px solid white",
+                  borderRadius: "50%",
+                  marginBottom: "0.5rem"
+                }}
+              />
+              <span style={{ fontSize: "0.875rem" }}>Connecting...</span>
+            </>
+          ) : error ? (
+            <>
+              <FiWifiOff size={32} style={{ marginBottom: "0.5rem", color: "#ef4444" }} />
+              <span style={{ fontSize: "0.875rem", color: "#ef4444" }}>{error}</span>
+            </>
+          ) : (
+            <>
+              <User size={48} style={{ marginBottom: "0.5rem" }} />
+              <span style={{ fontSize: "0.875rem" }}>No Video</span>
+            </>
+          )}
+        </NoVideoOverlay>
+      )}
+      
+      {/* Name overlay */}
+      <VideoOverlay position="bottom: 0.75rem; left: 0.75rem;">
         {displayName || "Guest"}
-      </div>
-      <div style={{
-        position: "absolute",
-        top: "0.5rem",
-        right: "0.5rem",
-        display: "flex",
-        gap: "0.25rem",
-        background: "rgba(0, 0, 0, 0.5)",
-        padding: "0.25rem",
-        borderRadius: "0.375rem",
-        color: "white"
-      }}>
-        {!micOn && <FiMicOff />}
-        {!videoOn && <FiVideoOff />}
-      </div>
+        {isLocal && " (You)"}
+      </VideoOverlay>
+      
+      {/* Status indicators */}
+      <VideoOverlay position="top: 0.75rem; right: 0.75rem;">
+        <StatusIndicators>
+          {!micOn && <FiMicOff size={14} />}
+          {!videoOn && <FiVideoOff size={14} />}
+          {error && <FiWifiOff size={14} style={{ color: "#ef4444" }} />}
+        </StatusIndicators>
+      </VideoOverlay>
     </VideoWrapper>
   );
-};
+});
 
-// --- Main Video Room Component ---
+// --- Enhanced Main Video Room Component ---
 export default function VideoRoom() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const { roomId: urlRoomId } = useParams();
+  const [searchParams] = useSearchParams();
+  
+  // State management
   const [roomID, setRoomID] = useState("");
   const [isHost, setIsHost] = useState(false);
   const [waitingForApproval, setWaitingForApproval] = useState(false);
@@ -364,45 +522,146 @@ export default function VideoRoom() {
   const [peers, setPeers] = useState([]);
   const [micOn, setMicOn] = useState(true);
   const [videoOn, setVideoOn] = useState(true);
+  const [screenSharing, setScreenSharing] = useState(false);
   const [currentCamera, setCurrentCamera] = useState("user");
   const [callStartTime, setCallStartTime] = useState(null);
   const [timer, setTimer] = useState("00:00");
-  const [alertInfo, setAlertInfo] = useState({ open: false, message: "", severity: "info" });
   const [socketConnected, setSocketConnected] = useState(false);
   const [reconnecting, setReconnecting] = useState(false);
+  const [networkQuality, setNetworkQuality] = useState('good');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [alertInfo, setAlertInfo] = useState({ open: false, message: '', severity: 'info' });
 
+  // Refs
   const localVideoRef = useRef();
   const videoContainerRef = useRef();
   const peersRef = useRef([]);
   const socketRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
+  const mediaDevicesRef = useRef([]);
 
-  // --- Timer ---
+  // Utility functions
+  const showToast = useCallback((message, type = 'info') => {
+    switch (type) {
+      case 'success':
+        toast.success(message);
+        break;
+      case 'error':
+        toast.error(message);
+        break;
+      case 'warning':
+        toast.error(message, { icon: '⚠️' });
+        break;
+      default:
+        toast(message);
+    }
+  }, []);
+
+  const formatTimer = useCallback((startTime) => {
+    if (!startTime) return "00:00";
+    const elapsed = Date.now() - startTime;
+    const mins = String(Math.floor(elapsed / 60000)).padStart(2, "0");
+    const secs = String(Math.floor((elapsed % 60000) / 1000)).padStart(2, "0");
+    return `${mins}:${secs}`;
+  }, []);
+
+  const generateRoomID = useCallback(() => {
+    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  }, []);
+
+  const validateRoomID = useCallback((id) => {
+    return id && id.length >= 6 && /^[a-zA-Z0-9]+$/.test(id);
+  }, []);
+
+  // Initialize room ID from URL parameters
+  useEffect(() => {
+    if (urlRoomId) {
+      setRoomID(urlRoomId);
+      showToast(`Joining room: ${urlRoomId}`, 'info');
+    }
+  }, [urlRoomId, showToast]);
+
+  // Update URL when room ID changes
+  const updateURL = useCallback((newRoomID) => {
+    if (newRoomID && validateRoomID(newRoomID)) {
+      navigate(`/video-call/${newRoomID}`, { replace: true });
+    }
+  }, [navigate, validateRoomID]);
+
+  // Generate shareable room link
+  const generateShareableLink = useCallback(() => {
+    if (!roomID) return '';
+    return `${window.location.origin}/video-call/${roomID}`;
+  }, [roomID]);
+
+  // Enhanced room ID setter that updates URL
+  const setRoomIDWithURL = useCallback((newRoomID) => {
+    setRoomID(newRoomID);
+    if (newRoomID && validateRoomID(newRoomID)) {
+      updateURL(newRoomID);
+    }
+  }, [updateURL, validateRoomID]);
+
+  // --- Enhanced Timer ---
   useEffect(() => {
     let interval;
     if (callStartTime) {
       interval = setInterval(() => {
-        const elapsed = Date.now() - callStartTime;
-        const mins = String(Math.floor(elapsed / 60000)).padStart(2, "0");
-        const secs = String(Math.floor((elapsed % 60000) / 1000)).padStart(2, "0");
-        setTimer(`${mins}:${secs}`);
+        setTimer(formatTimer(callStartTime));
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [callStartTime]);
+  }, [callStartTime, formatTimer]);
+
+  // Network quality monitoring
+  useEffect(() => {
+    if (!joined || peers.length === 0) return;
+
+    const interval = setInterval(() => {
+      // Simple network quality simulation based on peer connections
+      const activePeers = peers.filter(p => p.peer && !p.peer.destroyed);
+      const quality = activePeers.length > 0 ? 'good' : 'poor';
+      setNetworkQuality(quality);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [joined, peers]);
+
+  // Auto-dismiss alerts after 4 seconds
+  useEffect(() => {
+    if (alertInfo.open) {
+      const timeout = setTimeout(() => {
+        setAlertInfo(prev => ({ ...prev, open: false }));
+      }, 4000);
+
+      return () => clearTimeout(timeout);
+    }
+  }, [alertInfo.open]);
+
+  // Enhanced socket initialization
+  const initializeSocket = useCallback(() => {
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+    }
+
+    const newSocket = io(SOCKET_SERVER, {
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
+      transports: ['websocket', 'polling'],
+      upgrade: true,
+      forceNew: true
+    });
+
+    socketRef.current = newSocket;
+    return newSocket;
+  }, []);
 
   // Initialize socket connection
   useEffect(() => {
-    // Initialize socket connection
-    if (!socketRef.current) {
-      socketRef.current = io(SOCKET_SERVER, {
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000,
-        reconnectionDelayMax: 5000,
-        timeout: 20000,
-      });
-      socket = socketRef.current;
-    }
+    const socket = initializeSocket();
 
     // Socket connection events
     socket.on("connect", () => {
@@ -452,21 +711,22 @@ export default function VideoRoom() {
   
   // --- Socket.io / PeerJS ---
   useEffect(() => {
-    if (!socket) return;
+    const sock = socketRef.current;
+    if (!sock) return;
 
-    socket.on("new-join-request", ({ from, user: requesterUser }) => {
+    sock.on("new-join-request", ({ from, user: requesterUser }) => {
       setAlertInfo({ open: true, message: `${requesterUser.displayName} wants to join!`, severity: "info" });
       setJoinRequests(prev => [...prev, { id: from, user: requesterUser }]);
     });
 
-    socket.on("request-accepted", () => {
+    sock.on("request-accepted", () => {
       setWaitingForApproval(false);
       setJoined(true);
       setCallStartTime(Date.now());
-      socket.emit("join-room", { roomID, user });
+      sock.emit("join-room", { roomID, user });
     });
 
-    socket.on("request-declined", () => {
+    sock.on("request-declined", () => {
       setWaitingForApproval(false);
       setAlertInfo({ open: true, message: "Your request to join was declined.", severity: "error" });
       stream?.getTracks().forEach(track => track.stop());
@@ -474,32 +734,32 @@ export default function VideoRoom() {
     });
 
     if (joined && stream) {
-      socket.emit("get-users", roomID);
+      sock.emit("get-users", roomID);
       
-      socket.on("all-users", users => {
+      sock.on("all-users", users => {
         const newPeers = [];
         for (const userID in users) {
-          if (userID === socket.id) continue;
-          const peer = createPeer(userID, socket.id, stream);
+          if (userID === sock.id) continue;
+          const peer = createPeer(userID, sock.id, stream);
           peersRef.current.push({ peerID: userID, peer });
           newPeers.push({ peerID: userID, peer, user: users[userID], micOn: true, videoOn: true });
         }
         setPeers(newPeers);
       });
 
-      socket.on("user-joined", ({ signal, callerID, user: joiningUser }) => {
+      sock.on("user-joined", ({ signal, callerID, user: joiningUser }) => {
         const peer = addPeer(signal, callerID, stream);
         peersRef.current.push({ peerID: callerID, peer });
         setPeers(prev => [...prev, { peerID: callerID, peer, user: joiningUser, micOn: true, videoOn: true }]);
         setAlertInfo({ open: true, message: `${joiningUser.displayName} has joined the call.`, severity: "info" });
       });
 
-      socket.on("receiving-returned-signal", ({ id, signal }) => {
+      sock.on("receiving-returned-signal", ({ id, signal }) => {
         const item = peersRef.current.find(p => p.peerID === id);
         if (item) item.peer.signal(signal);
       });
 
-      socket.on("user-disconnected", id => {
+      sock.on("user-disconnected", id => {
         const leavingPeer = peersRef.current.find(p => p.peerID === id);
         if (leavingPeer) leavingPeer.peer.destroy();
         peersRef.current = peersRef.current.filter(p => p.peerID !== id);
@@ -507,95 +767,328 @@ export default function VideoRoom() {
         setAlertInfo({ open: true, message: `${leavingPeer?.user?.displayName || "A user"} left the call.`, severity: "warning" });
       });
       
-      socket.on("host-left", () => {
+      sock.on("host-left", () => {
         setAlertInfo({ open: true, message: "Host has ended the call", severity: "error" });
         endCall();
       });
 
-      socket.on("user-toggled-mic", ({ userID, micOn }) => setPeers(prev => prev.map(p => p.peerID === userID ? { ...p, micOn } : p)));
-      socket.on("user-toggled-video", ({ userID, videoOn }) => setPeers(prev => prev.map(p => p.peerID === userID ? { ...p, videoOn } : p)));
+      sock.on("user-toggled-mic", ({ userID, micOn }) => setPeers(prev => prev.map(p => p.peerID === userID ? { ...p, micOn } : p)));
+      sock.on("user-toggled-video", ({ userID, videoOn }) => setPeers(prev => prev.map(p => p.peerID === userID ? { ...p, videoOn } : p)));
     }
 
     return () => {
-      socket.off("connect");
-      socket.off("new-join-request");
-      socket.off("request-accepted");
-      socket.off("request-declined");
-      socket.off("user-joined");
-      socket.off("receiving-returned-signal");
-      socket.off("user-disconnected");
-      socket.off("user-toggled-mic");
-      socket.off("user-toggled-video");
-      socket.off("all-users");
-      socket.off("host-left");
+      sock.off("connect");
+      sock.off("new-join-request");
+      sock.off("request-accepted");
+      sock.off("request-declined");
+      sock.off("user-joined");
+      sock.off("receiving-returned-signal");
+      sock.off("user-disconnected");
+      sock.off("user-toggled-mic");
+      sock.off("user-toggled-video");
+      sock.off("all-users");
+      sock.off("host-left");
     };
   }, [joined, stream, roomID, user]);
 
   // --- Peer helpers ---
   const createPeer = (userToSignal, callerID, stream) => {
     const peer = new SimplePeer({ initiator: true, trickle: false, stream });
-    peer.on("signal", signal => socket.emit("sending-signal", { userToSignal, callerID, signal }));
+    peer.on("signal", signal => socketRef.current.emit("sending-signal", { userToSignal, callerID, signal }));
     return peer;
   };
 
   const addPeer = (incomingSignal, callerID, stream) => {
     const peer = new SimplePeer({ initiator: false, trickle: false, stream });
-    peer.on("signal", signal => socket.emit("returning-signal", { signal, callerID }));
+    peer.on("signal", signal => socketRef.current.emit("returning-signal", { signal, callerID }));
     peer.signal(incomingSignal);
     return peer;
   };
 
-  // --- Call Controls ---
-  const startCall = async () => {
-    if (!roomID) return setAlertInfo({ open: true, message: "Enter a Room ID!", severity: "error" });
-    if (!socketConnected) return setAlertInfo({ open: true, message: "Not connected to server. Please wait or refresh the page.", severity: "error" });
+  // --- Enhanced Media Management ---
+  const checkMediaDevices = useCallback(async () => {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      mediaDevicesRef.current = devices;
+      
+      const videoDevices = devices.filter(device => device.kind === 'videoinput');
+      const audioDevices = devices.filter(device => device.kind === 'audioinput');
+      
+      return {
+        hasVideo: videoDevices.length > 0,
+        hasAudio: audioDevices.length > 0,
+        videoDevices,
+        audioDevices
+      };
+    } catch (err) {
+      console.error('Failed to enumerate devices:', err);
+      return { hasVideo: false, hasAudio: false, videoDevices: [], audioDevices: [] };
+    }
+  }, []);
+
+  const getMediaStream = useCallback(async (constraints = { video: true, audio: true }) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const deviceInfo = await checkMediaDevices();
+      
+      // Adjust constraints based on available devices
+      const adjustedConstraints = {
+        video: deviceInfo.hasVideo ? {
+          facingMode: currentCamera,
+          width: { ideal: 1280, min: 640 },
+          height: { ideal: 720, min: 480 }
+        } : false,
+        audio: deviceInfo.hasAudio ? {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        } : false
+      };
+      
+      const mediaStream = await navigator.mediaDevices.getUserMedia(adjustedConstraints);
+      return mediaStream;
+    } catch (err) {
+      console.error("Media access error:", err);
+      let errorMessage;
+      
+      switch (err.name) {
+        case "NotAllowedError":
+          errorMessage = "Camera/microphone access denied. Please allow access in your browser settings.";
+          break;
+        case "NotFoundError":
+          errorMessage = "No camera or microphone found. Please connect a device and try again.";
+          break;
+        case "NotReadableError":
+          errorMessage = "Camera/microphone is already in use by another application.";
+          break;
+        case "OverconstrainedError":
+          errorMessage = "Camera/microphone constraints cannot be satisfied.";
+          break;
+        case "AbortError":
+          errorMessage = "Media access was aborted.";
+          break;
+        default:
+          errorMessage = `Media access error: ${err.message || 'Unknown error'}`;
+      }
+      
+      setError(errorMessage);
+      showToast(errorMessage, 'error');
+      throw new Error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentCamera, checkMediaDevices, showToast]);
+
+  // Create new room with generated ID
+  const createNewRoom = useCallback(async () => {
+    const newRoomID = generateRoomID();
+    setRoomIDWithURL(newRoomID);
+    
+    if (!socketConnected) {
+      showToast("Not connected to server. Please wait or refresh the page.", 'error');
+      return;
+    }
+    
+    if (!user) {
+      showToast("Please log in to create a call.", 'error');
+      return;
+    }
     
     try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: currentCamera }, audio: true })
-        .catch(err => {
-          console.error("Media access error:", err);
-          if (err.name === "NotAllowedError") {
-            throw new Error("Camera/microphone access denied. Please allow access in your browser settings.");
-          } else if (err.name === "NotFoundError") {
-            throw new Error("No camera or microphone found. Please connect a device and try again.");
-          } else {
-            throw err;
-          }
-        });
-      
+      const mediaStream = await getMediaStream();
       setStream(mediaStream);
-      if (localVideoRef.current) localVideoRef.current.srcObject = mediaStream;
+      
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = mediaStream;
+      }
 
+      const socket = socketRef.current;
+      socket.emit("create-room", { roomID: newRoomID, user });
+      setIsHost(true);
+      setJoined(true);
+      setCallStartTime(Date.now());
+      showToast(`Created room: ${newRoomID}. Share the link to invite others!`, 'success');
+    } catch (err) {
+      console.error('Failed to create room:', err);
+      showToast('Failed to create room. Please try again.', 'error');
+    }
+  }, [socketConnected, user, generateRoomID, setRoomIDWithURL, getMediaStream, showToast]);
+
+  // --- Enhanced Call Controls ---
+  const startCall = useCallback(async () => {
+    if (!validateRoomID(roomID)) {
+      showToast("Please enter a valid Room ID (at least 6 characters, alphanumeric only)!", 'error');
+      return;
+    }
+    
+    if (!socketConnected) {
+      showToast("Not connected to server. Please wait or refresh the page.", 'error');
+      return;
+    }
+    
+    if (!user) {
+      showToast("Please log in to join a call.", 'error');
+      return;
+    }
+    
+    try {
+      const mediaStream = await getMediaStream();
+      setStream(mediaStream);
+      
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = mediaStream;
+      }
+
+      const socket = socketRef.current;
       socket.emit("check-room", roomID, roomExists => {
         if (roomExists) {
           socket.emit("request-to-join", { roomID, user });
           setWaitingForApproval(true);
+          showToast(`Requesting to join room: ${roomID}`, 'info');
         } else {
           socket.emit("create-room", { roomID, user });
           setIsHost(true);
           setJoined(true);
           setCallStartTime(Date.now());
+          setRoomIDWithURL(roomID); // Update URL when creating room
+          showToast(`Created room: ${roomID}`, 'success');
         }
       });
     } catch (err) {
-      console.error(err);
-      setAlertInfo({ open: true, message: err.message || "Cannot access camera/mic.", severity: "error" });
+      console.error('Failed to start call:', err);
+      showToast('Failed to start call. Please try again.', 'error');
     }
-  };
+  }, [roomID, socketConnected, user, validateRoomID, showToast, getMediaStream, setRoomIDWithURL]);
 
-  const toggleMic = () => {
+  const toggleMic = useCallback(() => {
+    if (!stream) {
+      showToast('No active stream to toggle microphone', 'warning');
+      return;
+    }
+    
     const newMic = !micOn;
-    stream?.getAudioTracks().forEach(track => (track.enabled = newMic));
-    setMicOn(newMic);
-    socket.emit("toggle-mic", { roomID, micOn: newMic });
-  };
+    try {
+      stream.getAudioTracks().forEach(track => {
+        track.enabled = newMic;
+      });
+      setMicOn(newMic);
+      
+      if (socketRef.current && joined) {
+        socketRef.current.emit("toggle-mic", { roomID, micOn: newMic });
+      }
+      
+      showToast(`Microphone ${newMic ? 'enabled' : 'disabled'}`, 'info');
+    } catch (err) {
+      console.error('Failed to toggle microphone:', err);
+      showToast('Failed to toggle microphone', 'error');
+    }
+  }, [stream, micOn, roomID, joined, showToast]);
 
-  const toggleVideo = () => {
+  const toggleVideo = useCallback(() => {
+    if (!stream) {
+      showToast('No active stream to toggle video', 'warning');
+      return;
+    }
+    
     const newVideo = !videoOn;
-    stream?.getVideoTracks().forEach(track => (track.enabled = newVideo));
-    setVideoOn(newVideo);
-    socket.emit("toggle-video", { roomID, videoOn: newVideo });
-  };
+    try {
+      stream.getVideoTracks().forEach(track => {
+        track.enabled = newVideo;
+      });
+      setVideoOn(newVideo);
+      
+      if (socketRef.current && joined) {
+        socketRef.current.emit("toggle-video", { roomID, videoOn: newVideo });
+      }
+      
+      showToast(`Camera ${newVideo ? 'enabled' : 'disabled'}`, 'info');
+    } catch (err) {
+      console.error('Failed to toggle video:', err);
+      showToast('Failed to toggle camera', 'error');
+    }
+  }, [stream, videoOn, roomID, joined, showToast]);
+
+  const toggleScreenShare = useCallback(async () => {
+    try {
+      if (!screenSharing) {
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({
+          video: {
+            mediaSource: 'screen',
+            width: { ideal: 1920, max: 1920 },
+            height: { ideal: 1080, max: 1080 },
+            frameRate: { ideal: 30, max: 30 }
+          },
+          audio: true
+        });
+        
+        const oldStream = stream;
+        setStream(screenStream);
+        setScreenSharing(true);
+        
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = screenStream;
+        }
+        
+        // Replace tracks in peer connections
+        const videoTrack = screenStream.getVideoTracks()[0];
+        if (videoTrack && oldStream) {
+          const oldVideoTrack = oldStream.getVideoTracks()[0];
+          peersRef.current.forEach(({ peer }) => {
+            if (peer && !peer.destroyed && oldVideoTrack) {
+              try {
+                peer.replaceTrack(oldVideoTrack, videoTrack, oldStream);
+              } catch (err) {
+                console.error('Failed to replace track:', err);
+              }
+            }
+          });
+        }
+        
+        // Handle screen share end
+        videoTrack.onended = () => {
+          setScreenSharing(false);
+          showToast('Screen sharing ended', 'info');
+          // Restore camera
+          getMediaStream().then(newStream => {
+            setStream(newStream);
+            if (localVideoRef.current) {
+              localVideoRef.current.srcObject = newStream;
+            }
+          }).catch(err => {
+            console.error('Failed to restore camera:', err);
+          });
+        };
+        
+        showToast('Screen sharing started', 'success');
+      } else {
+        // Stop screen sharing
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
+        }
+        setScreenSharing(false);
+        
+        // Restore camera
+        const newStream = await getMediaStream();
+        setStream(newStream);
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = newStream;
+        }
+        
+        showToast('Screen sharing stopped', 'info');
+      }
+    } catch (err) {
+      console.error('Screen sharing error:', err);
+      setScreenSharing(false);
+      
+      if (err.name === 'NotAllowedError') {
+        showToast('Screen sharing was denied', 'warning');
+      } else {
+        showToast('Failed to start screen sharing', 'error');
+      }
+    }
+  }, [screenSharing, stream, getMediaStream, showToast]);
 
   const switchCamera = async () => {
     if (!stream) return;
@@ -642,7 +1135,9 @@ export default function VideoRoom() {
     peersRef.current.forEach(p => p.peer.destroy());
     peersRef.current = [];
     setPeers([]);
-    socket.emit("leave-room", roomID);
+    if (socketRef.current) {
+      socketRef.current.emit("leave-room", roomID);
+    }
     setAlertInfo({ open: true, message: "You left the call.", severity: "info" });
   };
 
@@ -651,21 +1146,63 @@ export default function VideoRoom() {
     setAlertInfo({ open: true, message: "Room ID copied!", severity: "success" });
   };
 
+  const handleCopyRoomLink = () => {
+    const link = generateShareableLink();
+    if (link) {
+      navigator.clipboard.writeText(link);
+      setAlertInfo({ open: true, message: "Room link copied! Share with others to join.", severity: "success" });
+    } else {
+      setAlertInfo({ open: true, message: "No room link available", severity: "error" });
+    }
+  };
+
+  const handleShareRoom = async () => {
+    const link = generateShareableLink();
+    if (!link) {
+      setAlertInfo({ open: true, message: "No room link to share", severity: "error" });
+      return;
+    }
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Join my Cook Together video call',
+          text: `Join me for cooking! Room ID: ${roomID}`,
+          url: link,
+        });
+        setAlertInfo({ open: true, message: "Room shared successfully!", severity: "success" });
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.error('Error sharing:', err);
+          handleCopyRoomLink(); // Fallback to copying
+        }
+      }
+    } else {
+      handleCopyRoomLink(); // Fallback for browsers without native sharing
+    }
+  };
+
   // --- Host Actions ---
   const approveJoin = (id) => {
-    socket.emit("respond-to-request", { roomID, to: id, accepted: true });
+    if (socketRef.current) {
+      socketRef.current.emit("respond-to-request", { roomID, to: id, accepted: true });
+    }
     setJoinRequests(prev => prev.filter(r => r.id !== id));
     setAlertInfo({ open: true, message: "Request approved", severity: "success" });
   };
 
   const declineJoin = (id) => {
-    socket.emit("respond-to-request", { roomID, to: id, accepted: false });
+    if (socketRef.current) {
+      socketRef.current.emit("respond-to-request", { roomID, to: id, accepted: false });
+    }
     setJoinRequests(prev => prev.filter(r => r.id !== id));
     setAlertInfo({ open: true, message: "Request declined", severity: "error" });
   };
 
   const removeParticipant = (peerID) => {
-    socket.emit("remove-participant", { roomID, peerID });
+    if (socketRef.current) {
+      socketRef.current.emit("remove-participant", { roomID, peerID });
+    }
     const leavingPeer = peersRef.current.find(p => p.peerID === peerID);
     if (leavingPeer) leavingPeer.peer.destroy();
     peersRef.current = peersRef.current.filter(p => p.peerID !== peerID);
@@ -701,7 +1238,7 @@ export default function VideoRoom() {
           }
         </ConnectionStatus>
         
-        <LucideUser size={60} style={{ color: "#4CAF50", marginBottom: "1rem" }} />
+        <User size={60} style={{ color: "#4CAF50", marginBottom: "1rem" }} />
         <h1 style={{ fontSize: "2.5rem", fontWeight: "700", marginBottom: "0.5rem" }}>Cook Together</h1>
         <p style={{ color: "#94A3B8", marginBottom: "1.5rem" }}>Connecting Kitchens, One Recipe at a Time</p>
 
@@ -796,88 +1333,137 @@ export default function VideoRoom() {
       </HeaderBar>
       
       <VideoGrid>
-        <VideoWrapper>
+        {/* Local Video */}
+        <VideoWrapper
+          layout
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        >
           <VideoElement ref={localVideoRef} muted autoPlay playsInline />
-          <div style={{
-            position: "absolute",
-            bottom: "0.5rem",
-            left: "0.5rem",
-            background: "rgba(0, 0, 0, 0.6)",
-            color: "white",
-            padding: "0.25rem 0.5rem",
-            borderRadius: "0.375rem",
-            fontSize: "0.875rem",
-            fontWeight: "500"
-          }}>
-            {user?.displayName || "You"}
-          </div>
-          <div style={{
-            position: "absolute",
-            top: "0.5rem",
-            right: "0.5rem",
-            display: "flex",
-            gap: "0.25rem",
-            background: "rgba(0, 0, 0, 0.5)",
-            padding: "0.25rem",
-            borderRadius: "0.375rem",
-            color: "white"
-          }}>
-            {!micOn && <FiMicOff />}
-            {!videoOn && <FiVideoOff />}
-          </div>
+          {/* Name overlay */}
+          <VideoOverlay position="bottom: 0.75rem; left: 0.75rem;">
+            {user?.displayName || 'You'} (You)
+          </VideoOverlay>
+          {/* Status indicators */}
+          <VideoOverlay position="top: 0.75rem; right: 0.75rem;">
+            <StatusIndicators>
+              {!micOn && <FiMicOff size={14} />}
+              {!videoOn && <FiVideoOff size={14} />}
+            </StatusIndicators>
+          </VideoOverlay>
         </VideoWrapper>
 
-        <AnimatePresence>
+        {/* Remote Participants */}
+        <AnimatePresence mode="popLayout">
           {peers.map(p => (
-            <ParticipantVideo key={p.peerID} peer={p.peer} micOn={p.micOn} videoOn={p.videoOn} displayName={p.user?.displayName} />
+            <ParticipantVideo 
+              key={p.peerID} 
+              peer={p.peer} 
+              micOn={p.micOn} 
+              videoOn={p.videoOn} 
+              displayName={p.user?.displayName}
+              isLocal={false}
+            />
           ))}
         </AnimatePresence>
       </VideoGrid>
 
       <ControlsBar>
+        {/* Microphone Control */}
         <ControlButton 
           onClick={toggleMic} 
-          whileTap={{ scale: 0.9 }} 
+          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: 1.05 }}
+          variant={micOn ? 'success' : 'danger'}
           active={micOn}
-          activeColor="#4CAF50"
-          color={micOn ? undefined : "#ef4444"}
+          disabled={isLoading}
+          aria-label={micOn ? 'Mute microphone' : 'Unmute microphone'}
+          title={micOn ? 'Mute microphone' : 'Unmute microphone'}
         >
           {micOn ? <FiMic /> : <FiMicOff />}
         </ControlButton>
+
+        {/* Video Control */}
         <ControlButton 
           onClick={toggleVideo} 
-          whileTap={{ scale: 0.9 }} 
+          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: 1.05 }}
+          variant={videoOn ? 'success' : 'danger'}
           active={videoOn}
-          activeColor="#4CAF50"
-          color={videoOn ? undefined : "#ef4444"}
+          disabled={isLoading}
+          aria-label={videoOn ? 'Turn off camera' : 'Turn on camera'}
+          title={videoOn ? 'Turn off camera' : 'Turn on camera'}
         >
           {videoOn ? <FiVideo /> : <FiVideoOff />}
         </ControlButton>
+
+        {/* Screen Share */}
+        <ControlButton 
+          onClick={toggleScreenShare} 
+          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: 1.05 }}
+          active={screenSharing}
+          color={screenSharing ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : undefined}
+          disabled={isLoading}
+          aria-label={screenSharing ? 'Stop screen sharing' : 'Start screen sharing'}
+          title={screenSharing ? 'Stop screen sharing' : 'Start screen sharing'}
+        >
+          <FiMonitor />
+        </ControlButton>
+
+        {/* Switch Camera */}
         <ControlButton 
           onClick={switchCamera} 
-          whileTap={{ scale: 0.9 }} 
-          color="#3b82f6"
+          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: 1.05 }}
+          disabled={isLoading || !videoOn}
+          aria-label="Switch camera"
+          title="Switch camera"
         >
           <FiRepeat />
         </ControlButton>
+
+        {/* Fullscreen */}
         <ControlButton 
           onClick={toggleFullscreen} 
-          whileTap={{ scale: 0.9 }} 
-          color="#eab308"
+          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: 1.05 }}
+          aria-label="Toggle fullscreen"
+          title="Toggle fullscreen"
         >
           <FiMaximize />
         </ControlButton>
+
+        {/* Picture in Picture */}
         <ControlButton 
           onClick={togglePiP} 
-          whileTap={{ scale: 0.9 }} 
-          color="#8b5cf6"
+          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: 1.05 }}
+          disabled={!videoOn}
+          aria-label="Picture in picture"
+          title="Picture in picture"
         >
           <FiExternalLink />
         </ControlButton>
+
+        {/* Divider */}
+        <div style={{
+          width: '2px',
+          height: '2rem',
+          background: 'rgba(255, 255, 255, 0.2)',
+          borderRadius: '1px',
+          margin: '0 0.5rem'
+        }} />
+
+        {/* End Call */}
         <ControlButton 
           onClick={endCall} 
-          whileTap={{ scale: 0.9 }} 
-          color="#ef4444"
+          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: 1.05 }}
+          variant="danger"
+          aria-label="End call"
+          title="End call"
         >
           <FiPhoneOff />
         </ControlButton>

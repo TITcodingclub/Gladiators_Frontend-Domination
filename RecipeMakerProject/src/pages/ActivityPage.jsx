@@ -362,9 +362,8 @@ const activityStats = [
                 <motion.button
                   onClick={handleRefreshActivity}
                   disabled={refreshing}
-                  className="flex items-center gap-3 px-6 py-3 bg-white/20 hover:bg-white/30 backdrop-blur-sm border-2 border-white/30 hover:border-white/50 rounded-2xl text-white font-semibold transition-all duration-300 disabled:opacity-50 shadow-lg hover:shadow-xl"
-                  whileHover={{ scale: 1.05, y: -2 }}
-                  whileTap={{ scale: 0.98 }}
+                  className="flex items-center cursor-pointer gap-3 px-6 py-3 bg-white/20 backdrop-blur-sm border-2 border-white/30 hover:border-white/50 rounded-2xl text-white font-semibold transition-all duration-300 disabled:opacity-50 shadow-lg hover:shadow-xl"
+             
                 >
                   <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
                   <span>

@@ -331,9 +331,8 @@ export default function RecipeGuide({ scrollRef }) {
 
   return (
     <>
-      <ThreadBackground />
-      <motion.div ref={scrollRef} className="w-full lg:px-20 lg:py-10 px-5 py-5 space-y-6">
-        <motion.div className="mt-12 sm:mt-24 flex flex-col items-center text-center">
+      <motion.div ref={scrollRef} className="w-full px-5">
+        <motion.div className="lex flex-col items-center text-center">
           <h1 className="text-4xl sm:text-5xl font-bold text-green-400">
             AI Recipe Guide
           </h1>

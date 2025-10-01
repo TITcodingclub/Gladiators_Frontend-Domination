@@ -1,7 +1,7 @@
 import { lazy } from 'react';
 
 // Lazy load all page components for better performance
-const RecipePage = lazy(() => import('../pages/RecipePage'));
+const Dashboard = lazy(() => import('../pages/Dashboard'));
 const RecipeGuide = lazy(() => import('../components/recipe/RecipeGuide'));
 const CommunityFeed = lazy(() => import('../pages/CommunityFeed'));
 const LoginPage = lazy(() => import('../pages/LoginPage'));
@@ -10,15 +10,12 @@ const RegisterProfile = lazy(() => import('../pages/RegisterProfile'));
 const DietPlanner = lazy(() => import('../components/diet/DietPlanner'));
 const SharedDietPlan = lazy(() => import('../pages/SharedDietPlan'));
 const ActivityPage = lazy(() => import('../pages/ActivityPage'));
-const CallsPage = lazy(() => import('../pages/CallsPage'));
-const CallHistoryPage = lazy(() => import('../pages/CallHistoryPage'));
-const CallTestPage = lazy(() => import('../components/calls/CallTestPage'));
 
 // Route configuration with metadata
 export const routeConfig = [
   {
     path: '/',
-    element: RecipePage,
+    element: Dashboard,
     title: 'Nutrithy - Smart Nutrition & Recipes',
     description: 'Discover healthy recipes and personalized nutrition plans',
     requiresAuth: true,
@@ -57,33 +54,6 @@ export const routeConfig = [
     element: ActivityPage,
     title: 'Nutrithy - Your Activity',
     description: 'Track your nutrition journey, achievements, and community engagement',
-    requiresAuth: true,
-    requiresProfile: true,
-    preloadOnHover: true,
-  },
-  {
-    path: '/calls',
-    element: CallsPage,
-    title: 'Nutrithy - Calls',
-    description: 'Make video calls and connect with others',
-    requiresAuth: true,
-    requiresProfile: true,
-    preloadOnHover: true,
-  },
-  {
-    path: '/calls/history',
-    element: CallHistoryPage,
-    title: 'Nutrithy - Call History',
-    description: 'View your detailed call history and analytics',
-    requiresAuth: true,
-    requiresProfile: true,
-    preloadOnHover: true,
-  },
-  {
-    path: '/calls/test',
-    element: CallTestPage,
-    title: 'Nutrithy - Call Test',
-    description: 'Test and troubleshoot the video calling system',
     requiresAuth: true,
     requiresProfile: true,
     preloadOnHover: true,

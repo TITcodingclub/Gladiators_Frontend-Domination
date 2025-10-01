@@ -97,7 +97,7 @@ function VoiceWithVideoSection() {
 }
 
 // 🔹 Main Page
-export default function RecipePage() {
+export default function Dashboard() {
   const { user } = useAuth()
   const pageRef = useRef(null)
   const [showDevicePairing, setShowDevicePairing] = useState(false)
@@ -112,7 +112,6 @@ export default function RecipePage() {
 
   return (
     <>
-      <ThreadBackground />
       <motion.div 
         ref={pageRef}
         className="px-10 pt-8 w-full mx-auto flex flex-col gap-8 max-w-7xl"

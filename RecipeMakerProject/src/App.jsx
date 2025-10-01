@@ -375,9 +375,7 @@ function AppContent() {
       </main>
       
       {user && (
-        <footer role="contentinfo">
           <Footer />
-        </footer>
       )}
       
     </div>

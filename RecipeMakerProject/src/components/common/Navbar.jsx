@@ -12,9 +12,9 @@ import {
   LogOut,
   User,
   Menu,
-  X,
-  Phone
+  X
 } from 'lucide-react';
+import AnimatedLogo from '../logo/AnimatedLogo';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -55,7 +55,6 @@ export default function Navbar() {
     { name: 'Dashboard', icon: Home, path: '/' },
     { name: 'Recipes', icon: ChefHat, path: '/recipes' },
     { name: 'Community', icon: Users, path: '/community' },
-    { name: 'Calls', icon: Phone, path: '/calls' },
     { name: 'Activity', icon: Activity, path: '/activity' },
     { name: 'Diet Planner', icon: Calendar, path: '/diet-planner' },
   ], []);
@@ -128,7 +127,7 @@ export default function Navbar() {
             className="flex items-center gap-3 cursor-pointer group"
             onClick={() => handleNavigation('/')}
           >
-            <motion.div 
+            {/* <motion.div 
               className="relative rounded-2xl transition-all duration-300 h-13 w-14"
             >
               <img 
@@ -136,44 +135,14 @@ export default function Navbar() {
                 alt="Logo" 
                 className="w-15 h-14 rounded-full object-cover" 
               />
-            </motion.div>
+            </motion.div> */}
             <div>
-              <motion.h1 
-                className="text-lg font-bold bg-gradient-to-r from-gray-800 to-emerald-600 dark:from-white dark:to-emerald-400 bg-clip-text text-transparent group-hover:from-emerald-600 group-hover:to-blue-600 dark:group-hover:from-emerald-400 dark:group-hover:to-blue-400 transition-all duration-300"
-                animate={{
-                  backgroundPosition: ['0% 50%', '100% 50%', '0% 50%']
-                }}
-                transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
-                style={{ backgroundSize: '200% 200%' }}
-              >
-                <div className="flex justify-center">
-                  <motion.svg
-                    viewBox="0 0 180 60"
-                    width="180"
-                    height="45"
-                    initial={{ strokeDasharray: 1000, strokeDashoffset: 1000 }}
-                    animate={{ strokeDashoffset: 0 }}
-                    transition={{ duration: 6, delay: 0.3 }}
-                  >
-                    <text
-                      x="-20"
-                      y="45"
-                      fontSize="40"
-                      className="font-bold"
-                      fill="none"
-                      stroke="#22c55e"
-                      strokeWidth="1.5"
-                    >
-                      Nutrithy 🍳
-                    </text>
-                  </motion.svg>
-                </div>
-              </motion.h1>
+              <AnimatedLogo />
             </div>
           </motion.div>
         </div>
         {/* Animated gradient border at bottom */}
-        <div className="absolute bottom-0 left-0 w-full h-1 item-center bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent opacity-60" />
+        {/* <div className="absolute bottom-0 left-0 w-full h-1 item-center bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent opacity-60" /> */}
       </motion.div>
 
       {/* Desktop Sidebar - Enhanced with Glass Morphism (Adjusted for fixed logo) */}
@@ -207,41 +176,11 @@ export default function Navbar() {
               className="flex items-center justify-center"
             >
               <motion.span 
-                className="text-sm text-gray-600/80 dark:text-gray-400/80 font-medium px-3 py-1 rounded-full bg-white/30 dark:bg-gray-700/30"
+                className="text-sm text-gray-600/80 dark:text-gray-400/80 font-medium px-3 py-1"
                 animate={{ opacity: [0.7, 1, 0.7] }}
                 transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
               >
-                 <motion.h1 
-                className="text-lg font-bold bg-gradient-to-r from-gray-800 to-emerald-600 dark:from-white dark:to-emerald-400 bg-clip-text text-transparent group-hover:from-emerald-600 group-hover:to-blue-600 dark:group-hover:from-emerald-400 dark:group-hover:to-blue-400 transition-all duration-300"
-                animate={{
-                  backgroundPosition: ['0% 50%', '100% 50%', '0% 50%']
-                }}
-                transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
-                style={{ backgroundSize: '200% 200%' }}
-              >
-                <div className="flex justify-center">
-                  <motion.svg
-                    viewBox="0 0 180 60"
-                    width="180"
-                    height="45"
-                    initial={{ strokeDasharray: 1000, strokeDashoffset: 1000 }}
-                    animate={{ strokeDashoffset: 0 }}
-                    transition={{ duration: 6, delay: 0.3 }}
-                  >
-                    <text
-                      x="-20"
-                      y="45"
-                      fontSize="40"
-                      className="font-bold"
-                      fill="none"
-                      stroke="#22c55e"
-                      strokeWidth="1.5"
-                    >
-                      Nutrithy 🍳
-                    </text>
-                  </motion.svg>
-                </div>
-              </motion.h1>
+             <AnimatedLogo />
               </motion.span>
             </motion.div>
           )}
@@ -291,10 +230,7 @@ export default function Navbar() {
                       transition={{ duration: 0.3 }}
                     />
                   )}
-                  
-                  {/* Hover glow effect */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl" />
-                  
+                                    
                   <motion.div
                     whileHover={{ scale: 1.1, rotate: isActive ? 0 : 5 }}
                     transition={{ type: "spring", stiffness: 400, damping: 25 }}
@@ -318,13 +254,6 @@ export default function Navbar() {
                     </motion.span>
                   )}
                 </motion.button>
-                
-                {/* Tooltip for collapsed state */}
-                {isCollapsed && !isHovering && (
-                  <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-2 py-1 bg-gray-900 text-white text-sm rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
-                    {item.name}
-                  </div>
-                )}
               </motion.div>
             );
           })}
@@ -423,14 +352,12 @@ export default function Navbar() {
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
       >
-        {/* Animated gradient border */}
-        <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent opacity-60" />
         
         <div className="flex items-center justify-between px-4 py-3 relative">
           {/* Enhanced Menu Button */}
           <motion.button
             onClick={toggleMobile}
-            className="group relative p-2.5 rounded-xl bg-white/20 dark:bg-gray-700/20 backdrop-blur-sm border border-white/30 dark:border-gray-600/30 hover:bg-white/40 dark:hover:bg-gray-600/30 transition-all duration-300"
+            className="group relative p-2.5"
             aria-label="Toggle menu"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -438,55 +365,12 @@ export default function Navbar() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
           >
-            <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-emerald-500/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            {/* <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-emerald-500/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" /> */}
             <Menu className="w-6 h-6 text-gray-700 dark:text-gray-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors duration-300 relative z-10" />
           </motion.button>
 
           {/* Navigation Title */}
-          <motion.div 
-            className="flex items-center justify-center flex-1"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-          >
-            <motion.span 
-              className="text-sm text-gray-600/80 dark:text-gray-400/80 font-medium px-4 py-1.5 rounded-full bg-white/30 dark:bg-gray-700/30"
-              animate={{ opacity: [0.7, 1, 0.7] }}
-              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-            >
-              <motion.h1 
-                className="text-lg font-bold bg-gradient-to-r from-gray-800 to-emerald-600 dark:from-white dark:to-emerald-400 bg-clip-text text-transparent group-hover:from-emerald-600 group-hover:to-blue-600 dark:group-hover:from-emerald-400 dark:group-hover:to-blue-400 transition-all duration-300"
-                animate={{
-                  backgroundPosition: ['0% 50%', '100% 50%', '0% 50%']
-                }}
-                transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
-                style={{ backgroundSize: '200% 200%' }}
-              >
-                <div className="flex justify-center">
-                  <motion.svg
-                    viewBox="0 0 180 60"
-                    width="180"
-                    height="45"
-                    initial={{ strokeDasharray: 1000, strokeDashoffset: 1000 }}
-                    animate={{ strokeDashoffset: 0 }}
-                    transition={{ duration: 6, delay: 0.3 }}
-                  >
-                    <text
-                      x="-20"
-                      y="45"
-                      fontSize="40"
-                      className="font-bold"
-                      fill="none"
-                      stroke="#22c55e"
-                      strokeWidth="1.5"
-                    >
-                      Nutrithy 🍳
-                    </text>
-                  </motion.svg>
-                </div>
-              </motion.h1>
-            </motion.span>
-          </motion.div>
+          <AnimatedLogo />
 
           {/* Enhanced User Profile Button */}
           <motion.button
@@ -526,8 +410,6 @@ export default function Navbar() {
                       {user?.displayName?.charAt(0) || 'U'}
                     </span>
                   </motion.div>
-                  {/* Glow ring */}
-                  <div className="absolute inset-0 rounded-full bg-gradient-to-r from-emerald-400/40 to-emerald-600/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-sm" />
                 </div>
               )}
             </div>
